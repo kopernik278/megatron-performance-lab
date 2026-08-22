@@ -1,0 +1,49 @@
+{
+  "status": "success",
+  "iterations": 5,
+  "losses": [
+    4.8618059158325195,
+    4.657341003417969,
+    4.483620643615723,
+    4.346574783325195,
+    4.234796047210693
+  ],
+  "final_loss": 4.234796047210693,
+  "average_step_time_ms": 134.8954452201724,
+  "step_times_ms": [
+    629.502160474658,
+    12.574909254908562,
+    13.244783505797386,
+    9.668970480561256,
+    9.48640238493681
+  ],
+  "peak_memory_mib": 20.35791015625,
+  "dtype": "bf16_autocast_fp32_params",
+  "model_config": {
+    "num_layers": 2,
+    "hidden_size": 64,
+    "ffn_hidden_size": 256,
+    "num_attention_heads": 4,
+    "vocab_size": 128,
+    "sequence_length": 64
+  },
+  "batch_size": 2,
+  "sequence_length": 64,
+  "checkpoint": {
+    "path": "results/phase1_smoke_test/checkpoint/single_gpu_smoke.pt",
+    "loaded": true,
+    "missing_keys": [],
+    "unexpected_keys": []
+  },
+  "versions": {
+    "python": "Python 3.12.3",
+    "torch": "2.8.0+cu128",
+    "torch_cuda": "12.8",
+    "nccl": "2.27.3",
+    "megatron": "0.20.0+09fde85ea",
+    "megatron_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+    "gpu": "NVIDIA A40",
+    "driver": "580.159.04",
+    "nvcc": "unavailable: [Errno 2] No such file or directory: 'nvcc'"
+  }
+}
