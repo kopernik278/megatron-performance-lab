@@ -1,0 +1,1424 @@
+{
+  "status": "success",
+  "experiment": "Phase 4.4 persistent BF16 residual stream screen",
+  "optimization_applied": true,
+  "full_benchmark_run": false,
+  "ncu_attempted": false,
+  "nsys_attempted": false,
+  "infrastructure": {
+    "pod_id": "kooj4fxq9zqn93",
+    "gpu": "1x NVIDIA A40 48GB",
+    "gpu_price_per_hour_usd": 0.44,
+    "reused_pod_attempts": [
+      "x6gc433o9vu7sx",
+      "3ixl2btmmwghn5"
+    ],
+    "replacement_reason": "Both stopped A40 hosts reported no free GPU; a same-image Secure Cloud A40 replacement was created.",
+    "pod_final_status": "EXITED",
+    "host_driver_deviation": "Replacement host driver 580.159.03; Phase 4.1/4.2 used 570.195.03. A and B remained same-Pod controls."
+  },
+  "configuration": {
+    "parameter_count": 355919872,
+    "model_config": {
+      "architecture": "Megatron Core GPTModel",
+      "num_layers": 24,
+      "hidden_size": 1024,
+      "ffn_hidden_size": 4096,
+      "num_attention_heads": 16,
+      "head_dimension": 64,
+      "vocab_size": 50304,
+      "max_position_embeddings": 2048,
+      "position_embedding_type": "learned_absolute",
+      "share_embeddings_and_output_weights": true,
+      "hidden_dropout": 0.1,
+      "attention_dropout": 0.1,
+      "layernorm_epsilon": 1e-05,
+      "attention_backend": "fused",
+      "attention_implementation": "te-fused",
+      "core_attention": "TEDotProductAttention",
+      "transformer_layer_spec": "get_gpt_layer_local_spec"
+    },
+    "micro_batch_size": 8,
+    "sequence_length": 2048,
+    "precision": {
+      "forward_backward": "BF16 autocast",
+      "parameter_storage": "FP32",
+      "optimizer_state": "FP32",
+      "layernorm": "unchanged",
+      "loss_reduction": "FP32",
+      "variant_a_residual": "FP32",
+      "variant_b_residual": "persistent BF16"
+    },
+    "optimizer": {
+      "name": "torch.optim.AdamW",
+      "foreach": false,
+      "fused": false
+    },
+    "parallelism": {
+      "tensor_parallel": 1,
+      "pipeline_parallel": 1,
+      "data_parallel": 1
+    },
+    "warmup_iterations": 3,
+    "measured_iterations": 10,
+    "profile_iterations": 5
+  },
+  "dtype_change": {
+    "repository": "lab only; upstream Megatron-LM unchanged",
+    "file": "scripts/bf16_hidden_residual.py",
+    "operations": [
+      "one-time decoder-entry hidden_states.to(bfloat16)",
+      "x.to(residual.dtype) only when x differs",
+      "bias.to(residual.dtype) independently when bias differs"
+    ]
+  },
+  "transformer_engine_backend": {
+    "flash_attention": false,
+    "fused_attention": true,
+    "unfused_attention": false,
+    "fused_sub_backend": 1
+  },
+  "lifecycle": {
+    "passed": true,
+    "expected_layer_count": 24,
+    "observed_layer_count": 24,
+    "expected_boundary_dtype": "bfloat16",
+    "all_24_layer_boundaries_bf16": true,
+    "final_layernorm_input_dtype": "bfloat16",
+    "loss_reduction_dtype": "float32",
+    "parameter_dtypes": [
+      "float32"
+    ],
+    "layers": [
+      {
+        "layer_index": 0,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 1,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 2,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 3,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 4,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 5,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 6,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 7,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 8,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 9,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 10,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 11,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 12,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 13,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 14,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 15,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 16,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 17,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 18,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 19,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 20,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 21,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 22,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      },
+      {
+        "layer_index": 23,
+        "layer_input_dtype": "bfloat16",
+        "layer_output_dtype": "bfloat16",
+        "attention_bda_x_dtype": "bfloat16",
+        "attention_residual_dtype": "bfloat16",
+        "attention_bda_output_dtype": "bfloat16",
+        "attention_bias_dtype_before_cast": "float32",
+        "mlp_bda_x_dtype": "bfloat16",
+        "mlp_residual_dtype": "bfloat16",
+        "mlp_bda_output_dtype": "bfloat16",
+        "mlp_bias_dtype_before_cast": "float32"
+      }
+    ],
+    "failures": [],
+    "bda_calls": 48
+  },
+  "correctness": {
+    "attention_dropout": 0.0,
+    "hidden_dropout": 0.0,
+    "seed": 1234,
+    "bitwise_equality_required": false,
+    "wrap_info": {
+      "already_wrapped": false,
+      "wrapped_module": "decoder",
+      "target_dtype": "bfloat16",
+      "parameter_storage": "unchanged",
+      "bda_behavior": "x_and_bias_independently_cast_to_residual_dtype",
+      "wrapped_layer_count": 24
+    },
+    "dtype_boundaries_observed": [
+      {
+        "site": "embedding",
+        "input": null,
+        "output": {
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "dtype": "float32"
+        }
+      },
+      {
+        "site": "final_layernorm",
+        "input": {
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "dtype": "bfloat16"
+        },
+        "output": {
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "dtype": "bfloat16"
+        }
+      },
+      {
+        "site": "decoder",
+        "input": null,
+        "output": {
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "dtype": "bfloat16"
+        }
+      },
+      {
+        "site": "output_layer",
+        "input": {
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "dtype": "bfloat16"
+        },
+        "output": {
+          "shape": [
+            2048,
+            8,
+            50304
+          ],
+          "dtype": "bfloat16"
+        }
+      }
+    ],
+    "loss": {
+      "baseline": 11.03349494934082,
+      "bf16_residual": 11.033474922180176,
+      "absolute_difference": 2.002716064453125e-05,
+      "relative_difference": 1.815123923696339e-06,
+      "baseline_nonfinite": false,
+      "bf16_residual_nonfinite": false
+    },
+    "forward": {
+      "max_absolute_error": 0.039000511169433594,
+      "mean_absolute_error": 0.006846824660897255,
+      "max_relative_error": 0.0035352399572730064,
+      "mean_relative_error": 0.0006228821584954858,
+      "baseline_nonfinite": false,
+      "bf16_residual_nonfinite": false
+    },
+    "gradients": {
+      "compared_parameter_count": 292,
+      "mean_cosine_similarity": 1.0000047420393932,
+      "min_cosine_similarity": 0.9997517466545105,
+      "worst_parameter": "decoder.layers.0.self_attention.linear_proj.bias",
+      "worst_error": {
+        "max_absolute_error": 0.00044473493471741676,
+        "mean_absolute_error": 0.00010596552601782605,
+        "max_relative_error": 28.020368576049805,
+        "mean_relative_error": 0.0949057936668396,
+        "cosine_similarity": 0.9998667240142822,
+        "has_nonfinite": false
+      },
+      "representative": [
+        {
+          "max_absolute_error": 0.00044473493471741676,
+          "mean_absolute_error": 0.00010596552601782605,
+          "max_relative_error": 28.020368576049805,
+          "mean_relative_error": 0.0949057936668396,
+          "name": "decoder.layers.0.self_attention.linear_proj.bias",
+          "cosine_similarity": 0.9998667240142822,
+          "has_nonfinite": false
+        },
+        {
+          "max_absolute_error": 0.0001903260126709938,
+          "mean_absolute_error": 4.6024902985664085e-05,
+          "max_relative_error": 2.632608652114868,
+          "mean_relative_error": 0.070688895881176,
+          "name": "decoder.layers.0.mlp.linear_fc2.bias",
+          "cosine_similarity": 0.9998605251312256,
+          "has_nonfinite": false
+        },
+        {
+          "max_absolute_error": 0.00016106385737657547,
+          "mean_absolute_error": 3.537689190125093e-05,
+          "max_relative_error": 25.20531463623047,
+          "mean_relative_error": 0.08261696994304657,
+          "name": "decoder.layers.1.self_attention.linear_proj.bias",
+          "cosine_similarity": 0.9998684525489807,
+          "has_nonfinite": false
+        },
+        {
+          "max_absolute_error": 0.00012876687105745077,
+          "mean_absolute_error": 2.7366211725166067e-05,
+          "max_relative_error": 44.04387283325195,
+          "mean_relative_error": 0.128561869263649,
+          "name": "decoder.layers.1.mlp.linear_fc2.bias",
+          "cosine_similarity": 0.9998778104782104,
+          "has_nonfinite": false
+        },
+        {
+          "max_absolute_error": 0.0001220703125,
+          "mean_absolute_error": 7.197281775006559e-06,
+          "max_relative_error": 55.64046859741211,
+          "mean_relative_error": 0.07175372540950775,
+          "name": "decoder.layers.1.self_attention.linear_proj.weight",
+          "cosine_similarity": 0.999817430973053,
+          "has_nonfinite": false
+        },
+        {
+          "max_absolute_error": 0.000110626220703125,
+          "mean_absolute_error": 6.973134532017866e-06,
+          "max_relative_error": 46.59593200683594,
+          "mean_relative_error": 0.07774664461612701,
+          "name": "decoder.layers.1.mlp.linear_fc2.weight",
+          "cosine_similarity": 0.9999157190322876,
+          "has_nonfinite": false
+        },
+        {
+          "max_absolute_error": 9.59089957177639e-05,
+          "mean_absolute_error": 2.3748356397845782e-05,
+          "max_relative_error": 11.065146446228027,
+          "mean_relative_error": 0.0902855321764946,
+          "name": "decoder.layers.2.self_attention.linear_proj.bias",
+          "cosine_similarity": 0.9998810887336731,
+          "has_nonfinite": false
+        },
+        {
+          "max_absolute_error": 9.547569788992405e-05,
+          "mean_absolute_error": 2.0163206500001252e-05,
+          "max_relative_error": 8.132888793945312,
+          "mean_relative_error": 0.07357177883386612,
+          "name": "decoder.layers.2.mlp.linear_fc2.bias",
+          "cosine_similarity": 0.9998849034309387,
+          "has_nonfinite": false
+        }
+      ],
+      "any_nonfinite": false
+    }
+  },
+  "variant_a": {
+    "variant": "A_current_fp32_residual",
+    "bf16_hidden_residual": false,
+    "parameter_count": 355919872,
+    "parameter_dtypes": [
+      "float32"
+    ],
+    "optimizer_state_dtypes": [
+      "float32"
+    ],
+    "wrap_info": null,
+    "warmup_iterations": 3,
+    "measured_iterations": 10,
+    "peak_allocated_memory_mib": 31192.47314453125,
+    "peak_reserved_memory_mib": 31830.0,
+    "gpu_monitoring": {
+      "sample_interval_ms": 200,
+      "sample_count": 54,
+      "average_gpu_utilization_percent": 99.81481481481481,
+      "peak_nvidia_smi_memory_mib": 32628.0
+    },
+    "average_step_time_ms": 1072.6284903706983,
+    "median_step_time_ms": 1072.262667468749,
+    "step_times_ms": [
+      1074.3188969790936,
+      1071.8379390891641,
+      1071.867779828608,
+      1071.8238160479814,
+      1072.0520899631083,
+      1072.0447171479464,
+      1074.0711397957057,
+      1072.4795109126717,
+      1072.4732449743897,
+      1073.315768968314
+    ],
+    "tokens_per_second": 15274.626906784588,
+    "final_loss": 10.224112510681152,
+    "measured_losses": [
+      10.725671768188477,
+      10.659055709838867,
+      10.574346542358398,
+      10.474530220031738,
+      11.492721557617188,
+      10.347573280334473,
+      10.3124361038208,
+      10.51369857788086,
+      10.286713600158691,
+      10.224112510681152
+    ],
+    "mfu": {
+      "training_flops_per_iteration": 39698382716928.0,
+      "achieved_tflops": 37.010375049061324,
+      "gpu_dense_bf16_peak_tflops": 149.7,
+      "mfu_percent": 24.723029424890665
+    }
+  },
+  "variant_b": {
+    "variant": "B_bf16_hidden_residual",
+    "bf16_hidden_residual": true,
+    "parameter_count": 355919872,
+    "parameter_dtypes": [
+      "float32"
+    ],
+    "optimizer_state_dtypes": [
+      "float32"
+    ],
+    "wrap_info": {
+      "already_wrapped": false,
+      "wrapped_module": "decoder",
+      "target_dtype": "bfloat16",
+      "parameter_storage": "unchanged",
+      "bda_behavior": "x_and_bias_independently_cast_to_residual_dtype",
+      "wrapped_layer_count": 24
+    },
+    "warmup_iterations": 3,
+    "measured_iterations": 10,
+    "peak_allocated_memory_mib": 31256.47314453125,
+    "peak_reserved_memory_mib": 32028.0,
+    "gpu_monitoring": {
+      "sample_interval_ms": 200,
+      "sample_count": 52,
+      "average_gpu_utilization_percent": 99.84615384615384,
+      "peak_nvidia_smi_memory_mib": 32826.0
+    },
+    "average_step_time_ms": 1038.4290894959122,
+    "median_step_time_ms": 1038.2813804317266,
+    "step_times_ms": [
+      1038.2084408774972,
+      1037.9153490066528,
+      1038.354319985956,
+      1037.9989738576114,
+      1038.1049129646271,
+      1038.0727350711823,
+      1038.889046991244,
+      1038.7511611916125,
+      1038.8776760082692,
+      1039.1182790044695
+    ],
+    "tokens_per_second": 15777.678192695212,
+    "final_loss": 10.18446159362793,
+    "measured_losses": [
+      10.733922004699707,
+      10.670074462890625,
+      10.588663101196289,
+      10.507512092590332,
+      10.416820526123047,
+      11.519678115844727,
+      10.300444602966309,
+      10.281484603881836,
+      10.222282409667969,
+      10.18446159362793
+    ],
+    "mfu": {
+      "training_flops_per_iteration": 39698382716928.0,
+      "achieved_tflops": 38.22926680164449,
+      "gpu_dense_bf16_peak_tflops": 149.7,
+      "mfu_percent": 25.537252372508014
+    }
+  },
+  "profile_b": {
+    "profiled_steps": 5,
+    "aten_copy_cuda_ms_per_step": 256.1205591999994,
+    "aten_copy_calls_per_step": 1371.0,
+    "copy_cast_kernel_ms_per_step": 256.1159961999996,
+    "copy_cast_kernel_calls_per_step": 1078.0,
+    "families": {
+      "bfloat16_copy": {
+        "cuda_ms_per_step": 174.75308299999728,
+        "calls_per_step": 680.0
+      },
+      "direct_copy": {
+        "cuda_ms_per_step": 81.36291320000271,
+        "calls_per_step": 398.0
+      }
+    },
+    "aten_copy_source_attribution": {
+      "by_source": {
+        "other": {
+          "cuda_ms_per_step": 214.15545939999805,
+          "calls_per_step": 1107.0
+        },
+        "fc1_bias_gelu_promotion_then_fc2_autocast": {
+          "cuda_ms_per_step": 18.201701200000514,
+          "calls_per_step": 48.0
+        },
+        "qkv_adapter": {
+          "cuda_ms_per_step": 13.148642799999877,
+          "calls_per_step": 72.0
+        },
+        "layernorm_to_linear_autocast": {
+          "cuda_ms_per_step": 10.516688600000084,
+          "calls_per_step": 96.0
+        },
+        "persistent_bda_bias_cast": {
+          "cuda_ms_per_step": 0.0980672000009056,
+          "calls_per_step": 48.0
+        }
+      },
+      "top_groups": [
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            2048,
+            8,
+            4096
+          ],
+          "cuda_ms_per_step": 67.90357100000166,
+          "calls_per_step": 96.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "cuda_ms_per_step": 25.590548400002223,
+          "calls_per_step": 146.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            2048,
+            8,
+            50304
+          ],
+          "cuda_ms_per_step": 17.3626100000001,
+          "calls_per_step": 2.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            16384,
+            4096
+          ],
+          "cuda_ms_per_step": 17.101521200000406,
+          "calls_per_step": 24.0
+        },
+        {
+          "source": "fc1_bias_gelu_promotion_then_fc2_autocast",
+          "module": "mlp_fc2",
+          "shape": [
+            2048,
+            8,
+            4096
+          ],
+          "cuda_ms_per_step": 17.08642860000053,
+          "calls_per_step": 24.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            4096,
+            16384
+          ],
+          "cuda_ms_per_step": 17.081028800000063,
+          "calls_per_step": 24.0
+        },
+        {
+          "source": "qkv_adapter",
+          "module": "attention",
+          "shape": [
+            2048,
+            8,
+            16,
+            64
+          ],
+          "cuda_ms_per_step": 13.148642799999877,
+          "calls_per_step": 72.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            2048,
+            8,
+            16,
+            64
+          ],
+          "cuda_ms_per_step": 12.856323399997738,
+          "calls_per_step": 72.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            3072,
+            16384
+          ],
+          "cuda_ms_per_step": 12.820854599999734,
+          "calls_per_step": 24.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            2048,
+            8,
+            3072
+          ],
+          "cuda_ms_per_step": 12.808228799998346,
+          "calls_per_step": 24.0
+        },
+        {
+          "source": "other",
+          "module": "normalization",
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "cuda_ms_per_step": 8.54148220000055,
+          "calls_per_step": 48.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            16384,
+            1024
+          ],
+          "cuda_ms_per_step": 8.345595399999103,
+          "calls_per_step": 48.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            1024,
+            16384
+          ],
+          "cuda_ms_per_step": 4.295704399998718,
+          "calls_per_step": 24.0
+        },
+        {
+          "source": "layernorm_to_linear_autocast",
+          "module": "mlp_fc1",
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "cuda_ms_per_step": 4.285786800000492,
+          "calls_per_step": 24.0
+        },
+        {
+          "source": "layernorm_to_linear_autocast",
+          "module": "qkv_projection",
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "cuda_ms_per_step": 4.2833522000003335,
+          "calls_per_step": 24.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            1024,
+            4096
+          ],
+          "cuda_ms_per_step": 2.2346560000005176,
+          "calls_per_step": 48.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            4096,
+            1024
+          ],
+          "cuda_ms_per_step": 2.233605199998989,
+          "calls_per_step": 48.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            3072,
+            1024
+          ],
+          "cuda_ms_per_step": 1.7065465999996747,
+          "calls_per_step": 48.0
+        },
+        {
+          "source": "fc1_bias_gelu_promotion_then_fc2_autocast",
+          "module": "mlp_fc2",
+          "shape": [
+            4096,
+            1024
+          ],
+          "cuda_ms_per_step": 1.1152725999999884,
+          "calls_per_step": 24.0
+        },
+        {
+          "source": "layernorm_to_linear_autocast",
+          "module": "mlp_fc1",
+          "shape": [
+            1024,
+            4096
+          ],
+          "cuda_ms_per_step": 1.1063517999991022,
+          "calls_per_step": 24.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            50304,
+            1024
+          ],
+          "cuda_ms_per_step": 1.0859039999996312,
+          "calls_per_step": 2.0
+        },
+        {
+          "source": "layernorm_to_linear_autocast",
+          "module": "qkv_projection",
+          "shape": [
+            1024,
+            3072
+          ],
+          "cuda_ms_per_step": 0.8411978000001505,
+          "calls_per_step": 24.0
+        },
+        {
+          "source": "other",
+          "module": "loss",
+          "shape": [
+            1024,
+            50304
+          ],
+          "cuda_ms_per_step": 0.5458251999999396,
+          "calls_per_step": 1.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            8,
+            2048,
+            1024
+          ],
+          "cuda_ms_per_step": 0.4845579999996349,
+          "calls_per_step": 2.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            1024,
+            1024
+          ],
+          "cuda_ms_per_step": 0.441475199999381,
+          "calls_per_step": 48.0
+        },
+        {
+          "source": "other",
+          "module": "attention_output_projection",
+          "shape": [
+            1024,
+            1024
+          ],
+          "cuda_ms_per_step": 0.2831637999998901,
+          "calls_per_step": 24.0
+        },
+        {
+          "source": "other",
+          "module": "embedding",
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "cuda_ms_per_step": 0.24184999999978873,
+          "calls_per_step": 1.0
+        },
+        {
+          "source": "other",
+          "module": "unattributed",
+          "shape": [
+            1024
+          ],
+          "cuda_ms_per_step": 0.16375160000193872,
+          "calls_per_step": 51.0
+        },
+        {
+          "source": "persistent_bda_bias_cast",
+          "module": "persistent_mlp_bda",
+          "shape": [
+            1024
+          ],
+          "cuda_ms_per_step": 0.05116159999962181,
+          "calls_per_step": 24.0
+        },
+        {
+          "source": "persistent_bda_bias_cast",
+          "module": "persistent_attention_bda",
+          "shape": [
+            1024
+          ],
+          "cuda_ms_per_step": 0.04690560000128389,
+          "calls_per_step": 24.0
+        }
+      ],
+      "classification_note": "Uses unique aten::copy_ events. Forward module ranges identify QKV/FC1 LayerNorm-to-Linear autocast, FC1-bias/GELU-to-FC2 autocast, QKV adapter, and the corrected BDA bias casts. Unparented backward/layout work is 'other'."
+    },
+    "python_tensor_to": {
+      "groups": [
+        {
+          "src_dtype": "float32",
+          "dst_dtype": "bfloat16",
+          "shape": [
+            2048,
+            8,
+            16,
+            64
+          ],
+          "source": "qkv_adapter",
+          "example_stack": [
+            "File \"/root/Megatron-LM/megatron/core/transformer/module.py\", line 385, in __call__\n    return super().__call__(*args, **kwargs)",
+            "File \"/workspace/megatron-performance-lab/scripts/bf16_hidden_residual.py\", line 131, in wrapped_forward\n    return original_forward(*args, **kwargs)",
+            "File \"/root/Megatron-LM/megatron/core/transformer/transformer_block.py\", line 715, in forward\n    hidden_states, context = layer(",
+            "File \"/root/Megatron-LM/megatron/core/transformer/module.py\", line 385, in __call__\n    return super().__call__(*args, **kwargs)",
+            "File \"/root/Megatron-LM/megatron/core/transformer/transformer_layer.py\", line 808, in forward\n    hidden_states, context = self._forward_attention(*args, **kwargs)",
+            "File \"/root/Megatron-LM/megatron/core/transformer/transformer_layer.py\", line 669, in _forward_attention\n    attention_output_with_bias = self.self_attention(",
+            "File \"/root/Megatron-LM/megatron/core/transformer/attention.py\", line 1569, in forward\n    core_attn_out = apply_module(self.core_attention)(",
+            "File \"/workspace/megatron-performance-lab/scripts/phase1_baseline.py\", line 180, in forward\n    query = query.to(autocast_dtype)"
+          ],
+          "count": 360,
+          "calls_per_step": 72.0
+        },
+        {
+          "src_dtype": "float32",
+          "dst_dtype": "bfloat16",
+          "shape": [
+            1024
+          ],
+          "source": "persistent_bda",
+          "example_stack": [
+            "File \"/root/Megatron-LM/megatron/core/transformer/transformer_block.py\", line 715, in forward\n    hidden_states, context = layer(",
+            "File \"/root/Megatron-LM/megatron/core/transformer/module.py\", line 385, in __call__\n    return super().__call__(*args, **kwargs)",
+            "File \"/root/Megatron-LM/megatron/core/transformer/transformer_layer.py\", line 808, in forward\n    hidden_states, context = self._forward_attention(*args, **kwargs)",
+            "File \"/root/Megatron-LM/megatron/core/transformer/transformer_layer.py\", line 690, in _forward_attention\n    hidden_states = self._apply_self_attn_bda_step(",
+            "File \"/root/Megatron-LM/megatron/core/transformer/transformer_layer.py\", line 754, in _apply_self_attn_bda_step\n    hidden_states = self.self_attn_bda(self.training, self.config.bias_dropout_fusion)(",
+            "File \"/workspace/megatron-performance-lab/scripts/phase4_persistent_bf16_residual_screen.py\", line 96, in traced_bda\n    output = inner(x_with_bias, residual, prob)",
+            "File \"/workspace/megatron-performance-lab/scripts/bf16_hidden_residual.py\", line 71, in _bias_dropout_add\n    return _bias_dropout_add_func(x_with_bias, residual, prob, training)",
+            "File \"/workspace/megatron-performance-lab/scripts/bf16_hidden_residual.py\", line 50, in _bias_dropout_add_func\n    bias = bias.to(residual.dtype)"
+          ],
+          "count": 240,
+          "calls_per_step": 48.0
+        },
+        {
+          "src_dtype": "bfloat16",
+          "dst_dtype": "float32",
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "source": "linear_backward",
+          "example_stack": [
+            "File \"/root/Megatron-LM/megatron/core/tensor_parallel/layers.py\", line 643, in backward\n    grad_output = grad_output.to(ctx.input_dtype)"
+          ],
+          "count": 120,
+          "calls_per_step": 24.0
+        },
+        {
+          "src_dtype": "bfloat16",
+          "dst_dtype": "float32",
+          "shape": [
+            2048,
+            8,
+            4096
+          ],
+          "source": "linear_backward",
+          "example_stack": [
+            "File \"/root/Megatron-LM/megatron/core/tensor_parallel/layers.py\", line 643, in backward\n    grad_output = grad_output.to(ctx.input_dtype)"
+          ],
+          "count": 120,
+          "calls_per_step": 24.0
+        },
+        {
+          "src_dtype": "float32",
+          "dst_dtype": "bfloat16",
+          "shape": [
+            1024
+          ],
+          "source": "te_final_layernorm",
+          "example_stack": [
+            "File \"/workspace/megatron-performance-lab/scripts/bf16_hidden_residual.py\", line 131, in wrapped_forward\n    return original_forward(*args, **kwargs)",
+            "File \"/root/Megatron-LM/megatron/core/transformer/transformer_block.py\", line 756, in forward\n    hidden_states = apply_module(self.final_layernorm)(cast(Tensor, hidden_states))",
+            "File \"/root/phase44-venv/lib/python3.12/site-packages/transformer_engine/pytorch/ops/op.py\", line 543, in forward\n    return OperationFuser([self])(",
+            "File \"/root/phase44-venv/lib/python3.12/site-packages/transformer_engine/pytorch/ops/fuser.py\", line 556, in __call__\n    return _OperationFuserAutogradFunction.apply(*args)",
+            "File \"/root/phase44-venv/lib/python3.12/site-packages/transformer_engine/pytorch/ops/fuser.py\", line 134, in forward\n    x, fused_op_extra_outputs = op.fuser_forward(",
+            "File \"/root/phase44-venv/lib/python3.12/site-packages/transformer_engine/pytorch/ops/op.py\", line 504, in fuser_forward\n    output = self.op_forward(",
+            "File \"/root/phase44-venv/lib/python3.12/site-packages/transformer_engine/pytorch/ops/basic/layer_norm.py\", line 200, in op_forward\n    w = maybe_dequantize(self.weight, dtype).view((inner_dim,))",
+            "File \"/root/phase44-venv/lib/python3.12/site-packages/transformer_engine/pytorch/ops/_common.py\", line 33, in maybe_dequantize\n    tensor = tensor.to(dtype)"
+          ],
+          "count": 15,
+          "calls_per_step": 3.0
+        },
+        {
+          "src_dtype": "float32",
+          "dst_dtype": "bfloat16",
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "source": "qkv_adapter",
+          "example_stack": [
+            "File \"/workspace/megatron-performance-lab/scripts/phase1_baseline.py\", line 290, in train_step\n    output_tensor = model(",
+            "File \"/root/Megatron-LM/megatron/core/models/gpt/gpt_model.py\", line 553, in __call__\n    return super().__call__(*args, **kwargs)",
+            "File \"/root/Megatron-LM/megatron/core/transformer/module.py\", line 385, in __call__\n    return super().__call__(*args, **kwargs)",
+            "File \"/root/Megatron-LM/megatron/core/models/gpt/gpt_model.py\", line 628, in forward\n    hidden_states = self.decoder(",
+            "File \"/root/Megatron-LM/megatron/core/transformer/transformer_block.py\", line 496, in __call__\n    return super().__call__(*args, **kwargs)",
+            "File \"/root/Megatron-LM/megatron/core/transformer/module.py\", line 385, in __call__\n    return super().__call__(*args, **kwargs)",
+            "File \"/workspace/megatron-performance-lab/scripts/bf16_hidden_residual.py\", line 130, in wrapped_forward\n    kwargs[\"hidden_states\"] = _cast_hidden(kwargs[\"hidden_states\"])",
+            "File \"/workspace/megatron-performance-lab/scripts/bf16_hidden_residual.py\", line 29, in _cast_hidden\n    return hidden_states.to(dtype=BF16_HIDDEN_DTYPE)"
+          ],
+          "count": 5,
+          "calls_per_step": 1.0
+        }
+      ],
+      "calls_per_step": 172.0
+    },
+    "bda_operand_trace": {
+      "calls_per_step": 48.0,
+      "x_casts_required_per_step": 0.0,
+      "bias_casts_required_per_step": 48.0,
+      "residual_bf16_to_fp32_casts_per_step": 0.0,
+      "residual_upcast_eliminated": true,
+      "sample_records": [
+        {
+          "layer_index": 0,
+          "site": "persistent_attention_bda",
+          "x_dtype": "bfloat16",
+          "bias_dtype": "float32",
+          "residual_dtype": "bfloat16",
+          "output_dtype": "bfloat16",
+          "x_cast_required": false,
+          "bias_cast_required": true
+        },
+        {
+          "layer_index": 0,
+          "site": "persistent_mlp_bda",
+          "x_dtype": "bfloat16",
+          "bias_dtype": "float32",
+          "residual_dtype": "bfloat16",
+          "output_dtype": "bfloat16",
+          "x_cast_required": false,
+          "bias_cast_required": true
+        },
+        {
+          "layer_index": 1,
+          "site": "persistent_attention_bda",
+          "x_dtype": "bfloat16",
+          "bias_dtype": "float32",
+          "residual_dtype": "bfloat16",
+          "output_dtype": "bfloat16",
+          "x_cast_required": false,
+          "bias_cast_required": true
+        },
+        {
+          "layer_index": 1,
+          "site": "persistent_mlp_bda",
+          "x_dtype": "bfloat16",
+          "bias_dtype": "float32",
+          "residual_dtype": "bfloat16",
+          "output_dtype": "bfloat16",
+          "x_cast_required": false,
+          "bias_cast_required": true
+        },
+        {
+          "layer_index": 2,
+          "site": "persistent_attention_bda",
+          "x_dtype": "bfloat16",
+          "bias_dtype": "float32",
+          "residual_dtype": "bfloat16",
+          "output_dtype": "bfloat16",
+          "x_cast_required": false,
+          "bias_cast_required": true
+        },
+        {
+          "layer_index": 2,
+          "site": "persistent_mlp_bda",
+          "x_dtype": "bfloat16",
+          "bias_dtype": "float32",
+          "residual_dtype": "bfloat16",
+          "output_dtype": "bfloat16",
+          "x_cast_required": false,
+          "bias_cast_required": true
+        },
+        {
+          "layer_index": 3,
+          "site": "persistent_attention_bda",
+          "x_dtype": "bfloat16",
+          "bias_dtype": "float32",
+          "residual_dtype": "bfloat16",
+          "output_dtype": "bfloat16",
+          "x_cast_required": false,
+          "bias_cast_required": true
+        },
+        {
+          "layer_index": 3,
+          "site": "persistent_mlp_bda",
+          "x_dtype": "bfloat16",
+          "bias_dtype": "float32",
+          "residual_dtype": "bfloat16",
+          "output_dtype": "bfloat16",
+          "x_cast_required": false,
+          "bias_cast_required": true
+        }
+      ]
+    }
+  },
+  "comparison": {
+    "step_time_ms": {
+      "A": 1072.6284903706983,
+      "B": 1038.4290894959122,
+      "delta_ms": -34.19940087478608,
+      "improvement_percent": 3.188373344713866
+    },
+    "tokens_per_second": {
+      "A": 15274.626906784588,
+      "B": 15777.678192695212,
+      "delta_percent": 3.2933785484945735
+    },
+    "mfu_percent": {
+      "A": 24.723029424890665,
+      "B": 25.537252372508014,
+      "delta_points": 0.814222947617349
+    },
+    "peak_allocated_memory_mib": {
+      "A": 31192.47314453125,
+      "B": 31256.47314453125,
+      "delta_mib": 64.0
+    },
+    "copy_cast_ms_per_step": {
+      "phase41": 255.9110933999933,
+      "B": 256.1159961999996,
+      "reduction_ms": -0.20490280000629468,
+      "reduction_percent": -0.08006796316798515
+    },
+    "bfloat16_copy_ms_per_step": {
+      "phase41": 174.722054399994,
+      "B": 174.75308299999728,
+      "reduction_ms": -0.03102860000328178,
+      "reduction_percent": -0.01775998313618251,
+      "phase41_calls_per_step": 632.0,
+      "B_calls_per_step": 680.0
+    },
+    "direct_copy_ms_per_step": {
+      "phase41": 81.18903899999928,
+      "B": 81.36291320000271,
+      "reduction_ms": -0.17387420000342502,
+      "reduction_percent": -0.21415846044935476,
+      "phase41_calls_per_step": 350.0,
+      "B_calls_per_step": 398.0
+    },
+    "aten_copy": {
+      "phase41_cuda_ms_per_step": 255.92,
+      "B_cuda_ms_per_step": 256.1205591999994,
+      "phase41_calls_per_step": 1275.0,
+      "B_calls_per_step": 1371.0
+    }
+  },
+  "decision": {
+    "promising": false,
+    "hypothesis_supported": false,
+    "full_20_plus_100_benchmark_run": false,
+    "gates": {
+      "all_layer_boundaries_bf16": true,
+      "no_nan_inf": true,
+      "gradients_strongly_aligned": true,
+      "min_cosine_similarity": 0.9997517466545105,
+      "copy_cast_decreased_materially": false,
+      "copy_reduction_threshold_percent": 20.0,
+      "copy_cast_reduction_percent_vs_phase41": -0.08006796316798515,
+      "throughput_improved_at_least_5_percent": false,
+      "throughput_delta_percent": 3.2933785484945735
+    },
+    "copy_cast_ms_per_step": {
+      "phase41": 255.9110933999933,
+      "variant_b": 256.1159961999996,
+      "reduction_ms": -0.20490280000629468,
+      "reduction_percent": -0.08006796316798515
+    },
+    "bfloat16_copy_ms_per_step": {
+      "phase41": 174.722054399994,
+      "variant_b": 174.75308299999728
+    },
+    "direct_copy_ms_per_step": {
+      "phase41": 81.18903899999928,
+      "variant_b": 81.36291320000271
+    },
+    "rationale": "Stop after the fast screen: at least one lifecycle, correctness, copy, or throughput gate failed. Do not run 20+100."
+  },
+  "diagnosis": {
+    "mechanism_result": "The lab-local BDA change worked: all 48 BDA calls/step had BF16 x and BF16 residual, required zero x casts, and produced BF16 output. Each call instead cast its FP32 bias to BF16.",
+    "performance_result": "The residual promotion mechanism was eliminated, but aggregate copy/cast time did not decrease and throughput improved only 3.29%, below the 5% gate.",
+    "remaining_copy_sources": {
+      "layernorm_to_linear_autocast": {
+        "normalization_input_cuda_ms_per_step": 8.54148220000055,
+        "normalization_input_calls_per_step": 48.0,
+        "qkv_and_fc1_activation_autocast_cuda_ms_per_step": 8.569139000000825,
+        "qkv_and_fc1_activation_autocast_calls_per_step": 48.0,
+        "interpretation": "BF16 residual enters FP32-policy LayerNorm, then QKV/FC1 Linear autocast converts the FP32 normalized activation back to BF16."
+      },
+      "fc1_bias_gelu_and_fc2_autocast": {
+        "fc2_activation_autocast_cuda_ms_per_step": 17.08642860000053,
+        "fc2_activation_autocast_calls_per_step": 24.0,
+        "interpretation": "FP32 FC1 bias promotes the activation/GELU path; FC2 autocast then copies the [2048,8,4096] activation to BF16."
+      },
+      "qkv_adapter": {
+        "forward_cuda_ms_per_step": 13.148642799999877,
+        "forward_calls_per_step": 72.0,
+        "matching_backward_cuda_ms_per_step": 12.856323399997738,
+        "matching_backward_calls_per_step": 72.0
+      },
+      "persistent_bda_bias_cast": {
+        "cuda_ms_per_step": 0.0980672000009056,
+        "calls_per_step": 48.0,
+        "interpretation": "The intended FP32 bias to BF16 casts are tiny, but add one cast site per attention and MLP BDA."
+      },
+      "other": {
+        "cuda_ms_per_step": 214.15545939999805,
+        "calls_per_step": 1107.0,
+        "dominant_groups": [
+          "unparented [2048,8,4096] forward/backward activation and gradient copies: 67.90 ms, 96 calls",
+          "unparented [2048,8,1024] activation and gradient copies: 25.59 ms, 146 calls",
+          "logits [2048,8,50304] copies: 17.36 ms, 2 calls",
+          "FC1/FC2/QKV GEMM operand/layout copies and explicit LinearFunction.backward dtype restoration"
+        ]
+      }
+    },
+    "phase41_comparison_limit": "Phase 4.1 and Phase 4.4 profiler totals were collected on different A40 hosts and driver revisions because both prior stopped hosts had no free GPU. Same-Pod A/B throughput remains controlled."
+  },
+  "environment": {
+    "timestamp_utc": "2026-08-23T19:43:58.320508+00:00",
+    "hostname": "a74990d34647",
+    "platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "pytorch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "nccl": "2.27.3",
+    "cudnn": 91002,
+    "megatron_core": "unavailable: Command '['python', '-c', \"import importlib.metadata as m; print(m.version('megatron-core'))\"]' returned non-zero exit status 1.",
+    "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+    "megatron_lm_source_path": "/root/Megatron-LM",
+    "metadata_correction": "The generic collector inspected an unused /workspace/Megatron-LM checkout. The executed PYTHONPATH source was /root/Megatron-LM; its commit was independently verified after the run.",
+    "project_commit": "8f52deea92ab00674e3b4d26fbcb804ff620c892",
+    "gpu": "NVIDIA A40",
+    "driver": "580.159.03",
+    "gpu_memory_total_mib": 46068.0,
+    "compute_capability": [
+      8,
+      6
+    ],
+    "bf16_supported": true,
+    "transformer_engine_installed": true,
+    "transformer_engine_version": "2.17.1+4329ff84",
+    "transformer_engine_disabled": false,
+    "cuda_graph_enabled": false
+  }
+}
