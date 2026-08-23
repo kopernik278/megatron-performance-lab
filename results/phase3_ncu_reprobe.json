@@ -1,0 +1,78 @@
+{
+  "status": "blocked",
+  "experiment": "Phase 3.0 NCU capability reprobe on fresh A40 host",
+  "conclusion": "Hardware performance counters remain blocked by RunPod host policy (ERR_NVGPUCTRPERM). Phase 3.4 will use Nsight Systems only.",
+  "infrastructure": {
+    "pod_id": "9srvihy8dgwugw",
+    "pod_name": "megatron-performance-lab-ncu-probe",
+    "cloud": "SECURE",
+    "data_center_id": "US-MO-1",
+    "gpu": "1x NVIDIA A40 48GB",
+    "gpu_price_per_hour_usd": 0.44,
+    "image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+    "host_ip": "64.247.206.145",
+    "host_cuda_version": "13.0",
+    "pod_status_after_probe": "EXITED"
+  },
+  "environment": {
+    "timestamp_utc": "2026-08-23T13:54:00Z",
+    "hostname": "47ab6d10911e",
+    "kernel": "Linux 6.8.0-111-generic",
+    "python": "3.12.3",
+    "pytorch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "nccl": "2.27.3",
+    "driver": "580.126.16",
+    "nsight_compute": "2025.1.1.0",
+    "gpu_name": "NVIDIA A40",
+    "compute_capability": "8.6"
+  },
+  "host_profiling_diagnostics": {
+    "RmProfilingAdminOnly": 1,
+    "container_user": "root (uid=0)",
+    "bounding_set_excludes": [
+      "CAP_SYS_ADMIN",
+      "CAP_PERFMON",
+      "CAP_SYS_PTRACE"
+    ],
+    "interpretation": "Host restricts GPU performance counters to administrators. Container root lacks CAP_SYS_ADMIN and CAP_PERFMON, so NCU hardware-counter collection is denied."
+  },
+  "ncu_probes": [
+    {
+      "name": "LaunchStats only",
+      "command_summary": "ncu --set LaunchStats --launch-count 1 python3 tiny bf16 matmul",
+      "exit_code": 0,
+      "hardware_counters_collected": false,
+      "notes": "Connected and profiled a kernel launch, but LaunchStats does not include SM/DRAM/Tensor Core hardware metrics. Warning: No metrics to collect found in sections for some passes."
+    },
+    {
+      "name": "basic metric set",
+      "command_summary": "ncu --set basic --launch-count 1 python3 tiny bf16 matmul",
+      "exit_code": 1,
+      "error": "ERR_NVGPUCTRPERM - The user does not have permission to access NVIDIA GPU Performance Counters on the target device 0",
+      "hardware_counters_collected": false
+    }
+  ],
+  "comparison_to_phase2_2": {
+    "phase2_2_pod_id": "blocked on prior host",
+    "phase2_2_RmProfilingAdminOnly": 1,
+    "phase2_2_error": "ERR_NVGPUCTRPERM",
+    "this_host_same_restriction": true,
+    "new_host_data_center": "US-MO-1 (prior probes used CA-MTL-1)"
+  },
+  "phase34_implication": {
+    "ncu_targeted_profiling": "skipped",
+    "nsight_systems_profiling": "proceed",
+    "unavailable_metrics": [
+      "achieved occupancy",
+      "SM throughput",
+      "DRAM throughput",
+      "L2 throughput",
+      "Tensor Core utilization",
+      "warp stall reasons",
+      "roofline position from hardware counters"
+    ]
+  },
+  "probe_duration_minutes": 2.5,
+  "full_benchmark_run": false
+}
