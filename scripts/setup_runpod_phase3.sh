@@ -22,16 +22,19 @@ git -C megatron-performance-lab fetch origin "$BRANCH" || git -C megatron-perfor
 git -C megatron-performance-lab checkout "$BRANCH" 2>/dev/null || git -C megatron-performance-lab checkout main
 
 cd /workspace/megatron-performance-lab
-python3 -m venv .venv
+python3 -m venv --system-site-packages .venv
 source .venv/bin/activate
-pip install -U pip setuptools wheel ninja pybind11 packaging pydantic einops
+pip install -U pip setuptools wheel ninja pybind11 packaging pydantic einops numpy importlib-metadata onnx onnxscript nvdlfw-inspect
 
 if [ ! -d /workspace/TransformerEngine/.git ]; then
   git clone https://github.com/NVIDIA/TransformerEngine.git /workspace/TransformerEngine
 fi
 git -C /workspace/TransformerEngine checkout "$TE_COMMIT"
 cd /workspace/TransformerEngine
-NVTE_FRAMEWORK=pytorch NVTE_CUDA_ARCHS=86 MAX_JOBS=8 \
+export PATH=/usr/local/cuda/bin:$PATH
+export CUDACXX=/usr/local/cuda/bin/nvcc
+export CUDA_HOME=/usr/local/cuda
+NVTE_FRAMEWORK=pytorch NVTE_CUDA_ARCHS=86 NVTE_WITH_NCCL_EP=0 MAX_JOBS=8 \
   pip install --no-build-isolation --no-deps -v .
 
 cd /workspace/megatron-performance-lab
