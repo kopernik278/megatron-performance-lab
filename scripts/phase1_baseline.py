@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import gc
+import importlib.metadata
 import importlib.util
 import json
 import os
@@ -29,6 +30,9 @@ from megatron.core.transformer.transformer_config import TransformerConfig
 
 
 A40_DENSE_BF16_PEAK_TFLOPS = 149.7
+LOCAL_UNFUSED_ATTENTION = "local-unfused"
+TE_FUSED_ATTENTION = "te-fused"
+ATTENTION_IMPLEMENTATIONS = (LOCAL_UNFUSED_ATTENTION, TE_FUSED_ATTENTION)
 
 
 class UnsafeMemoryMargin(RuntimeError):
@@ -113,6 +117,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--learning-rate", type=float, default=1.0e-4)
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--gpu-sample-interval-ms", type=int, default=200)
+    parser.add_argument(
+        "--attention-implementation",
+        choices=ATTENTION_IMPLEMENTATIONS,
+        default=LOCAL_UNFUSED_ATTENTION,
+    )
     parser.add_argument("--output-json", type=Path, default=Path("results/phase1_baseline.json"))
     return parser.parse_args()
 
@@ -148,14 +157,39 @@ def initialize_single_gpu_distributed(seed: int) -> int:
     return local_rank
 
 
-def build_model(args: argparse.Namespace) -> GPTModel:
+def get_transformer_layer_spec(attention_implementation: str) -> Any:
+    layer_spec = get_gpt_layer_local_spec()
+    if attention_implementation == LOCAL_UNFUSED_ATTENTION:
+        return layer_spec
+    if attention_implementation == TE_FUSED_ATTENTION:
+        from megatron.core.extensions.transformer_engine import TEDotProductAttention
+
+        layer_spec.submodules.self_attention.submodules.core_attention = TEDotProductAttention
+        return layer_spec
+    raise ValueError(f"Unsupported attention implementation: {attention_implementation}")
+
+
+def build_model(
+    args: argparse.Namespace,
+    attention_implementation: str | None = None,
+    attention_dropout: float = 0.1,
+) -> GPTModel:
+    if attention_implementation is None:
+        attention_implementation = getattr(
+            args, "attention_implementation", LOCAL_UNFUSED_ATTENTION
+        )
+    attention_backend = (
+        AttnBackend.fused
+        if attention_implementation == TE_FUSED_ATTENTION
+        else AttnBackend.unfused
+    )
     config = TransformerConfig(
         num_layers=args.num_layers,
         hidden_size=args.hidden_size,
         ffn_hidden_size=args.ffn_hidden_size,
         num_attention_heads=args.num_attention_heads,
         hidden_dropout=0.1,
-        attention_dropout=0.1,
+        attention_dropout=attention_dropout,
         layernorm_epsilon=1.0e-5,
         add_bias_linear=True,
         gated_linear_unit=False,
@@ -164,11 +198,11 @@ def build_model(args: argparse.Namespace) -> GPTModel:
         pipeline_dtype=torch.float32,
         bf16=False,
         fp16=False,
-        attention_backend=AttnBackend.unfused,
+        attention_backend=attention_backend,
     )
     model = GPTModel(
         config=config,
-        transformer_layer_spec=get_gpt_layer_local_spec(),
+        transformer_layer_spec=get_transformer_layer_spec(attention_implementation),
         vocab_size=args.vocab_size,
         max_sequence_length=args.sequence_length,
         parallel_output=True,
@@ -267,6 +301,10 @@ def collect_environment() -> dict[str, Any]:
             "--format=csv,noheader,nounits",
         ]
     ).split(",")
+    try:
+        transformer_engine_version = importlib.metadata.version("transformer-engine")
+    except importlib.metadata.PackageNotFoundError:
+        transformer_engine_version = None
     return {
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "hostname": platform.node(),
@@ -275,6 +313,7 @@ def collect_environment() -> dict[str, Any]:
         "pytorch": torch.__version__,
         "cuda_runtime": torch.version.cuda,
         "nccl": ".".join(str(part) for part in nccl_version) if isinstance(nccl_version, tuple) else nccl_version,
+        "cudnn": torch.backends.cudnn.version(),
         "megatron_core": run_command(
             ["python", "-c", "import importlib.metadata as m; print(m.version('megatron-core'))"]
         ),
@@ -286,6 +325,7 @@ def collect_environment() -> dict[str, Any]:
         "compute_capability": torch.cuda.get_device_capability(0),
         "bf16_supported": torch.cuda.is_bf16_supported(),
         "transformer_engine_installed": importlib.util.find_spec("transformer_engine") is not None,
+        "transformer_engine_version": transformer_engine_version,
         "transformer_engine_disabled": os.environ.get("TRANSFORMER_ENGINE_DISABLE") == "1",
         "cuda_graph_enabled": False,
     }
@@ -297,7 +337,10 @@ def run_candidate(
     device: torch.device,
 ) -> dict[str, Any]:
     torch.manual_seed(args.seed)
-    model = build_model(args)
+    attention_implementation = getattr(
+        args, "attention_implementation", LOCAL_UNFUSED_ATTENTION
+    )
+    model = build_model(args, attention_implementation=attention_implementation)
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=args.learning_rate,
@@ -372,7 +415,17 @@ def run_candidate(
             "hidden_dropout": 0.1,
             "attention_dropout": 0.1,
             "layernorm_epsilon": 1.0e-5,
-            "attention_backend": "unfused",
+            "attention_backend": (
+                "fused"
+                if attention_implementation == TE_FUSED_ATTENTION
+                else "unfused"
+            ),
+            "attention_implementation": attention_implementation,
+            "core_attention": (
+                "TEDotProductAttention"
+                if attention_implementation == TE_FUSED_ATTENTION
+                else "DotProductAttention"
+            ),
             "transformer_layer_spec": "get_gpt_layer_local_spec",
         },
         "parallelism": {
@@ -433,8 +486,11 @@ def main() -> None:
     try:
         if not torch.cuda.is_bf16_supported():
             raise RuntimeError("The selected GPU does not support BF16")
-        if os.environ.get("TRANSFORMER_ENGINE_DISABLE") != "1":
-            raise RuntimeError("TRANSFORMER_ENGINE_DISABLE=1 is required for this baseline")
+        if args.attention_implementation == LOCAL_UNFUSED_ATTENTION:
+            if os.environ.get("TRANSFORMER_ENGINE_DISABLE") != "1":
+                raise RuntimeError("TRANSFORMER_ENGINE_DISABLE=1 is required for this baseline")
+        elif os.environ.get("TRANSFORMER_ENGINE_DISABLE") == "1":
+            raise RuntimeError("TRANSFORMER_ENGINE_DISABLE must be unset for TE fused attention")
 
         device = torch.device(f"cuda:{local_rank}")
         candidates = [int(value) for value in args.micro_batch_candidates.split(",")]
