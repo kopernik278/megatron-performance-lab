@@ -1,0 +1,312 @@
+{
+  "status": "blocked",
+  "experiment": "Phase 2.2 targeted Nsight Compute analysis",
+  "blocking_reason": "ERR_NVGPUCTRPERM: the RunPod host restricts NVIDIA GPU performance counters to host administrators, while the Pod container lacks CAP_SYS_ADMIN and CAP_PERFMON",
+  "baseline_unchanged": true,
+  "infrastructure": {
+    "pod_id": "nrk1bdpgmo1ej3",
+    "cloud": "Secure Cloud",
+    "gpu": "1x NVIDIA A40 48GB",
+    "gpu_price_per_hour_usd": 0.44,
+    "pod_final_status": "EXITED"
+  },
+  "environment": {
+    "python": "3.12.3",
+    "pytorch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "nccl": "2.27.3",
+    "megatron_core": "0.20.0+09fde85ea",
+    "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+    "driver": "570.195.03",
+    "nsight_compute": "2025.1.1.0",
+    "transformer_engine_installed": false,
+    "transformer_engine_disabled": true,
+    "cuda_graph_enabled": false
+  },
+  "baseline_configuration": {
+    "parameter_count": 355919872,
+    "num_layers": 24,
+    "hidden_size": 1024,
+    "ffn_hidden_size": 4096,
+    "num_attention_heads": 16,
+    "vocab_size": 50304,
+    "sequence_length": 2048,
+    "micro_batch_size": 1,
+    "global_batch_size": 1,
+    "tensor_parallel": 1,
+    "pipeline_parallel": 1,
+    "data_parallel": 1,
+    "precision": "BF16 autocast with FP32 parameters and optimizer state",
+    "attention_backend": "unfused",
+    "optimizer": "torch.optim.AdamW, foreach=False, fused=False",
+    "warmup_iterations": 20
+  },
+  "ncu_collection": {
+    "status": "blocked_before_metric_collection",
+    "kernel_filter_verified": true,
+    "report_artifacts_created": false,
+    "attempts": [
+      {
+        "target": "regex:cunn_SoftMaxBackwardSmem",
+        "sections": [
+          "basic set"
+        ],
+        "launch_skip": 5,
+        "launch_count": 1,
+        "profile_from_start": false,
+        "result": "ERR_NVGPUCTRPERM"
+      },
+      {
+        "target": "regex:cunn_SoftMaxBackwardSmem",
+        "sections": [
+          "LaunchStats",
+          "Occupancy"
+        ],
+        "launch_skip": 5,
+        "launch_count": 1,
+        "profile_from_start": false,
+        "result": "ERR_NVGPUCTRPERM"
+      }
+    ],
+    "host_diagnostics": {
+      "nvidia_driver_parameter": "RmProfilingAdminOnly: 1",
+      "container_cap_sys_admin": false,
+      "container_cap_perfmon": false,
+      "running_as_container_root": true,
+      "explanation": "Container root is not host administrator. The missing capabilities are outside the container and cannot be enabled from the existing Pod."
+    },
+    "unavailable_metrics": [
+      "achieved occupancy",
+      "SM throughput",
+      "DRAM throughput",
+      "L2 throughput",
+      "arithmetic intensity",
+      "roofline position",
+      "Tensor Core utilization",
+      "warp stall reasons",
+      "memory load efficiency",
+      "memory store efficiency"
+    ]
+  },
+  "a40_static_limits_from_nsys": {
+    "chip": "GA102",
+    "compute_capability": "8.6",
+    "sm_count": 84,
+    "dram_peak_bytes_per_second": 696096000000,
+    "l2_cache_bytes": 6291456,
+    "registers_per_sm": 65536,
+    "shared_memory_per_sm_bytes": 102400,
+    "max_warps_per_sm": 48,
+    "max_blocks_per_sm": 16,
+    "warp_size": 32,
+    "theoretical_occupancy_formula": "min(max_blocks_per_sm, floor(1536/threads_per_block), floor(65536/(registers_per_thread*threads_per_block)), floor(102400/shared_memory_per_block)) * threads_per_block / 1536",
+    "occupancy_caveat": "Static upper-bound estimate only; register/shared-memory allocation granularity and achieved runtime occupancy require Nsight Compute counters."
+  },
+  "representative_kernels": [
+    {
+      "category": "dominant_attention_path",
+      "identifier": "cunn_SoftMaxBackwardSmem",
+      "full_name_fragment": "at::native::<unnamed>::cunn_SoftMaxBackwardSmem<(int)4, float, float, float, at::native::<unnamed>::SoftMaxBackwardEpilogue>",
+      "phase2_1_launches": 360,
+      "phase2_1_total_duration_ms": 506.894812,
+      "phase2_1_average_duration_us": 1408.0411444444444,
+      "phase2_1_kernel_time_share_percent": 6.894361212973031,
+      "grid": [
+        32768,
+        1,
+        1
+      ],
+      "block": [
+        256,
+        1,
+        1
+      ],
+      "registers_per_thread": 22,
+      "static_shared_memory_bytes": 0,
+      "dynamic_shared_memory_bytes": 8224,
+      "local_memory_per_thread_bytes": 0,
+      "theoretical_occupancy_upper_bound_percent": 100.0,
+      "achieved_occupancy_percent": null,
+      "sm_throughput_percent": null,
+      "dram_throughput_percent": null,
+      "l2_throughput_percent": null,
+      "arithmetic_intensity": null,
+      "roofline_position": "unavailable",
+      "tensor_core_utilization_percent": null,
+      "uses_tensor_core_by_symbol": false,
+      "dominant_warp_stalls": null,
+      "memory_load_efficiency_percent": null,
+      "memory_store_efficiency_percent": null,
+      "bottleneck_classification": {
+        "status": "provisional",
+        "primary": "memory-bandwidth/latency bound",
+        "basis": "large softmax reduction and elementwise traffic with no Tensor Core path and no static occupancy limit; hardware-counter confirmation is unavailable"
+      }
+    },
+    {
+      "category": "gemm_matmul_path",
+      "identifier": "cutlass_80_wmma_tensorop_bf16_s161616gemm_bf16_32x32_32x1_tn_align8",
+      "phase2_1_launches": 720,
+      "phase2_1_total_duration_ms": 237.406884,
+      "phase2_1_average_duration_us": 329.73178333333334,
+      "phase2_1_kernel_time_share_percent": 3.2290107809238884,
+      "grid": [
+        512,
+        8,
+        16
+      ],
+      "block": [
+        128,
+        1,
+        1
+      ],
+      "registers_per_thread": 48,
+      "static_shared_memory_bytes": 0,
+      "dynamic_shared_memory_bytes": 5120,
+      "local_memory_per_thread_bytes": 0,
+      "theoretical_occupancy_upper_bound_percent": 83.33333333333334,
+      "achieved_occupancy_percent": null,
+      "sm_throughput_percent": null,
+      "dram_throughput_percent": null,
+      "l2_throughput_percent": null,
+      "arithmetic_intensity": null,
+      "roofline_position": "unavailable",
+      "tensor_core_utilization_percent": null,
+      "uses_tensor_core_by_symbol": true,
+      "dominant_warp_stalls": null,
+      "memory_load_efficiency_percent": null,
+      "memory_store_efficiency_percent": null,
+      "bottleneck_classification": {
+        "status": "not_established",
+        "primary": null,
+        "basis": "WMMA BF16 symbol confirms a Tensor Core code path, but throughput and utilization counters are required to distinguish compute, memory, and shape inefficiency"
+      }
+    },
+    {
+      "category": "gemm_matmul_path_resource_case",
+      "identifier": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nt",
+      "phase2_1_launches": 1095,
+      "phase2_1_total_duration_ms": 205.787958,
+      "phase2_1_average_duration_us": 187.9342082191781,
+      "phase2_1_kernel_time_share_percent": 2.7989564740941226,
+      "block": [
+        128,
+        1,
+        1
+      ],
+      "registers_per_thread": 234,
+      "static_shared_memory_bytes": 32768,
+      "dynamic_shared_memory_bytes": 0,
+      "local_memory_per_thread_bytes": 0,
+      "theoretical_occupancy_upper_bound_percent": 16.666666666666664,
+      "achieved_occupancy_percent": null,
+      "sm_throughput_percent": null,
+      "dram_throughput_percent": null,
+      "l2_throughput_percent": null,
+      "arithmetic_intensity": null,
+      "roofline_position": "unavailable",
+      "tensor_core_utilization_percent": null,
+      "uses_tensor_core_by_symbol": true,
+      "dominant_warp_stalls": null,
+      "memory_load_efficiency_percent": null,
+      "memory_store_efficiency_percent": null,
+      "bottleneck_classification": {
+        "status": "provisional",
+        "primary": "occupancy/resource bound",
+        "basis": "234 registers per thread cap the static upper bound at two 128-thread blocks per SM; low occupancy alone does not prove low GEMM throughput"
+      }
+    },
+    {
+      "category": "optimizer_path",
+      "identifier": "addcdiv_cuda_kernel",
+      "phase2_1_launches": 4380,
+      "phase2_1_total_duration_ms": 154.392946,
+      "phase2_1_average_duration_us": 35.24953105022831,
+      "phase2_1_kernel_time_share_percent": 2.099924310251255,
+      "block": [
+        128,
+        1,
+        1
+      ],
+      "registers_per_thread": 44,
+      "static_shared_memory_bytes": 0,
+      "dynamic_shared_memory_bytes": 0,
+      "local_memory_per_thread_bytes": 0,
+      "theoretical_occupancy_upper_bound_percent": 91.66666666666666,
+      "shape_distribution": [
+        {
+          "grid_x": 4096,
+          "launches": 720,
+          "average_duration_us": 118.27579444444444
+        },
+        {
+          "grid_x": 3072,
+          "launches": 360,
+          "average_duration_us": 89.4690472222222
+        },
+        {
+          "grid_x": 50304,
+          "launches": 15,
+          "average_duration_us": 1420.9148
+        },
+        {
+          "grid_x": 1,
+          "launches": 2190,
+          "average_duration_us": 1.7153799086758
+        }
+      ],
+      "achieved_occupancy_percent": null,
+      "sm_throughput_percent": null,
+      "dram_throughput_percent": null,
+      "l2_throughput_percent": null,
+      "arithmetic_intensity": null,
+      "roofline_position": "unavailable",
+      "tensor_core_utilization_percent": null,
+      "uses_tensor_core_by_symbol": false,
+      "dominant_warp_stalls": null,
+      "memory_load_efficiency_percent": null,
+      "memory_store_efficiency_percent": null,
+      "bottleneck_classification": {
+        "status": "provisional",
+        "primary": "memory-bandwidth and launch-latency bound",
+        "basis": "elementwise AdamW update has low arithmetic work per byte, while half of the launches operate on a one-block grid; hardware-counter confirmation is unavailable"
+      }
+    }
+  ],
+  "root_cause_assessment": {
+    "status": "strong_phase2_1_evidence_but_not_ncu_confirmed",
+    "primary": "unfused attention plus excessive memory traffic and kernel fragmentation",
+    "evidence": [
+      "attention-attributed kernels consume 49.4083% of total kernel execution time",
+      "GEMM/matmul kernels consume only 17.1624% of total kernel execution time",
+      "device-to-device copies consume 861.903 ms, equivalent to 10.3536% of the profile window before overlap",
+      "66.6317% of kernels are shorter than 50 us and 82.8230% are shorter than 100 us",
+      "GPU idle time is only 1.2889%, so low MFU is not primarily caused by an idle GPU",
+      "the two largest kernels are BF16/FP32 copy paths, totaling 26.3888% of kernel time",
+      "the 128x128 BF16 GEMM has a static occupancy ceiling of 16.6667% due to register pressure"
+    ],
+    "cause_ranking": [
+      {
+        "cause": "unfused attention",
+        "support": "strong"
+      },
+      {
+        "cause": "excessive memory traffic",
+        "support": "strong"
+      },
+      {
+        "cause": "excessive small kernels",
+        "support": "strong"
+      },
+      {
+        "cause": "inefficient GEMM shapes or resource pressure",
+        "support": "moderate"
+      },
+      {
+        "cause": "low Tensor Core utilization",
+        "support": "unknown because NCU counters are unavailable"
+      }
+    ],
+    "conclusion_limit": "The relative contribution of memory bandwidth, SM utilization, Tensor Core utilization, cache behavior, and warp stalls cannot be quantified on this Pod."
+  }
+}
