@@ -164,7 +164,27 @@ def get_transformer_layer_spec(attention_implementation: str) -> Any:
     if attention_implementation == TE_FUSED_ATTENTION:
         from megatron.core.extensions.transformer_engine import TEDotProductAttention
 
-        layer_spec.submodules.self_attention.submodules.core_attention = TEDotProductAttention
+        class AutocastTEDotProductAttention(TEDotProductAttention):
+            """Adapt FP32 local QKV projections to the active BF16 autocast dtype."""
+
+            def forward(
+                self,
+                query: torch.Tensor,
+                key: torch.Tensor,
+                value: torch.Tensor,
+                *args: Any,
+                **kwargs: Any,
+            ) -> torch.Tensor:
+                if torch.is_autocast_enabled("cuda"):
+                    autocast_dtype = torch.get_autocast_dtype("cuda")
+                    query = query.to(autocast_dtype)
+                    key = key.to(autocast_dtype)
+                    value = value.to(autocast_dtype)
+                return super().forward(query, key, value, *args, **kwargs)
+
+        layer_spec.submodules.self_attention.submodules.core_attention = (
+            AutocastTEDotProductAttention
+        )
         return layer_spec
     raise ValueError(f"Unsupported attention implementation: {attention_implementation}")
 
