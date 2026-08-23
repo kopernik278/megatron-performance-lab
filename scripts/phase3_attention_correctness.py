@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import importlib
 import json
 import os
@@ -70,8 +71,8 @@ def run_variant(
     model_args: argparse.Namespace,
     batch: dict[str, torch.Tensor],
     attention_implementation: str,
-    state_dict: dict[str, torch.Tensor] | None = None,
-) -> tuple[torch.Tensor, dict[str, torch.Tensor], dict[str, torch.Tensor]]:
+    state_dict: dict[str, Any] | None = None,
+) -> tuple[torch.Tensor, dict[str, torch.Tensor], dict[str, Any]]:
     torch.manual_seed(model_args.seed)
     model = build_model(
         model_args,
@@ -99,7 +100,10 @@ def run_variant(
         if parameter.grad is not None
     }
     saved_state = {
-        name: tensor.detach().cpu().clone() for name, tensor in model.state_dict().items()
+        name: value.detach().cpu().clone()
+        if isinstance(value, torch.Tensor)
+        else copy.deepcopy(value)
+        for name, value in model.state_dict().items()
     }
     output_cpu = output.detach().cpu()
     del loss, output, model
