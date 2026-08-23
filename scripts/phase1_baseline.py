@@ -193,6 +193,7 @@ def build_model(
     args: argparse.Namespace,
     attention_implementation: str | None = None,
     attention_dropout: float = 0.1,
+    hidden_dropout: float = 0.1,
 ) -> GPTModel:
     if attention_implementation is None:
         attention_implementation = getattr(
@@ -208,7 +209,7 @@ def build_model(
         hidden_size=args.hidden_size,
         ffn_hidden_size=args.ffn_hidden_size,
         num_attention_heads=args.num_attention_heads,
-        hidden_dropout=0.1,
+        hidden_dropout=hidden_dropout,
         attention_dropout=attention_dropout,
         layernorm_epsilon=1.0e-5,
         add_bias_linear=True,
