@@ -82,7 +82,7 @@ Gradients remain strongly aligned. Numerical behavior is acceptable.
 
 | Metric | A (FP32 residual) | B (BF16 entry cast) | Delta |
 | --- | ---: | ---: | ---: |
-| Average step time | 1077.95 ms | 1082.79 ms | +4.84 ms (−0.45% faster? no, slower) |
+| Average step time | 1077.95 ms | 1082.79 ms | +4.84 ms (slower) |
 | Tokens/sec | 15,199.25 | 15,131.32 | **−0.45%** |
 | MFU | 24.60% | 24.49% | −0.11 points |
 | Peak allocated VRAM | 31,192 MiB | 31,256 MiB | +64 MiB |
