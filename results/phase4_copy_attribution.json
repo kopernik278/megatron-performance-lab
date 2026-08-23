@@ -1,0 +1,556 @@
+{
+  "status": "success",
+  "experiment": "Phase 4.1 copy/cast root-cause attribution",
+  "ncu_attempted": false,
+  "nsys_attempted": false,
+  "optimization_applied": false,
+  "sanity_benchmark_rerun": false,
+  "fast_iteration_mode": true,
+  "infrastructure": {
+    "pod_id": "3ixl2btmmwghn5",
+    "pod_reused": true,
+    "pod_status_after_capture": "EXITED",
+    "gpu": "1x NVIDIA A40 48GB",
+    "gpu_price_per_hour_usd": 0.44,
+    "data_center": "CA-MTL-1",
+    "image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+    "software_rebuilt": false
+  },
+  "configuration": {
+    "parameter_count": 355919872,
+    "model_config": {
+      "architecture": "Megatron Core GPTModel",
+      "num_layers": 24,
+      "hidden_size": 1024,
+      "ffn_hidden_size": 4096,
+      "num_attention_heads": 16,
+      "head_dimension": 64,
+      "vocab_size": 50304,
+      "max_position_embeddings": 2048,
+      "position_embedding_type": "learned_absolute",
+      "share_embeddings_and_output_weights": true,
+      "hidden_dropout": 0.1,
+      "attention_dropout": 0.1,
+      "layernorm_epsilon": 1e-05,
+      "attention_backend": "fused",
+      "attention_implementation": "te-fused",
+      "core_attention": "TEDotProductAttention",
+      "transformer_layer_spec": "get_gpt_layer_local_spec"
+    },
+    "micro_batch_size": 8,
+    "sequence_length": 2048,
+    "precision": {
+      "forward_backward": "BF16 autocast",
+      "parameter_storage": "FP32",
+      "optimizer_state": "FP32"
+    },
+    "optimizer": {
+      "name": "torch.optim.AdamW",
+      "foreach": false,
+      "fused": false
+    },
+    "parallelism": {
+      "tensor_parallel": 1,
+      "pipeline_parallel": 1,
+      "data_parallel": 1
+    },
+    "warmup_iterations": 3,
+    "profiled_iterations": 5
+  },
+  "transformer_engine_backend": {
+    "flash_attention": false,
+    "fused_attention": true,
+    "unfused_attention": false,
+    "fused_sub_backend": 1
+  },
+  "profiler": {
+    "activities": ["cpu", "cuda"],
+    "record_shapes": true,
+    "with_stack": true,
+    "with_modules": true,
+    "python_tensor_tracer": ["Tensor.to", "Tensor.copy_", "Tensor.contiguous"]
+  },
+  "accounting_rules": {
+    "ground_truth_gpu_copy_cast_ms_per_step": 255.9110933999933,
+    "nested_operator_warning": "aten::to launches aten::_to_copy, which launches aten::copy_, which launches the CUDA copy kernel. Their CUDA times are the same work and must not be added. Kernel self-time and aten::copy_ CUDA time match and are the ground truth.",
+    "kernel_parenting_limitation": "CUDA kernels (bfloat16_copy, direct_copy) have empty stacks and no CPU parent, so automatic phase/module/kind on kernel events is unknown/unattributed/F_other. Attribution uses aten::copy_ shape groups plus the Python Tensor.to tracer.",
+    "backward_parenting_limitation": "torch.autograd launches are not children of the phase/backward record_function, so backward copies appear as phase=unknown."
+  },
+  "kernel_ground_truth": {
+    "note": "Self-time of copy/cast CUDA kernels. Matches Phase 3.4 copy_cast 256.0275 ms/step.",
+    "phase_3_4_copy_cast_ms_per_step": 256.02753773333336,
+    "phase_3_4_copy_cast_kernel_time_share_percent": 23.77619473707548,
+    "families": {
+      "bfloat16_copy": {
+        "cuda_ms_per_step": 174.722054399994,
+        "calls_per_step": 632.0,
+        "variants": [
+          {
+            "variant": "vectorized_elementwise_kernel<4, bfloat16_copy_kernel_cuda(lambda(float))>",
+            "cuda_ms_per_step": 161.58185119999484,
+            "calls_per_step": 560.0,
+            "phase_3_4_ms_per_step": 161.5749452,
+            "interpretation": "Bulk contiguous FP32<->BF16 activation / residual / Linear-boundary casts. This is the Phase 3.4 top kernel."
+          },
+          {
+            "variant": "elementwise_kernel<128,4, bfloat16_copy_kernel_cuda(lambda(float))>",
+            "cuda_ms_per_step": 13.140203199999153,
+            "calls_per_step": 72.0,
+            "interpretation": "QKV adapter query/key/value.to(autocast_dtype). Matches the 72/step Python-visible FP32->BF16 [2048,8,16,64] site and the forward/attention aten::copy_ group."
+          }
+        ]
+      },
+      "direct_copy": {
+        "cuda_ms_per_step": 81.18903899999928,
+        "calls_per_step": 350.0,
+        "variants": [
+          {
+            "variant": "unrolled_elementwise_kernel direct_copy LoadWithCast<1>/StoreWithCast<1> lambda(float)",
+            "cuda_ms_per_step": 80.44775919999941,
+            "calls_per_step": 343.0,
+            "phase_3_4_ms_per_step": 80.53455606666667,
+            "interpretation": "Non-vectorizable dtype conversion (cast load/store). Same aten::copy_ / aten::_to_copy sites as bfloat16_copy when TensorIterator cannot use the vectorized bfloat16 path (mixed layout, non-contiguous, or less regular shapes)."
+          },
+          {
+            "variant": "elementwise_kernel direct_copy lambda(float)",
+            "cuda_ms_per_step": 0.7308671999997965,
+            "calls_per_step": 4.0
+          },
+          {
+            "variant": "elementwise_kernel direct_copy lambda(long)",
+            "cuda_ms_per_step": 0.010412600000093516,
+            "calls_per_step": 3.0,
+            "interpretation": "Integer label/layout copies in the loss path."
+          }
+        ]
+      },
+      "aten::clone": {
+        "cuda_ms_per_step": 0.7439614000000406,
+        "calls_per_step": 9.0
+      },
+      "aten::contiguous": {
+        "cuda_ms_per_step": 0.7380927999996622,
+        "calls_per_step": 6.0
+      }
+    },
+    "operator_cuda_ms_per_step_nested_not_additive": {
+      "aten::copy_": 255.91552879999276,
+      "aten::to": 255.17156739999268,
+      "aten::_to_copy": 255.17156739999268,
+      "aten::copy__calls_per_step": 1275.0,
+      "aten::to_calls_per_step": 1365.0,
+      "aten::_to_copy_calls_per_step": 1266.0
+    }
+  },
+  "unique_copy_sites": {
+    "note": "One row per distinct aten::copy_ (phase, module, shape). Do not sum aten::to and aten::_to_copy with these numbers.",
+    "sites": [
+      {
+        "shape": [2048, 8, 4096],
+        "phase": "unknown",
+        "module": "unattributed",
+        "calls_per_step": 96.0,
+        "cuda_ms_per_step": 67.88131859999525,
+        "kind": "B_activation_dtype_and_C_gradient_dtype",
+        "interpretation": "MLP FFN-width activations. 24 of the 120 total [2048,8,4096] copies are the parented mlp_fc2 forward site below. Python tracer proves 24/step BF16->FP32 grad_output.to(ctx.input_dtype) in ColumnParallelLinear backward (linear_fc1). Remaining C++ autocast / autograd casts of the same shape are not Python-visible."
+      },
+      {
+        "shape": [2048, 8, 1024],
+        "phase": "unknown",
+        "module": "unattributed",
+        "calls_per_step": 145.0,
+        "cuda_ms_per_step": 25.506598199996958,
+        "kind": "B_activation_dtype",
+        "interpretation": "Hidden / residual stream. 145 = 24 layers * 6 + 1 extra (embedding or final LN). Includes residual BF16->FP32 upcasts and Linear input FP32->BF16 autocast of hidden-width tensors."
+      },
+      {
+        "shape": [16384, 4096],
+        "phase": "unknown",
+        "module": "unattributed",
+        "calls_per_step": 24.0,
+        "cuda_ms_per_step": 17.10511300000055,
+        "kind": "B_activation_dtype",
+        "interpretation": "Flattened B*S x FFN (8*2048=16384). MLP FC2 input / equivalent GEMM operand cast. 24/step = once per layer."
+      },
+      {
+        "shape": [4096, 16384],
+        "phase": "unknown",
+        "module": "unattributed",
+        "calls_per_step": 24.0,
+        "cuda_ms_per_step": 17.089868199999117,
+        "kind": "C_gradient_dtype",
+        "interpretation": "Transpose of the flattened FFN operand. Matches dgrad / wgrad layout conversion, one per layer."
+      },
+      {
+        "shape": [2048, 8, 4096],
+        "phase": "forward",
+        "module": "mlp_fc2",
+        "calls_per_step": 24.0,
+        "cuda_ms_per_step": 17.080296599998785,
+        "kind": "B_activation_dtype",
+        "interpretation": "Forward Linear autocast of MLP FC2 input (FP32 residual-stream activation -> BF16 GEMM operand)."
+      },
+      {
+        "shape": [2048, 8, 16, 64],
+        "phase": "forward",
+        "module": "attention",
+        "calls_per_step": 72.0,
+        "cuda_ms_per_step": 13.14020319999915,
+        "kind": "B_activation_dtype",
+        "src_dtype": "float32",
+        "dst_dtype": "bfloat16",
+        "source": "scripts/phase1_baseline.py:180 AutocastTEDotProductAttention.forward query/key/value.to(autocast_dtype)",
+        "interpretation": "Explicit QKV adapter. 24 layers * Q,K,V. Maps 1:1 onto the 72-launch elementwise bfloat16_copy (13.14 ms/step)."
+      },
+      {
+        "shape": [2048, 8, 16, 64],
+        "phase": "unknown",
+        "module": "unattributed",
+        "calls_per_step": 72.0,
+        "cuda_ms_per_step": 12.847208800000331,
+        "kind": "C_gradient_dtype",
+        "interpretation": "Matching backward of the QKV adapter casts (autograd of Tensor.to). Same shape and call count as the forward adapter."
+      },
+      {
+        "shape": [3072, 16384],
+        "phase": "unknown",
+        "module": "unattributed",
+        "calls_per_step": 24.0,
+        "cuda_ms_per_step": 12.82314420000002,
+        "kind": "B_activation_dtype_or_C_gradient_dtype",
+        "interpretation": "Fused QKV GEMM operand 3H x (B*S). Activation or dgrad layout, not the stored parameter [3072,1024]."
+      },
+      {
+        "shape": [2048, 8, 3072],
+        "phase": "unknown",
+        "module": "unattributed",
+        "calls_per_step": 48.0,
+        "cuda_ms_per_step": 12.809691400001103,
+        "kind": "B_activation_dtype_or_C_gradient_dtype",
+        "interpretation": "Fused QKV projection output [S,B,3H]. 48/step = 2 per layer (forward autocast and matching backward)."
+      }
+    ],
+    "listed_copy_cuda_ms_per_step": 196.2834424,
+    "unlisted_smaller_copy_sites_ms_per_step_approx": 59.63,
+    "note_unlisted": "aten::copy_ totals 255.92 ms/step. The top unique sites above cover ~196 ms. The remainder is smaller weight/bias/norm/loss copies that did not enter the top operator groups."
+  },
+  "phase_split": {
+    "note": "GPU copy/cast ground truth is 255.91 ms/step of kernel self-time. Raw profiler by_phase CUDA times charge nested aten::to/_to_copy/copy_ plus unparented kernels and are not additive.",
+    "forward": {
+      "cpu_parented_nested_copy_cuda_ms_per_step": 180.62030939999983,
+      "cpu_parented_copy_calls_per_step": 944.0,
+      "resolved_unique_sites_ms_per_step": 30.220499799997935,
+      "resolved_unique_sites": [
+        "mlp_fc2 [2048,8,4096] 17.08 ms / 24 calls",
+        "attention QKV adapter [2048,8,16,64] 13.14 ms / 72 calls"
+      ],
+      "additional_forward_python_sites": [
+        "fused_bias_dropout x.to(residual.dtype) BF16->FP32 [2048,8,1024] 72/step",
+        "C++ Linear autocast of hidden/FFN activations launched from forward (shapes above, often phase=unknown because the kernel has no CPU parent)"
+      ]
+    },
+    "backward": {
+      "phase_backward_record_function_did_not_parent_autograd_launches": true,
+      "resolved_python_sites": [
+        {
+          "source": "megatron/core/tensor_parallel/layers.py LinearFunction.backward grad_output.to(ctx.input_dtype)",
+          "src_dtype": "bfloat16",
+          "dst_dtype": "float32",
+          "shape": [2048, 8, 4096],
+          "calls_per_step": 24.0,
+          "kind": "C_gradient_dtype"
+        },
+        {
+          "source": "autograd of AutocastTEDotProductAttention QKV .to(bf16)",
+          "shape": [2048, 8, 16, 64],
+          "calls_per_step": 72.0,
+          "cuda_ms_per_step": 12.847208800000331,
+          "kind": "C_gradient_dtype"
+        }
+      ],
+      "interpretation": "Most remaining unparented activation-shaped copies are backward dtype conversions of Linear operands and residual casts."
+    },
+    "optimizer": {
+      "cuda_ms_per_step": 0.0,
+      "cpu_ms_per_step": 6.500885799997114,
+      "cpu_copy_ops_per_step": 876.0,
+      "kind": "E_optimizer_related",
+      "interpretation": "AdamW is already FP32. These are CPU-side copy ops with no GPU copy kernel. Phase 3.4 optimizer GPU time (53.06 ms/step) is addcmul/Adam math, not copy/cast."
+    }
+  },
+  "module_split": {
+    "note": "Raw by_module CUDA times nest aten::to/_to_copy/copy_ and over-count. Unique parented aten::copy_ rows are preferred. Python tracer supplies sites that module hooks missed (residual BDA is not a named Linear/LN module).",
+    "raw_nested_cuda_ms_per_step": {
+      "unattributed": 894.3458823999752,
+      "mlp_fc2": 54.57677459999486,
+      "attention": 39.42060959999745,
+      "mlp_fc1": 16.17925199999801,
+      "qkv_projection": 15.361175400002693,
+      "loss": 1.6396998000007588,
+      "attention_output_projection": 0.8462436000019835,
+      "embedding": 0.7339580000004069,
+      "normalization": 0.5482157999999822
+    },
+    "unique_or_traced": [
+      {
+        "module": "mlp_fc2",
+        "phase": "forward",
+        "shape": [2048, 8, 4096],
+        "calls_per_step": 24.0,
+        "cuda_ms_per_step": 17.080296599998785,
+        "kind": "B_activation_dtype"
+      },
+      {
+        "module": "mlp_fc1",
+        "phase": "backward",
+        "shape": [2048, 8, 4096],
+        "calls_per_step": 24.0,
+        "source": "megatron/core/tensor_parallel/layers.py LinearFunction.backward",
+        "src_dtype": "bfloat16",
+        "dst_dtype": "float32",
+        "kind": "C_gradient_dtype"
+      },
+      {
+        "module": "attention_qkv_adapter",
+        "phase": "forward",
+        "shape": [2048, 8, 16, 64],
+        "calls_per_step": 72.0,
+        "cuda_ms_per_step": 13.14020319999915,
+        "source": "scripts/phase1_baseline.py:180",
+        "src_dtype": "float32",
+        "dst_dtype": "bfloat16",
+        "kind": "B_activation_dtype"
+      },
+      {
+        "module": "residual_bias_dropout_add",
+        "phase": "forward",
+        "shape": [2048, 8, 1024],
+        "calls_per_step": 72.0,
+        "source": "megatron/core/fusions/fused_bias_dropout.py _bias_dropout_add_func x.to(residual.dtype)",
+        "src_dtype": "bfloat16",
+        "dst_dtype": "float32",
+        "kind": "B_activation_dtype",
+        "note": "Megatron documents this as the FP32 residual-stream upcast. 72/step = 3 per layer. self_attn_bda and mlp_bda are two of the sites; the tracer groups every same-shape BF16->FP32 Tensor.to with this stack."
+      },
+      {
+        "module": "qkv_projection",
+        "shapes": [[2048, 8, 3072], [3072, 16384]],
+        "kind": "B_activation_dtype_or_C_gradient_dtype",
+        "note": "C++ Linear autocast / dgrad of fused QKV. Python tracer does not see these."
+      },
+      {
+        "module": "attention_output_projection",
+        "raw_nested_cuda_ms_per_step": 0.8462436000019835,
+        "kind": "B_activation_dtype",
+        "note": "Small in the parented set; hidden-width copies of this module are mostly unparented."
+      },
+      {
+        "module": "normalization",
+        "calls_per_step_python": 4.0,
+        "source": "transformer_engine.pytorch.ops.basic.layer_norm / ops._common.maybe_dequantize",
+        "kind": "A_fp32_param_to_bf16_and_B_activation_dtype",
+        "note": "Weight [1024] FP32->BF16 3/step; hidden [2048,8,1024] FP32->BF16 1/step at final LN. Not dominant."
+      },
+      {
+        "module": "loss",
+        "raw_nested_cuda_ms_per_step": 1.6396998000007588,
+        "kind": "D_layout_contiguous",
+        "source": "language_module.compute_language_model_loss labels/loss.transpose().contiguous()"
+      },
+      {
+        "module": "embedding",
+        "raw_nested_cuda_ms_per_step": 0.7339580000004069,
+        "kind": "D_layout_contiguous",
+        "source": "language_model_embedding.py embeddings.transpose(0,1).contiguous()"
+      },
+      {
+        "module": "optimizer",
+        "cuda_ms_per_step": 0.0,
+        "kind": "E_optimizer_related"
+      }
+    ]
+  },
+  "python_tracer": {
+    "python_visible_copy_count_per_step": 175.0,
+    "note": "Python Tensor.to/copy_/contiguous only. C++ autocast inside aten::linear / TensorIterator is missing here.",
+    "groups": [
+      {
+        "api": "Tensor.to",
+        "src_dtype": "float32",
+        "dst_dtype": "bfloat16",
+        "src_shape": [2048, 8, 16, 64],
+        "calls_per_step": 72.0,
+        "kind": "B_activation_dtype",
+        "source": "scripts/phase1_baseline.py:180 AutocastTEDotProductAttention"
+      },
+      {
+        "api": "Tensor.to",
+        "src_dtype": "bfloat16",
+        "dst_dtype": "float32",
+        "src_shape": [2048, 8, 1024],
+        "calls_per_step": 72.0,
+        "kind": "B_activation_dtype",
+        "source": "megatron/core/fusions/fused_bias_dropout.py _bias_dropout_add_func x.to(residual.dtype)",
+        "classifier_note": "The capture script labeled this C_gradient_dtype_or_loss_upcast. That is incorrect: this is a residual-stream activation upcast, kind B."
+      },
+      {
+        "api": "Tensor.to",
+        "src_dtype": "bfloat16",
+        "dst_dtype": "float32",
+        "src_shape": [2048, 8, 4096],
+        "calls_per_step": 24.0,
+        "kind": "C_gradient_dtype",
+        "source": "megatron/core/tensor_parallel/layers.py LinearFunction.backward grad_output.to(ctx.input_dtype)"
+      },
+      {
+        "api": "Tensor.to",
+        "src_dtype": "float32",
+        "dst_dtype": "bfloat16",
+        "src_shape": [1024],
+        "calls_per_step": 3.0,
+        "kind": "A_fp32_param_to_bf16",
+        "source": "transformer_engine.pytorch.ops._common.maybe_dequantize LayerNorm weight"
+      },
+      {
+        "api": "Tensor.contiguous",
+        "src_dtype": "float32",
+        "dst_dtype": "float32",
+        "src_shape": [2048, 8, 1024],
+        "calls_per_step": 1.0,
+        "kind": "D_layout_contiguous",
+        "source": "language_model_embedding.py embeddings.transpose(0,1).contiguous()"
+      },
+      {
+        "api": "Tensor.to",
+        "src_dtype": "float32",
+        "dst_dtype": "bfloat16",
+        "src_shape": [2048, 8, 1024],
+        "calls_per_step": 1.0,
+        "kind": "B_activation_dtype",
+        "source": "TE LayerNorm maybe_dequantize(input_.contiguous(), dtype) at final_layernorm"
+      },
+      {
+        "api": "Tensor.contiguous",
+        "src_dtype": "int64",
+        "dst_dtype": "int64",
+        "src_shape": [2048, 8],
+        "calls_per_step": 1.0,
+        "kind": "D_layout_contiguous",
+        "source": "compute_language_model_loss labels.transpose(0,1).contiguous()"
+      },
+      {
+        "api": "Tensor.contiguous",
+        "src_dtype": "float32",
+        "dst_dtype": "float32",
+        "src_shape": [8, 2048],
+        "calls_per_step": 1.0,
+        "kind": "D_layout_contiguous",
+        "source": "compute_language_model_loss loss.transpose(0,1).contiguous()"
+      }
+    ]
+  },
+  "kind_classification": {
+    "A_fp32_param_to_bf16": {
+      "dominant": false,
+      "evidence": "Python-visible only as TE LayerNorm weight [1024] 3/step. Stored Linear weights [3072,1024], [1024,1024], [4096,1024], [1024,4096] did not appear in the top aten::copy_ groups. Top GEMM-looking shapes are activation layouts ([3072,16384], [16384,4096]), not parameter storage.",
+      "ms_per_step": "small; not the 161.6 ms bulk bfloat16_copy"
+    },
+    "B_activation_dtype": {
+      "dominant": true,
+      "evidence": "Residual BF16->FP32, Linear input FP32->BF16, QKV adapter FP32->BF16, FFN-width activation casts. This is the bulk of bfloat16_copy and most of direct_copy."
+    },
+    "C_gradient_dtype": {
+      "dominant": false,
+      "secondary": true,
+      "evidence": "LinearFunction.backward grad_output.to(input_dtype) 24/step [2048,8,4096]; QKV adapter backward 72/step 12.85 ms; [4096,16384] dgrad layout 17.09 ms."
+    },
+    "D_layout_contiguous": {
+      "dominant": false,
+      "evidence": "Embedding/loss transpose().contiguous() 1/step each. aten::contiguous 0.74 ms/step."
+    },
+    "E_optimizer_related": {
+      "dominant": false,
+      "evidence": "0 ms GPU copy. 876 CPU copy ops/step."
+    },
+    "F_other": {
+      "dominant": false,
+      "evidence": "Automatic profiler kind was F_other only because CUDA kernels have empty stacks. After shape + Python tracer attribution, the bulk is B, not F."
+    }
+  },
+  "root_causes": {
+    "bfloat16_copy": {
+      "cuda_ms_per_step": 174.722054399994,
+      "calls_per_step": 632.0,
+      "pytorch_operator": "aten::to -> aten::_to_copy -> aten::copy_ -> at::native::bfloat16_copy_kernel_cuda",
+      "root_cause": "FP32 residual / hidden stream mixed with BF16 autocast compute. PyTorch TensorIterator picks the vectorized bfloat16_copy kernel for contiguous FP32<->BF16 copies.",
+      "split": {
+        "bulk_vectorized_ms_per_step": 161.58185119999484,
+        "bulk_calls_per_step": 560.0,
+        "bulk_kind": "B_activation_dtype",
+        "bulk_sources": [
+          "C++ Linear autocast of activation operands (hidden [2048,8,1024], FFN [2048,8,4096], flattened [16384,4096])",
+          "Megatron residual upcast x.to(residual.dtype) BF16->FP32 [2048,8,1024]",
+          "Matching backward activation/gradient dtype conversions of those same tensors"
+        ],
+        "qkv_adapter_ms_per_step": 13.140203199999153,
+        "qkv_adapter_calls_per_step": 72.0,
+        "qkv_adapter_kind": "B_activation_dtype",
+        "qkv_adapter_source": "scripts/phase1_baseline.py:180 query/key/value.to(autocast_dtype)"
+      }
+    },
+    "direct_copy": {
+      "cuda_ms_per_step": 81.18903899999928,
+      "calls_per_step": 350.0,
+      "pytorch_operator": "aten::to -> aten::_to_copy -> aten::copy_ -> at::native::direct_copy_kernel_cuda with LoadWithCast/StoreWithCast",
+      "root_cause": "Same dtype-conversion sites as bfloat16_copy when TensorIterator cannot use the vectorized bfloat16 kernel: non-contiguous / transposed GEMM operands ([4096,16384], [3072,16384]) and other cast-load/store copies. Not a memcpy and not optimizer traffic.",
+      "kind": "B_activation_dtype and C_gradient_dtype (layout-irregular casts)"
+    }
+  },
+  "category_overlap": {
+    "copy_cast_only_kernel_events": 4910,
+    "activation_elementwise_only_kernel_events": 13305,
+    "both_categories_kernel_events": 0,
+    "other_cuda_kernel_events": 9445,
+    "overlap_exists": false,
+    "conclusion": "Phase 3.4 copy/cast and activation/elementwise categories do not overlap. bfloat16_copy and direct_copy are exclusive to copy/cast. The 27.47% activation/elementwise bucket is GELU/add/dropout/addcmul functors, not these copy kernels.",
+    "matchers": {
+      "copy_cast": ["bfloat16_copy", "direct_copy", "copy_kernel", "load_withcast", "store_withcast"],
+      "activation_elementwise": ["gelu", "dropout", "lerp", "addcmul", "mul_functor", "binaryfunctor", "unaryfunctor", "silu", "relu"]
+    }
+  },
+  "recommended_phase_4_2_optimization": {
+    "id": "keep_hidden_residual_stream_in_bf16",
+    "title": "Keep the transformer hidden/residual stream in BF16 while leaving FP32 parameter storage unchanged",
+    "kind_targeted": "B_activation_dtype",
+    "do_not_change": [
+      "attention backend (TE cuDNN FusedAttention sub-backend 1)",
+      "micro-batch size 8",
+      "optimizer (PyTorch AdamW foreach=False fused=False)",
+      "parameter storage dtype (stay FP32)",
+      "software versions"
+    ],
+    "rationale": "The dominant copy/cast cost is activation ping-pong: FP32 residual -> BF16 Linear/attention -> BF16->FP32 residual add. Keeping hidden states in BF16 after embedding (upcast only at loss) removes residual x.to(residual.dtype), most Linear activation autocasts, and the 161.6 ms vectorized bfloat16_copy bulk. The QKV adapter is only 13.14 ms/step and is not the first lever. Caching BF16 weights alone would miss the residual stream.",
+    "validation_when_promising": "Only after the change looks promising: 20 warmup + 100-step A/B on the same A40 config."
+  },
+  "environment": {
+    "timestamp_utc": "2026-08-23T16:58:52.097918+00:00",
+    "hostname": "1364145e6f7d",
+    "platform": "Linux-6.8.0-52-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "pytorch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "nccl": "2.27.3",
+    "cudnn": 91002,
+    "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+    "project_commit_at_capture": "68298151afcc6be3866003004381585e30ff0ebb",
+    "gpu": "NVIDIA A40",
+    "driver": "570.195.03",
+    "gpu_memory_total_mib": 46068.0,
+    "compute_capability": [8, 6],
+    "bf16_supported": true,
+    "transformer_engine_installed": true,
+    "transformer_engine_version": "2.17.1+4329ff84",
+    "transformer_engine_disabled": false,
+    "cuda_graph_enabled": false
+  }
+}
