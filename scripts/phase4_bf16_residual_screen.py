@@ -250,7 +250,12 @@ def run_correctness(model_args: argparse.Namespace, device: torch.device) -> dic
         bf16_hidden_residual=False,
     )
     baseline.eval()
-    state_dict = {name: tensor.detach().cpu().clone() for name, tensor in baseline.state_dict().items()}
+    state_dict = {
+        name: value.detach().cpu().clone()
+        if isinstance(value, torch.Tensor)
+        else value
+        for name, value in baseline.state_dict().items()
+    }
     baseline_output, baseline_loss = forward_backward(baseline, batch)
     baseline_grads = collect_gradients(baseline)
     baseline_output_cpu = baseline_output.detach().cpu()
