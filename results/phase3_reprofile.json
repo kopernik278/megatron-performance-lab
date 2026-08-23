@@ -1,0 +1,543 @@
+{
+  "status": "success",
+  "experiment": "Phase 3.4 fused-attention MB=8 deep Nsight Systems reprofile",
+  "ncu_attempted": false,
+  "ncu_note": "Hardware counters unavailable on RunPod Secure A40 (Phase 3.0 reprobe). Nsight Systems only.",
+  "infrastructure": {
+    "pod_id": "3ixl2btmmwghn5",
+    "cloud": "Secure Cloud",
+    "gpu": "1x NVIDIA A40 48GB",
+    "gpu_price_per_hour_usd": 0.44,
+    "image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+    "trace_preserved_on_pod": true
+  },
+  "configuration": {
+    "parameter_count": 355919872,
+    "model_config": {
+      "architecture": "Megatron Core GPTModel",
+      "num_layers": 24,
+      "hidden_size": 1024,
+      "ffn_hidden_size": 4096,
+      "num_attention_heads": 16,
+      "head_dimension": 64,
+      "vocab_size": 50304,
+      "max_position_embeddings": 2048,
+      "position_embedding_type": "learned_absolute",
+      "share_embeddings_and_output_weights": true,
+      "hidden_dropout": 0.1,
+      "attention_dropout": 0.1,
+      "layernorm_epsilon": 1e-05,
+      "attention_backend": "fused",
+      "attention_implementation": "te-fused",
+      "core_attention": "TEDotProductAttention",
+      "transformer_layer_spec": "get_gpt_layer_local_spec"
+    },
+    "parallelism": {
+      "tensor_parallel": 1,
+      "pipeline_parallel": 1,
+      "data_parallel": 1
+    },
+    "precision": {
+      "forward_backward": "BF16 autocast",
+      "parameter_storage": "FP32",
+      "optimizer_state": "FP32",
+      "bf16_enabled": true
+    },
+    "optimizer": {
+      "name": "torch.optim.AdamW",
+      "learning_rate": 0.0001,
+      "foreach": false,
+      "fused": false
+    },
+    "micro_batch_size": 8,
+    "global_batch_size": 8,
+    "sequence_length": 2048,
+    "warmup_iterations": 20,
+    "profiled_iterations": 15
+  },
+  "sanity_benchmark": {
+    "tokens_per_second_target": 15084.7,
+    "tokens_per_second_tolerance_percent": 5.0,
+    "mfu_percent_target": 24.42,
+    "mfu_percent_tolerance_points": 1.22,
+    "tokens_per_second_measured": 15094.757529608441,
+    "mfu_percent_measured": 24.431898523186785,
+    "tokens_per_second_within_tolerance": true,
+    "mfu_within_tolerance": true
+  },
+  "profile": {
+    "trace_path": "profiles/phase34_mb8_reprofile.nsys-rep",
+    "trace_size_bytes": 9561593,
+    "trace_sha256": "e601d3f794960ef7cb92bb061f8583cde229e9627d8e525940beea1c747a490e",
+    "sqlite_path": "profiles/phase34_mb8_reprofile.sqlite",
+    "sqlite_size_bytes": 32481280,
+    "sqlite_sha256": "f37897f833d23f6b8e3f644132436bc8b126a7d1e1df8b861d356db4386a3b7f",
+    "profile_window_ms": 16281.599119,
+    "instrumented_average_step_time_ms": 1085.4099489748478,
+    "instrumented_median_step_time_ms": 1085.2860435843468,
+    "final_loss": 9.461233139038086
+  },
+  "gpu_timeline": {
+    "active_union_ms": 16198.157563,
+    "idle_ms": 83.441556,
+    "idle_percent": 0.5124899304431768,
+    "idle_gap_summary": {
+      "count": 69091,
+      "total_ms": 83.441556,
+      "average_ms": 0.0012077051424932337,
+      "median_ms": 0.000768,
+      "p95_ms": 0.001216,
+      "maximum_ms": 2.034986
+    },
+    "kernel_count": 66210,
+    "kernel_count_per_step": 4414.0,
+    "kernel_total_ms": 16152.34527,
+    "memcpy_count": 45,
+    "memset_count": 2835
+  },
+  "top_15_cuda_kernels_by_total_gpu_time": [
+    {
+      "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>>(int, T2, T3)",
+      "count": 8400,
+      "total_ms": 2423.624178,
+      "total_ms_per_step": 161.5749452,
+      "average_us": 288.52668785714286,
+      "kernel_time_share_percent": 15.004781890722917
+    },
+    {
+      "name": "cudnn_generated_fort_native_sdpa_sm80_flash_bprop_wmma_f16_knob_28_64x128x64_1x4x1_kernel0_0",
+      "count": 360,
+      "total_ms": 1525.490957,
+      "total_ms_per_step": 101.69939713333333,
+      "average_us": 4237.4748805555555,
+      "kernel_time_share_percent": 9.444392944183269
+    },
+    {
+      "name": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda() (instance 3)]::operator ()() const::[lambda() (instance 7)]::operator ()() const::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>, (int)4, TrivialOffsetCalculator<(int)1, unsigned int>, TrivialOffsetCalculator<(int)1, unsigned int>, at::native::memory::LoadWithCast<(int)1>, at::native::memory::StoreWithCast<(int)1>>(int, T1, T2, T4, T5, T6, T7)",
+      "count": 5145,
+      "total_ms": 1208.018341,
+      "total_ms_per_step": 80.53455606666667,
+      "average_us": 234.794624101069,
+      "kernel_time_share_percent": 7.478903656447161
+    },
+    {
+      "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_256x128_32x3_tn_align8>(T1::Params)",
+      "count": 735,
+      "total_ms": 996.959929,
+      "total_ms_per_step": 66.46399526666667,
+      "average_us": 1356.4080666666666,
+      "kernel_time_share_percent": 6.172230176701763
+    },
+    {
+      "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nn",
+      "count": 720,
+      "total_ms": 865.046036,
+      "total_ms_per_step": 57.66973573333333,
+      "average_us": 1201.4528277777779,
+      "kernel_time_share_percent": 5.355544483107747
+    },
+    {
+      "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x256_32x3_nt_align8>(T1::Params)",
+      "count": 720,
+      "total_ms": 794.921811,
+      "total_ms_per_step": 52.9947874,
+      "average_us": 1104.0580708333332,
+      "kernel_time_share_percent": 4.921401800866779
+    },
+    {
+      "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::CUDAFunctor_add<float>, std::array<char *, (unsigned long)3>>(int, T2, T3)",
+      "count": 1500,
+      "total_ms": 537.046809,
+      "total_ms_per_step": 35.80312060000001,
+      "average_us": 358.031206,
+      "kernel_time_share_percent": 3.324884405470612
+    },
+    {
+      "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_tn",
+      "count": 720,
+      "total_ms": 530.03283,
+      "total_ms_per_step": 35.335522,
+      "average_us": 736.1567083333334,
+      "kernel_time_share_percent": 3.2814605008749913
+    },
+    {
+      "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::GeluBackwardCUDAKernelImpl(at::TensorIteratorBase &, at::native::GeluType)::[lambda() (instance 2)]::operator ()() const::[lambda() (instance 2)]::operator ()() const::[lambda(float, float) (instance 1)], std::array<char *, (unsigned long)3>>(int, T2, T3)",
+      "count": 360,
+      "total_ms": 515.534857,
+      "total_ms_per_step": 34.368990466666666,
+      "average_us": 1432.0412694444444,
+      "kernel_time_share_percent": 3.1917028046540765
+    },
+    {
+      "name": "void at::native::elementwise_kernel<(int)128, (int)4, void at::native::gpu_kernel_impl<at::native::CUDAFunctor_add<float>>(at::TensorIteratorBase &, const T1 &)::[lambda(int) (instance 1)]>(int, T3)",
+      "count": 720,
+      "total_ms": 455.895575,
+      "total_ms_per_step": 30.393038333333333,
+      "average_us": 633.1882986111111,
+      "kernel_time_share_percent": 2.8224729435838762
+    },
+    {
+      "name": "ampere_bf16_s1688gemm_bf16_128x256_ldg8_f2f_stages_32x1_nt",
+      "count": 360,
+      "total_ms": 425.44666,
+      "total_ms_per_step": 28.363110666666667,
+      "average_us": 1181.7962777777777,
+      "kernel_time_share_percent": 2.633962145362189
+    },
+    {
+      "name": "cudnn_generated_fort_native_sdpa_sm80_flash_fprop_wmma_f16_knob_6_128x64x64_4x1x1_kernel0_0",
+      "count": 360,
+      "total_ms": 408.233806,
+      "total_ms_per_step": 27.215587066666668,
+      "average_us": 1133.9827944444444,
+      "kernel_time_share_percent": 2.5273964812912895
+    },
+    {
+      "name": "void at::native::reduce_kernel<(int)128, (int)4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator ()(at::TensorIterator &)::[lambda(float, float) (instance 1)]>, unsigned int, float, (int)4, (int)4>>(T3)",
+      "count": 1440,
+      "total_ms": 395.858239,
+      "total_ms_per_step": 26.390549266666667,
+      "average_us": 274.9015548611111,
+      "kernel_time_share_percent": 2.450778709734701
+    },
+    {
+      "name": "void at::native::<unnamed>::layer_norm_grad_input_kernel_vectorized<float, float>(const T1 *, const T1 *, const T2 *, const T2 *, const T1 *, T1 *, int)",
+      "count": 720,
+      "total_ms": 395.05886,
+      "total_ms_per_step": 26.337257333333334,
+      "average_us": 548.6928611111111,
+      "kernel_time_share_percent": 2.44582971324758
+    },
+    {
+      "name": "void at::native::elementwise_kernel<(int)128, (int)2, void at::native::gpu_kernel_impl_nocast<at::native::CUDAFunctor_add<float>>(at::TensorIteratorBase &, const T1 &)::[lambda(int) (instance 1)]>(int, T3)",
+      "count": 750,
+      "total_ms": 349.30051,
+      "total_ms_per_step": 23.286700666666665,
+      "average_us": 465.7340133333333,
+      "kernel_time_share_percent": 2.1625374158436372
+    }
+  ],
+  "kernel_categories": {
+    "copy_cast": {
+      "total_ms": 3840.413066,
+      "total_ms_per_step": 256.02753773333336,
+      "kernel_time_share_percent": 23.77619473707548
+    },
+    "activation_elementwise": {
+      "total_ms": 4437.281801,
+      "total_ms_per_step": 295.81878673333335,
+      "kernel_time_share_percent": 27.471439762010487
+    },
+    "normalization": {
+      "total_ms": 1069.447719,
+      "total_ms_per_step": 71.2965146,
+      "kernel_time_share_percent": 6.62100581137466
+    },
+    "gemm_matmul": {
+      "total_ms": 4566.475022,
+      "total_ms_per_step": 304.4316681333333,
+      "kernel_time_share_percent": 28.27128163537579
+    },
+    "attention": {
+      "total_ms": 2134.889234,
+      "total_ms_per_step": 142.32594893333334,
+      "kernel_time_share_percent": 13.217209007816114
+    },
+    "optimizer": {
+      "total_ms": 795.926537,
+      "total_ms_per_step": 53.061769133333335,
+      "kernel_time_share_percent": 4.927622111188315
+    },
+    "note": "Categories are non-exclusive and use total CUDA kernel execution time as denominator. copy_cast matches bfloat16_copy/direct_copy/load_withcast/store_withcast symbols. activation_elementwise matches GELU/dropout/Mul/addcmul-style kernels excluding attention."
+  },
+  "small_kernels": {
+    "under_10_us": {
+      "count": 26062,
+      "count_share_percent": 39.3626340431959,
+      "total_ms": 52.599967,
+      "kernel_time_share_percent": 0.32564909999599084
+    },
+    "under_50_us": {
+      "count": 33795,
+      "count_share_percent": 51.04213864975079,
+      "total_ms": 321.700651,
+      "kernel_time_share_percent": 1.991665269795214
+    },
+    "under_100_us": {
+      "count": 39945,
+      "count_share_percent": 60.330765745355684,
+      "total_ms": 757.576717,
+      "kernel_time_share_percent": 4.690196403905871
+    }
+  },
+  "memory_copies": {
+    "total_ms": 0.06672,
+    "total_ms_per_step": 0.004448,
+    "profile_window_time_share_percent": 0.0004097877580227382,
+    "by_kind": {
+      "Device-to-Device": {
+        "count": 30,
+        "total_ms": 0.043232,
+        "bytes": 2949120
+      },
+      "Device-to-Host": {
+        "count": 15,
+        "total_ms": 0.023488,
+        "bytes": 60
+      }
+    }
+  },
+  "nvtx_breakdown": {
+    "forward_projected_ms_total": 5227.759043,
+    "backward_projected_ms_total": 0.0,
+    "optimizer_step_projected_ms_total": 822.325097,
+    "forward_ms_per_step": 348.5172695333333,
+    "backward_ms_per_step": 0.0,
+    "optimizer_step_ms_per_step": 54.821673133333334,
+    "total_step_projected_ms": 16254.860351,
+    "average_step_projected_ms": 1083.6573567333332,
+    "note": "NVTX projections attribute GPU work overlapping each range; forward/backward/optimizer are not guaranteed mutually exclusive."
+  },
+  "cpu_launch": {
+    "kernel_launch_api": {
+      "count": 66210,
+      "total_ms": 12705.753469,
+      "average_ms": 0.1919008226702915,
+      "median_ms": 0.006772500000000001,
+      "p95_ms": 0.8994395999999996,
+      "maximum_ms": 13.698512
+    },
+    "inter_launch_host_gap": {
+      "count": 66208,
+      "total_ms": 19303.62444,
+      "average_ms": 0.2915603014741421,
+      "median_ms": 0.013975,
+      "p95_ms": 0.10437944999999982,
+      "maximum_ms": 563.511601
+    },
+    "gpu_visible_idle_gap": {
+      "count": 69091,
+      "total_ms": 83.441556,
+      "average_ms": 0.0012077051424932337,
+      "median_ms": 0.000768,
+      "p95_ms": 0.001216,
+      "maximum_ms": 2.034986
+    }
+  },
+  "synchronization": {
+    "cuda_synchronization_apis": {
+      "cudaDeviceSynchronize_v3020": {
+        "count": 32,
+        "total_ms": 0.396756,
+        "average_ms": 0.012398625,
+        "median_ms": 0.011518,
+        "p95_ms": 0.02633745,
+        "maximum_ms": 0.032931
+      },
+      "cudaStreamSynchronize_v3020": {
+        "count": 15,
+        "total_ms": 0.071574,
+        "average_ms": 0.0047716,
+        "median_ms": 0.004457,
+        "p95_ms": 0.007109399999999998,
+        "maximum_ms": 0.008165
+      }
+    }
+  },
+  "phase_comparison": [
+    {
+      "label": "A_unfused_mb1",
+      "description": "Phase 2.1 original unfused MB=1 baseline",
+      "tokens_per_second": null,
+      "mfu_percent": 6.0067384978857845,
+      "average_step_time_ms": 551.8515942292288,
+      "gpu_idle_percent": 1.2889272776682814,
+      "kernel_count_per_step": 4768.0,
+      "kernels_under_50_us_percent": 66.63171140939598,
+      "attention_kernel_time_share_percent": 49.4082973890691,
+      "gemm_kernel_time_share_percent": 17.16241736647274,
+      "optimizer_kernel_time_share_percent": 10.819351620528675,
+      "memory_copy_profile_window_share_percent": 10.353939719954335,
+      "forward_nvtx_projected_ms_per_step": null,
+      "backward_nvtx_projected_ms_per_step": null,
+      "optimizer_nvtx_projected_ms_per_step": 54.83619946666667
+    },
+    {
+      "label": "B_fused_mb1",
+      "description": "Phase 3.3 fused attention MB=1",
+      "tokens_per_second": 9763.06772503069,
+      "mfu_percent": 15.802193540709183,
+      "average_step_time_ms": 209.77013144642115,
+      "gpu_idle_percent": null,
+      "kernel_count_per_step": 4361.0,
+      "kernels_under_50_us_percent": 72.96491630360009,
+      "attention_kernel_time_share_percent": 10.864650960008602,
+      "gemm_kernel_time_share_percent": 20.890154455443913,
+      "optimizer_kernel_time_share_percent": 26.118706781798167,
+      "memory_copy_profile_window_share_percent": null,
+      "forward_nvtx_projected_ms_per_step": null,
+      "backward_nvtx_projected_ms_per_step": null,
+      "optimizer_nvtx_projected_ms_per_step": 53.0328692
+    },
+    {
+      "label": "C_fused_mb8",
+      "description": "Phase 3.4 fused attention MB=8 deep reprofile",
+      "tokens_per_second": 15094.757529608441,
+      "mfu_percent": 24.431898523186785,
+      "average_step_time_ms": 1085.4099489748478,
+      "gpu_idle_percent": 0.5124899304431768,
+      "kernel_count_per_step": 4414.0,
+      "kernels_under_50_us_percent": 51.04213864975079,
+      "attention_kernel_time_share_percent": 13.217209007816114,
+      "gemm_kernel_time_share_percent": 28.27128163537579,
+      "optimizer_kernel_time_share_percent": 4.927622111188315,
+      "copy_cast_kernel_time_share_percent": 23.77619473707548,
+      "normalization_kernel_time_share_percent": 6.62100581137466,
+      "activation_elementwise_kernel_time_share_percent": 27.471439762010487,
+      "memory_copy_profile_window_share_percent": 0.0004097877580227382,
+      "forward_nvtx_projected_ms_per_step": 348.5172695333333,
+      "backward_nvtx_projected_ms_per_step": 0.0,
+      "optimizer_nvtx_projected_ms_per_step": 54.821673133333334
+    }
+  ],
+  "analysis": {
+    "bottleneck_migration_summary": "Attention dropped from ~49% (Phase A) to ~11\u201313% (Phases B/C); GEMM/matmul rose to ~28% and dtype copy/cast kernels remain ~22% combined at MB=8. Optimizer share fell sharply as micro-batch amortized fixed ~53 ms/step AdamW work.",
+    "top_3_remaining_bottlenecks": [
+      {
+        "rank": 1,
+        "category": "gemm_matmul",
+        "kernel_time_share_percent": 28.27128163537579,
+        "evidence": "Largest exclusive compute category at MB=8; CUTLASS/Ampere GEMM symbols dominate top-kernel list after copy kernels."
+      },
+      {
+        "rank": 2,
+        "category": "copy_cast",
+        "kernel_time_share_percent": 23.77619473707548,
+        "evidence": "bfloat16_copy and direct_copy remain #1 and #3 kernels; layout/dtype traffic persists after attention fusion."
+      },
+      {
+        "rank": 3,
+        "category": "attention",
+        "kernel_time_share_percent": 13.217209007816114,
+        "evidence": "cuDNN SDPA forward/backward still measurable but no longer dominant; further attention swaps have diminishing returns vs GEMM/copy."
+      }
+    ],
+    "recommended_next_optimization": {
+      "optimization": "Eliminate FP32/BF16 cast and layout-copy overhead at Megatron local linear boundaries (keep FP32 params, cast Q/K/V once or use BF16-native linears where safe)",
+      "rationale": "Copy/cast kernels still consume the largest single-kernel share (~15% for bfloat16_copy alone) while GEMM is compute-dominant. Reducing dtype traffic directly shrinks the #1 kernel class without changing the mathematical model, and complements rather than duplicates the already-completed attention fusion.",
+      "expected_payoff": "Phase A copy kernels totaled ~26% of kernel time; Phase C still shows ~23.8% in the copy_cast category. A measured 30\u201350% reduction in copy time could yield high single-digit to low double-digit throughput gains before hitting pure GEMM roofline limits.",
+      "not_recommended_next": [
+        "Further micro-batch increase (MB=16 predicted OOM ~60 GB)",
+        "FlashAttention swap before copy/GEMM fixes (smaller share than copy+GEMM)",
+        "Fused AdamW alone (optimizer already ~5% kernel time at MB=8)"
+      ]
+    },
+    "category_ranking_current": [
+      [
+        "gemm_matmul",
+        28.27128163537579
+      ],
+      [
+        "activation_elementwise",
+        27.471439762010487
+      ],
+      [
+        "copy_cast",
+        23.77619473707548
+      ],
+      [
+        "attention",
+        13.217209007816114
+      ],
+      [
+        "normalization",
+        6.62100581137466
+      ],
+      [
+        "optimizer",
+        4.927622111188315
+      ]
+    ],
+    "comparison_rows": [
+      {
+        "label": "A_unfused_mb1",
+        "description": "Phase 2.1 original unfused MB=1 baseline",
+        "tokens_per_second": null,
+        "mfu_percent": 6.0067384978857845,
+        "average_step_time_ms": 551.8515942292288,
+        "gpu_idle_percent": 1.2889272776682814,
+        "kernel_count_per_step": 4768.0,
+        "kernels_under_50_us_percent": 66.63171140939598,
+        "attention_kernel_time_share_percent": 49.4082973890691,
+        "gemm_kernel_time_share_percent": 17.16241736647274,
+        "optimizer_kernel_time_share_percent": 10.819351620528675,
+        "memory_copy_profile_window_share_percent": 10.353939719954335,
+        "forward_nvtx_projected_ms_per_step": null,
+        "backward_nvtx_projected_ms_per_step": null,
+        "optimizer_nvtx_projected_ms_per_step": 54.83619946666667
+      },
+      {
+        "label": "B_fused_mb1",
+        "description": "Phase 3.3 fused attention MB=1",
+        "tokens_per_second": 9763.06772503069,
+        "mfu_percent": 15.802193540709183,
+        "average_step_time_ms": 209.77013144642115,
+        "gpu_idle_percent": null,
+        "kernel_count_per_step": 4361.0,
+        "kernels_under_50_us_percent": 72.96491630360009,
+        "attention_kernel_time_share_percent": 10.864650960008602,
+        "gemm_kernel_time_share_percent": 20.890154455443913,
+        "optimizer_kernel_time_share_percent": 26.118706781798167,
+        "memory_copy_profile_window_share_percent": null,
+        "forward_nvtx_projected_ms_per_step": null,
+        "backward_nvtx_projected_ms_per_step": null,
+        "optimizer_nvtx_projected_ms_per_step": 53.0328692
+      },
+      {
+        "label": "C_fused_mb8",
+        "description": "Phase 3.4 fused attention MB=8 deep reprofile",
+        "tokens_per_second": 15094.757529608441,
+        "mfu_percent": 24.431898523186785,
+        "average_step_time_ms": 1085.4099489748478,
+        "gpu_idle_percent": 0.5124899304431768,
+        "kernel_count_per_step": 4414.0,
+        "kernels_under_50_us_percent": 51.04213864975079,
+        "attention_kernel_time_share_percent": 13.217209007816114,
+        "gemm_kernel_time_share_percent": 28.27128163537579,
+        "optimizer_kernel_time_share_percent": 4.927622111188315,
+        "copy_cast_kernel_time_share_percent": 23.77619473707548,
+        "normalization_kernel_time_share_percent": 6.62100581137466,
+        "activation_elementwise_kernel_time_share_percent": 27.471439762010487,
+        "memory_copy_profile_window_share_percent": 0.0004097877580227382,
+        "forward_nvtx_projected_ms_per_step": 348.5172695333333,
+        "backward_nvtx_projected_ms_per_step": 0.0,
+        "optimizer_nvtx_projected_ms_per_step": 54.821673133333334
+      }
+    ]
+  },
+  "environment": {
+    "timestamp_utc": "2026-08-23T16:13:29.491887+00:00",
+    "hostname": "4553547fc7f0",
+    "platform": "Linux-6.8.0-52-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "pytorch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "nccl": "2.27.3",
+    "cudnn": 91002,
+    "megatron_core": "unavailable: Command '['python', '-c', \"import importlib.metadata as m; print(m.version('megatron-core'))\"]' returned non-zero exit status 1.",
+    "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+    "project_commit": "68298151afcc6be3866003004381585e30ff0ebb",
+    "gpu": "NVIDIA A40",
+    "driver": "570.195.03",
+    "gpu_memory_total_mib": 46068.0,
+    "compute_capability": [
+      8,
+      6
+    ],
+    "bf16_supported": true,
+    "transformer_engine_installed": true,
+    "transformer_engine_version": "2.17.1+4329ff84",
+    "transformer_engine_disabled": false,
+    "cuda_graph_enabled": false
+  }
+}

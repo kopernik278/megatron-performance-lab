@@ -94,7 +94,7 @@ def load_nvtx_projections(path: Path) -> dict[str, dict[str, float | int]]:
     selected: dict[str, dict[str, float | int]] = {}
     for row in reader:
         name = row["Range"].lstrip(":")
-        if name in {"profile_window", "forward", "optimizer_step"} or name.startswith(
+        if name in {"profile_window", "forward", "backward", "optimizer_step"} or name.startswith(
             "train_step_"
         ):
             selected[name] = {
