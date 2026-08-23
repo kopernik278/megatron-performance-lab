@@ -138,8 +138,9 @@ def profile_summary(
         "top_10_cuda_kernels_by_total_gpu_time": top_kernels,
         "category_note": (
             "Categories are non-exclusive and use total CUDA kernel execution time "
-            "as the denominator. Attention and optimizer use correlated NVTX ranges; "
-            "GEMM uses demangled kernel symbols."
+            "as the denominator. Attention uses correlated NVTX ranges and demangled "
+            "fused-attention symbols; optimizer uses correlated NVTX ranges; GEMM "
+            "uses demangled kernel symbols."
         ),
         "trace": {
             "path": str(trace_path),

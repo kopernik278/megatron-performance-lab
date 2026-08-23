@@ -1,0 +1,532 @@
+{
+  "status": "success",
+  "experiment": "Phase 3.3 fused-attention micro-batch scaling",
+  "infrastructure": {
+    "pod_id": "t1voho50r1euaw",
+    "cloud": "Secure Cloud",
+    "gpu": "1x NVIDIA A40 48GB",
+    "gpu_price_per_hour_usd": 0.44,
+    "image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404"
+  },
+  "controls": {
+    "model_config": {
+      "architecture": "Megatron Core GPTModel",
+      "num_layers": 24,
+      "hidden_size": 1024,
+      "ffn_hidden_size": 4096,
+      "num_attention_heads": 16,
+      "head_dimension": 64,
+      "vocab_size": 50304,
+      "max_position_embeddings": 2048,
+      "position_embedding_type": "learned_absolute",
+      "share_embeddings_and_output_weights": true,
+      "hidden_dropout": 0.1,
+      "attention_dropout": 0.1,
+      "layernorm_epsilon": 1e-05,
+      "attention_backend": "fused",
+      "attention_implementation": "te-fused",
+      "core_attention": "TEDotProductAttention",
+      "transformer_layer_spec": "get_gpt_layer_local_spec"
+    },
+    "parameter_count": 355919872,
+    "parallelism": {
+      "tensor_parallel": 1,
+      "pipeline_parallel": 1,
+      "data_parallel": 1
+    },
+    "precision": {
+      "forward_backward": "BF16 autocast",
+      "parameter_storage": "FP32",
+      "optimizer_state": "FP32",
+      "bf16_enabled": true
+    },
+    "optimizer": {
+      "name": "torch.optim.AdamW",
+      "learning_rate": 0.0001,
+      "foreach": false,
+      "fused": false
+    },
+    "data": {
+      "type": "fixed synthetic random token IDs",
+      "seed": 1235
+    },
+    "sequence_length": 2048,
+    "warmup_iterations": 20,
+    "measured_iterations": 100,
+    "environment": {
+      "timestamp_utc": "2026-08-23T11:23:05.230134+00:00",
+      "hostname": "b4216ac40c52",
+      "platform": "Linux-6.8.0-65-generic-x86_64-with-glibc2.39",
+      "python": "3.12.3",
+      "pytorch": "2.8.0+cu128",
+      "cuda_runtime": "12.8",
+      "nccl": "2.27.3",
+      "cudnn": 91002,
+      "megatron_core": "unavailable: Command '['python', '-c', \"import importlib.metadata as m; print(m.version('megatron-core'))\"]' returned non-zero exit status 1.",
+      "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+      "project_commit": "f9694ddd3d1af4d80cda62154ff2f7911595d4c8",
+      "gpu": "NVIDIA A40",
+      "driver": "570.195.03",
+      "gpu_memory_total_mib": 46068.0,
+      "compute_capability": [
+        8,
+        6
+      ],
+      "bf16_supported": true,
+      "transformer_engine_installed": true,
+      "transformer_engine_version": "2.17.1+4329ff84",
+      "transformer_engine_disabled": false,
+      "cuda_graph_enabled": false
+    },
+    "only_intended_variable": "micro_batch_size"
+  },
+  "scaling_efficiency_formula": "efficiency = (throughput_MB / throughput_MB1) / (MB / 1) * 100; 100% means the larger batch completed in the MB1 step time",
+  "configurations": {
+    "1": {
+      "micro_batch_size": 1,
+      "tokens_per_step": 2048,
+      "average_step_time_ms": 209.77013144642115,
+      "median_step_time_ms": 208.28860998153687,
+      "tokens_per_second": 9763.06772503069,
+      "milliseconds_per_token": 0.10242682199532283,
+      "mfu_percent": 15.802193540709183,
+      "peak_allocated_memory_mib": 7481.81884765625,
+      "peak_reserved_memory_mib": 7616.0,
+      "peak_nvidia_smi_memory_mib": 8410.0,
+      "average_gpu_utilization_percent": 98.03809523809524,
+      "final_loss": 0.03653072565793991,
+      "scaling_relative_to_mb1": {
+        "batch_ratio": 1.0,
+        "step_time_ratio": 1.0,
+        "throughput_ratio": 1.0,
+        "throughput_gain_percent": 0.0,
+        "ideal_constant_step_scaling_efficiency_percent": 100.0,
+        "mfu_ratio": 1.0
+      },
+      "profile": {
+        "profiled_iterations": 10,
+        "profile_window_ms": 2200.145831,
+        "kernel_count": 43610,
+        "kernel_count_per_step": 4361.0,
+        "kernels_per_token": 2.12939453125,
+        "kernels_under_50_us_percent": 72.96491630360009,
+        "kernel_total_ms": 2030.455399,
+        "attention_time_share_percent": 10.864650960008602,
+        "gemm_time_share_percent": 20.890154455443913,
+        "optimizer_time_share_percent": 26.118706781798167,
+        "attention_time_per_step_ms": 22.0601892,
+        "gemm_time_per_step_ms": 42.4165269,
+        "optimizer_time_per_step_ms": 53.0328692,
+        "top_10_cuda_kernels_by_total_gpu_time": [
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>>(int, T2, T3)",
+            "count": 5590,
+            "total_ms": 272.692021,
+            "kernel_time_share_percent": 13.430091650094896
+          },
+          {
+            "name": "cudnn_generated_fort_native_sdpa_sm80_flash_bprop_wmma_f16_knob_28_64x128x64_1x4x1_kernel0_0",
+            "count": 240,
+            "total_ms": 152.243249,
+            "kernel_time_share_percent": 7.497985381751299
+          },
+          {
+            "name": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda() (instance 3)]::operator ()() const::[lambda() (instance 7)]::operator ()() const::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>, (int)4, TrivialOffsetCalculator<(int)1, unsigned int>, TrivialOffsetCalculator<(int)1, unsigned int>, at::native::memory::LoadWithCast<(int)1>, at::native::memory::StoreWithCast<(int)1>>(int, T1, T2, T4, T5, T6, T7)",
+            "count": 3420,
+            "total_ms": 138.204517,
+            "kernel_time_share_percent": 6.806577335708323
+          },
+          {
+            "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nt",
+            "count": 730,
+            "total_ms": 134.036729,
+            "kernel_time_share_percent": 6.601313629741049
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::AUnaryFunctor<float, float, float, at::native::binary_internal::MulFunctor<float>>, std::array<char *, (unsigned long)2>>(int, T2, T3)",
+            "count": 5840,
+            "total_ms": 109.067171,
+            "kernel_time_share_percent": 5.3715620177481185
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::addcdiv_cuda_kernel(at::TensorIteratorBase &, const c10::Scalar &)::[lambda() (instance 2)]::operator ()() const::[lambda() (instance 7)]::operator ()() const::[lambda(float, float, float) (instance 1)], std::array<char *, (unsigned long)4>>(int, T2, T3)",
+            "count": 2920,
+            "total_ms": 102.92271,
+            "kernel_time_share_percent": 5.068947096828104
+          },
+          {
+            "name": "ampere_bf16_s16816gemm_bf16_256x128_ldg8_f2f_stages_32x3_nn",
+            "count": 730,
+            "total_ms": 96.066895,
+            "kernel_time_share_percent": 4.73129796632386
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::<unnamed>::lerp_scalar_kernel(at::TensorIteratorBase &, const c10::Scalar &)::[lambda() (instance 2)]::operator ()() const::[lambda() (instance 2)]::operator ()() const::[lambda(float, float) (instance 1)], std::array<char *, (unsigned long)3>>(int, T2, T3)",
+            "count": 2920,
+            "total_ms": 81.139393,
+            "kernel_time_share_percent": 3.9961179664404933
+          },
+          {
+            "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_tn",
+            "count": 480,
+            "total_ms": 79.241198,
+            "kernel_time_share_percent": 3.902631795755096
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::addcmul_cuda_kernel(at::TensorIteratorBase &, const c10::Scalar &)::[lambda() (instance 2)]::operator ()() const::[lambda() (instance 7)]::operator ()() const::[lambda(float, float, float) (instance 1)], std::array<char *, (unsigned long)4>>(int, T2, T3)",
+            "count": 2920,
+            "total_ms": 78.243034,
+            "kernel_time_share_percent": 3.853472183557182
+          }
+        ],
+        "category_note": "Categories are non-exclusive and use total CUDA kernel execution time as the denominator. Attention uses correlated NVTX ranges and demangled fused-attention symbols; optimizer uses correlated NVTX ranges; GEMM uses demangled kernel symbols.",
+        "trace": {
+          "path": "/workspace/megatron-performance-lab/profiles/phase3_mb1.nsys-rep",
+          "size_bytes": 5962266,
+          "sha256": "03b691de41e3756c1092bd76918c839b1fb06a04c82c1d1b6ff57e3992a9f934",
+          "sqlite_path": "/workspace/megatron-performance-lab/profiles/phase3_mb1.sqlite",
+          "sqlite_size_bytes": 19214336,
+          "sqlite_sha256": "677169685f77cc4c16f989c911c31c75fc5ef971a22320531aa5b8ca26dd5fe5"
+        }
+      }
+    },
+    "2": {
+      "micro_batch_size": 2,
+      "tokens_per_step": 4096,
+      "average_step_time_ms": 337.2026100382209,
+      "median_step_time_ms": 337.3061567544937,
+      "tokens_per_second": 12146.999691181902,
+      "milliseconds_per_token": 0.08232485596636252,
+      "mfu_percent": 19.66075064365977,
+      "peak_allocated_memory_mib": 10869.21142578125,
+      "peak_reserved_memory_mib": 11034.0,
+      "peak_nvidia_smi_memory_mib": 11828.0,
+      "average_gpu_utilization_percent": 99.40236686390533,
+      "final_loss": 0.04963289201259613,
+      "scaling_relative_to_mb1": {
+        "batch_ratio": 2.0,
+        "step_time_ratio": 1.6074862885059886,
+        "throughput_ratio": 1.24417857514593,
+        "throughput_gain_percent": 24.417857514593,
+        "ideal_constant_step_scaling_efficiency_percent": 62.2089287572965,
+        "mfu_ratio": 1.24417857514593
+      },
+      "profile": {
+        "profiled_iterations": 10,
+        "profile_window_ms": 3391.618451,
+        "kernel_count": 44060,
+        "kernel_count_per_step": 4406.0,
+        "kernels_per_token": 1.07568359375,
+        "kernels_under_50_us_percent": 62.648660916931455,
+        "kernel_total_ms": 3319.059362,
+        "attention_time_share_percent": 11.721042788628496,
+        "gemm_time_share_percent": 25.23376841610102,
+        "optimizer_time_share_percent": 15.977625741542854,
+        "attention_time_per_step_ms": 38.902836799999996,
+        "gemm_time_per_step_ms": 83.7523753,
+        "optimizer_time_per_step_ms": 53.030688299999994,
+        "top_10_cuda_kernels_by_total_gpu_time": [
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>>(int, T2, T3)",
+            "count": 5590,
+            "total_ms": 464.144556,
+            "kernel_time_share_percent": 13.984219785702043
+          },
+          {
+            "name": "cudnn_generated_fort_native_sdpa_sm80_flash_bprop_wmma_f16_knob_28_64x128x64_1x4x1_kernel0_0",
+            "count": 240,
+            "total_ms": 273.670445,
+            "kernel_time_share_percent": 8.245421824425929
+          },
+          {
+            "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nn",
+            "count": 960,
+            "total_ms": 249.341321,
+            "kernel_time_share_percent": 7.512409204087023
+          },
+          {
+            "name": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda() (instance 3)]::operator ()() const::[lambda() (instance 7)]::operator ()() const::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>, (int)4, TrivialOffsetCalculator<(int)1, unsigned int>, TrivialOffsetCalculator<(int)1, unsigned int>, at::native::memory::LoadWithCast<(int)1>, at::native::memory::StoreWithCast<(int)1>>(int, T1, T2, T4, T5, T6, T7)",
+            "count": 3420,
+            "total_ms": 233.98638,
+            "kernel_time_share_percent": 7.0497799068891736
+          },
+          {
+            "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nt",
+            "count": 490,
+            "total_ms": 175.363646,
+            "kernel_time_share_percent": 5.283534485937285
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::AUnaryFunctor<float, float, float, at::native::binary_internal::MulFunctor<float>>, std::array<char *, (unsigned long)2>>(int, T2, T3)",
+            "count": 5840,
+            "total_ms": 109.082948,
+            "kernel_time_share_percent": 3.2865621280804316
+          },
+          {
+            "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_tn",
+            "count": 480,
+            "total_ms": 107.575228,
+            "kernel_time_share_percent": 3.2411360047256665
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::addcdiv_cuda_kernel(at::TensorIteratorBase &, const c10::Scalar &)::[lambda() (instance 2)]::operator ()() const::[lambda() (instance 7)]::operator ()() const::[lambda(float, float, float) (instance 1)], std::array<char *, (unsigned long)4>>(int, T2, T3)",
+            "count": 2920,
+            "total_ms": 102.893184,
+            "kernel_time_share_percent": 3.100070615730072
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::CUDAFunctor_add<float>, std::array<char *, (unsigned long)3>>(int, T2, T3)",
+            "count": 1000,
+            "total_ms": 96.715663,
+            "kernel_time_share_percent": 2.913947972949813
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::GeluBackwardCUDAKernelImpl(at::TensorIteratorBase &, at::native::GeluType)::[lambda() (instance 2)]::operator ()() const::[lambda() (instance 2)]::operator ()() const::[lambda(float, float) (instance 1)], std::array<char *, (unsigned long)3>>(int, T2, T3)",
+            "count": 240,
+            "total_ms": 85.759707,
+            "kernel_time_share_percent": 2.583855774978453
+          }
+        ],
+        "category_note": "Categories are non-exclusive and use total CUDA kernel execution time as the denominator. Attention uses correlated NVTX ranges and demangled fused-attention symbols; optimizer uses correlated NVTX ranges; GEMM uses demangled kernel symbols.",
+        "trace": {
+          "path": "/workspace/megatron-performance-lab/profiles/phase3_mb2.nsys-rep",
+          "size_bytes": 6167014,
+          "sha256": "cc6af486e079787ca3fbc1817cb57124f0cfd3a30f3d2bcd289ba8f191d7ce4b",
+          "sqlite_path": "/workspace/megatron-performance-lab/profiles/phase3_mb2.sqlite",
+          "sqlite_size_bytes": 19922944,
+          "sqlite_sha256": "4b83ebef021f452f2ed1d370db01e0b8898d860ae325a67670c36c3a852f0b5a"
+        }
+      }
+    },
+    "4": {
+      "micro_batch_size": 4,
+      "tokens_per_step": 8192,
+      "average_step_time_ms": 589.8267959803343,
+      "median_step_time_ms": 589.8514594882727,
+      "tokens_per_second": 13888.82305081496,
+      "milliseconds_per_token": 0.07200034130619315,
+      "mfu_percent": 22.480011005040026,
+      "peak_allocated_memory_mib": 17643.96533203125,
+      "peak_reserved_memory_mib": 17870.0,
+      "peak_nvidia_smi_memory_mib": 18664.0,
+      "average_gpu_utilization_percent": 99.69152542372882,
+      "final_loss": 1.603506088256836,
+      "scaling_relative_to_mb1": {
+        "batch_ratio": 4.0,
+        "step_time_ratio": 2.811776833590754,
+        "throughput_ratio": 1.4225880063503606,
+        "throughput_gain_percent": 42.25880063503607,
+        "ideal_constant_step_scaling_efficiency_percent": 35.56470015875902,
+        "mfu_ratio": 1.4225880063503609
+      },
+      "profile": {
+        "profiled_iterations": 10,
+        "profile_window_ms": 5902.565221,
+        "kernel_count": 44060,
+        "kernel_count_per_step": 4406.0,
+        "kernels_per_token": 0.537841796875,
+        "kernels_under_50_us_percent": 51.13481615978211,
+        "kernel_total_ms": 5829.083531,
+        "attention_time_share_percent": 12.500976030360475,
+        "gemm_time_share_percent": 27.609893072228818,
+        "optimizer_time_share_percent": 9.098559476450227,
+        "attention_time_per_step_ms": 72.8692335,
+        "gemm_time_per_step_ms": 160.940373,
+        "optimizer_time_per_step_ms": 53.0362632,
+        "top_10_cuda_kernels_by_total_gpu_time": [
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>>(int, T2, T3)",
+            "count": 5590,
+            "total_ms": 846.869614,
+            "kernel_time_share_percent": 14.528349259299711
+          },
+          {
+            "name": "cudnn_generated_fort_native_sdpa_sm80_flash_bprop_wmma_f16_knob_28_64x128x64_1x4x1_kernel0_0",
+            "count": 240,
+            "total_ms": 517.497093,
+            "kernel_time_share_percent": 8.877846581677334
+          },
+          {
+            "name": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda() (instance 3)]::operator ()() const::[lambda() (instance 7)]::operator ()() const::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>, (int)4, TrivialOffsetCalculator<(int)1, unsigned int>, TrivialOffsetCalculator<(int)1, unsigned int>, at::native::memory::LoadWithCast<(int)1>, at::native::memory::StoreWithCast<(int)1>>(int, T1, T2, T4, T5, T6, T7)",
+            "count": 3420,
+            "total_ms": 423.978607,
+            "kernel_time_share_percent": 7.273503711950838
+          },
+          {
+            "name": "ampere_bf16_s16816gemm_bf16_256x128_ldg8_f2f_stages_32x3_nn",
+            "count": 490,
+            "total_ms": 351.845935,
+            "kernel_time_share_percent": 6.036042083267926
+          },
+          {
+            "name": "ampere_bf16_s16816gemm_bf16_256x128_ldg8_f2f_stages_32x3_tn",
+            "count": 250,
+            "total_ms": 223.338825,
+            "kernel_time_share_percent": 3.831456931647117
+          },
+          {
+            "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nn",
+            "count": 480,
+            "total_ms": 187.211642,
+            "kernel_time_share_percent": 3.2116822653917807
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::CUDAFunctor_add<float>, std::array<char *, (unsigned long)3>>(int, T2, T3)",
+            "count": 1000,
+            "total_ms": 183.862333,
+            "kernel_time_share_percent": 3.1542236789401055
+          },
+          {
+            "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nt",
+            "count": 250,
+            "total_ms": 177.226092,
+            "kernel_time_share_percent": 3.040376605644494
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::GeluBackwardCUDAKernelImpl(at::TensorIteratorBase &, at::native::GeluType)::[lambda() (instance 2)]::operator ()() const::[lambda() (instance 2)]::operator ()() const::[lambda(float, float) (instance 1)], std::array<char *, (unsigned long)3>>(int, T2, T3)",
+            "count": 240,
+            "total_ms": 171.521249,
+            "kernel_time_share_percent": 2.942507996116757
+          },
+          {
+            "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_256x128_32x3_tn_align8>(T1::Params)",
+            "count": 240,
+            "total_ms": 163.000149,
+            "kernel_time_share_percent": 2.7963254966778073
+          }
+        ],
+        "category_note": "Categories are non-exclusive and use total CUDA kernel execution time as the denominator. Attention uses correlated NVTX ranges and demangled fused-attention symbols; optimizer uses correlated NVTX ranges; GEMM uses demangled kernel symbols.",
+        "trace": {
+          "path": "/workspace/megatron-performance-lab/profiles/phase3_mb4.nsys-rep",
+          "size_bytes": 6307264,
+          "sha256": "033ae9bb8298282ca04a5dbe4afda72ba82f9663b3253bc264cd8e394df255f6",
+          "sqlite_path": "/workspace/megatron-performance-lab/profiles/phase3_mb4.sqlite",
+          "sqlite_size_bytes": 20705280,
+          "sqlite_sha256": "26c5d1f2273da2f93dc7d9a30eea8deb67000a1d4ab0d6b0ed392805683e23d0"
+        }
+      }
+    },
+    "8": {
+      "micro_batch_size": 8,
+      "tokens_per_step": 16384,
+      "average_step_time_ms": 1086.1332865059376,
+      "median_step_time_ms": 1087.106991559267,
+      "tokens_per_second": 15084.704799635503,
+      "milliseconds_per_token": 0.06629231485021592,
+      "mfu_percent": 24.41562749146612,
+      "peak_allocated_memory_mib": 31192.47314453125,
+      "peak_reserved_memory_mib": 31838.0,
+      "peak_nvidia_smi_memory_mib": 32632.0,
+      "average_gpu_utilization_percent": 99.84530386740332,
+      "final_loss": 3.557201862335205,
+      "scaling_relative_to_mb1": {
+        "batch_ratio": 8.0,
+        "step_time_ratio": 5.177730876253727,
+        "throughput_ratio": 1.5450783733642577,
+        "throughput_gain_percent": 54.507837336425766,
+        "ideal_constant_step_scaling_efficiency_percent": 19.313479667053222,
+        "mfu_ratio": 1.5450783733642575
+      },
+      "profile": {
+        "profiled_iterations": 10,
+        "profile_window_ms": 10840.091795,
+        "kernel_count": 44140,
+        "kernel_count_per_step": 4414.0,
+        "kernels_per_token": 0.2694091796875,
+        "kernels_under_50_us_percent": 51.04213864975079,
+        "kernel_total_ms": 10751.403787,
+        "attention_time_share_percent": 13.148705648180862,
+        "gemm_time_share_percent": 28.27797740864441,
+        "optimizer_time_share_percent": 4.933989956189895,
+        "attention_time_per_step_ms": 141.36704369999998,
+        "gemm_time_per_step_ms": 304.0279534,
+        "optimizer_time_per_step_ms": 53.04731829999999,
+        "top_10_cuda_kernels_by_total_gpu_time": [
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>>(int, T2, T3)",
+            "count": 5600,
+            "total_ms": 1615.676322,
+            "kernel_time_share_percent": 15.02758480667972
+          },
+          {
+            "name": "cudnn_generated_fort_native_sdpa_sm80_flash_bprop_wmma_f16_knob_28_64x128x64_1x4x1_kernel0_0",
+            "count": 240,
+            "total_ms": 1010.276458,
+            "kernel_time_share_percent": 9.396693473847295
+          },
+          {
+            "name": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda() (instance 3)]::operator ()() const::[lambda() (instance 7)]::operator ()() const::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>, (int)4, TrivialOffsetCalculator<(int)1, unsigned int>, TrivialOffsetCalculator<(int)1, unsigned int>, at::native::memory::LoadWithCast<(int)1>, at::native::memory::StoreWithCast<(int)1>>(int, T1, T2, T4, T5, T6, T7)",
+            "count": 3430,
+            "total_ms": 804.962633,
+            "kernel_time_share_percent": 7.48704679823593
+          },
+          {
+            "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_256x128_32x3_tn_align8>(T1::Params)",
+            "count": 490,
+            "total_ms": 664.512496,
+            "kernel_time_share_percent": 6.180704484408739
+          },
+          {
+            "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nn",
+            "count": 480,
+            "total_ms": 578.987521,
+            "kernel_time_share_percent": 5.385227198889875
+          },
+          {
+            "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x256_32x3_nt_align8>(T1::Params)",
+            "count": 480,
+            "total_ms": 526.923914,
+            "kernel_time_share_percent": 4.900977811261513
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::CUDAFunctor_add<float>, std::array<char *, (unsigned long)3>>(int, T2, T3)",
+            "count": 1000,
+            "total_ms": 358.092029,
+            "kernel_time_share_percent": 3.3306537089880766
+          },
+          {
+            "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_tn",
+            "count": 480,
+            "total_ms": 353.887797,
+            "kernel_time_share_percent": 3.2915496804975497
+          },
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::GeluBackwardCUDAKernelImpl(at::TensorIteratorBase &, at::native::GeluType)::[lambda() (instance 2)]::operator ()() const::[lambda() (instance 2)]::operator ()() const::[lambda(float, float) (instance 1)], std::array<char *, (unsigned long)3>>(int, T2, T3)",
+            "count": 240,
+            "total_ms": 342.762468,
+            "kernel_time_share_percent": 3.1880717605867366
+          },
+          {
+            "name": "void at::native::elementwise_kernel<(int)128, (int)4, void at::native::gpu_kernel_impl<at::native::CUDAFunctor_add<float>>(at::TensorIteratorBase &, const T1 &)::[lambda(int) (instance 1)]>(int, T3)",
+            "count": 480,
+            "total_ms": 303.085913,
+            "kernel_time_share_percent": 2.8190357185400727
+          }
+        ],
+        "category_note": "Categories are non-exclusive and use total CUDA kernel execution time as the denominator. Attention uses correlated NVTX ranges and demangled fused-attention symbols; optimizer uses correlated NVTX ranges; GEMM uses demangled kernel symbols.",
+        "trace": {
+          "path": "/workspace/megatron-performance-lab/profiles/phase3_mb8.nsys-rep",
+          "size_bytes": 6394092,
+          "sha256": "0d98e39d307334867d624e8e5f7557b47eaa32675ec7851053c25a2df7639bdb",
+          "sqlite_path": "/workspace/megatron-performance-lab/profiles/phase3_mb8.sqlite",
+          "sqlite_size_bytes": 21843968,
+          "sqlite_sha256": "57ab8a2ea85d1b993720ec23fb06056ec099e6de5a151f2d9514ca3ebcc1f7bf"
+        }
+      }
+    }
+  },
+  "mb8_decision": {
+    "method": "least-squares linear fit to MB1/MB2/MB4 peak nvidia-smi memory",
+    "intercept_mib": 4992.0,
+    "slope_mib_per_micro_batch": 3418.0,
+    "predicted_mb8_peak_mib": 32336.0,
+    "gpu_total_memory_mib": 46068.0,
+    "safety_fraction": 0.9,
+    "safety_limit_mib": 41461.200000000004,
+    "prediction_safe": true,
+    "mb8_attempted": true,
+    "mb8_completed": true
+  },
+  "best_throughput_micro_batch": 8,
+  "best_mfu_micro_batch": 8
+}

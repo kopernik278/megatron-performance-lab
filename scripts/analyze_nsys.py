@@ -176,7 +176,15 @@ def category_matches(
         "gemm_matmul": "gemm" in name,
         "attention": any(
             token in name or token in ranges
-            for token in ("attention", "bmm", "softmax", "masked_fill", "masked_scale")
+            for token in (
+                "attention",
+                "bmm",
+                "softmax",
+                "masked_fill",
+                "masked_scale",
+                "sdpa",
+                "fused_attn",
+            )
         ),
         "normalization": any(
             token in name or token in ranges
