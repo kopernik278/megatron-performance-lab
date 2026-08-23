@@ -101,7 +101,16 @@ def run_variant(
     saved_state = {
         name: tensor.detach().cpu().clone() for name, tensor in model.state_dict().items()
     }
-    return output.detach().cpu(), gradients, saved_state
+    output_cpu = output.detach().cpu()
+    del loss, output, model
+    torch.cuda.empty_cache()
+    return output_cpu, gradients, saved_state
+
+
+def reset_attention_backend_environment() -> None:
+    """Allow the second model to declare its own TE attention backend."""
+    for variable in ("NVTE_FLASH_ATTN", "NVTE_FUSED_ATTN", "NVTE_UNFUSED_ATTN"):
+        os.environ.pop(variable, None)
 
 
 def fused_backend_status() -> dict[str, Any]:
@@ -143,7 +152,7 @@ def main() -> None:
             batch,
             LOCAL_UNFUSED_ATTENTION,
         )
-        torch.cuda.empty_cache()
+        reset_attention_backend_environment()
         fused_output, fused_gradients, _ = run_variant(
             model_args,
             batch,
