@@ -1,0 +1,485 @@
+{
+  "status": "success",
+  "experiment": "Phase 4.2 BF16 hidden/residual stream screen",
+  "optimization_applied": true,
+  "full_benchmark_run": false,
+  "ncu_attempted": false,
+  "nsys_attempted": false,
+  "infrastructure": {
+    "pod_id": "x6gc433o9vu7sx",
+    "gpu": "1x NVIDIA A40 48GB",
+    "gpu_price_per_hour_usd": 0.44,
+    "replaced_unstartable_pod": "3ixl2btmmwghn5",
+    "replacement_reason": "3ixl2btmmwghn5 could not restart: host had no free A40",
+    "pod_final_status": "EXITED"
+  },
+  "configuration": {
+    "parameter_count": 355919872,
+    "model_config": {
+      "architecture": "Megatron Core GPTModel",
+      "num_layers": 24,
+      "hidden_size": 1024,
+      "ffn_hidden_size": 4096,
+      "num_attention_heads": 16,
+      "head_dimension": 64,
+      "vocab_size": 50304,
+      "max_position_embeddings": 2048,
+      "position_embedding_type": "learned_absolute",
+      "share_embeddings_and_output_weights": true,
+      "hidden_dropout": 0.1,
+      "attention_dropout": 0.1,
+      "layernorm_epsilon": 1e-05,
+      "attention_backend": "fused",
+      "attention_implementation": "te-fused",
+      "core_attention": "TEDotProductAttention",
+      "transformer_layer_spec": "get_gpt_layer_local_spec"
+    },
+    "micro_batch_size": 8,
+    "sequence_length": 2048,
+    "precision": {
+      "forward_backward": "BF16 autocast",
+      "parameter_storage": "FP32",
+      "optimizer_state": "FP32",
+      "hidden_residual_stream_A": "FP32",
+      "hidden_residual_stream_B": "BF16"
+    },
+    "optimizer": {
+      "name": "torch.optim.AdamW",
+      "foreach": false,
+      "fused": false
+    },
+    "parallelism": {
+      "tensor_parallel": 1,
+      "pipeline_parallel": 1,
+      "data_parallel": 1
+    },
+    "warmup_iterations": 3,
+    "measured_iterations": 10,
+    "profile_iterations": 5
+  },
+  "dtype_change": {
+    "repository": "lab only; Megatron-LM was not modified",
+    "file": "scripts/bf16_hidden_residual.py",
+    "mechanism": "Wrap model.decoder.forward and cast hidden_states to BF16 once at TransformerBlock entry. Residual connections then stay BF16, so fused_bias_dropout x.to(residual.dtype) does not promote to FP32. Loss still uses masked_language_model_loss(...).float().",
+    "unchanged": [
+      "params_dtype=float32",
+      "pipeline_dtype=float32",
+      "TransformerConfig.bf16=False",
+      "AdamW foreach=False fused=False",
+      "TE cuDNN FusedAttention sub-backend 1",
+      "micro-batch 8",
+      "sequence length 2048"
+    ]
+  },
+  "transformer_engine_backend": {
+    "flash_attention": false,
+    "fused_attention": true,
+    "unfused_attention": false,
+    "fused_sub_backend": 1
+  },
+  "correctness": {
+    "attention_dropout": 0.0,
+    "hidden_dropout": 0.0,
+    "seed": 1234,
+    "bitwise_equality_required": false,
+    "wrap_info": {
+      "already_wrapped": false,
+      "wrapped_module": "decoder",
+      "target_dtype": "bfloat16",
+      "parameter_storage": "unchanged"
+    },
+    "dtype_boundaries_observed": [
+      {
+        "site": "embedding",
+        "input": null,
+        "output": {
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "dtype": "float32"
+        }
+      },
+      {
+        "site": "final_layernorm",
+        "input": {
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "dtype": "float32"
+        },
+        "output": {
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "dtype": "bfloat16"
+        }
+      },
+      {
+        "site": "decoder",
+        "input": null,
+        "output": {
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "dtype": "bfloat16"
+        }
+      },
+      {
+        "site": "output_layer",
+        "input": {
+          "shape": [
+            2048,
+            8,
+            1024
+          ],
+          "dtype": "bfloat16"
+        },
+        "output": {
+          "shape": [
+            2048,
+            8,
+            50304
+          ],
+          "dtype": "bfloat16"
+        }
+      }
+    ],
+    "loss": {
+      "baseline": 11.03349494934082,
+      "bf16_residual": 11.033464431762695,
+      "absolute_difference": 3.0517578125e-05,
+      "relative_difference": 2.7659031218229927e-06,
+      "baseline_nonfinite": false,
+      "bf16_residual_nonfinite": false
+    },
+    "forward": {
+      "max_absolute_error": 0.023530960083007812,
+      "mean_absolute_error": 0.004067981615662575,
+      "max_relative_error": 0.0020055200438946486,
+      "mean_relative_error": 0.00036978977732360363,
+      "baseline_nonfinite": false,
+      "bf16_residual_nonfinite": false
+    },
+    "gradients": {
+      "compared_parameter_count": 292,
+      "mean_cosine_similarity": 1.0000710526149568,
+      "min_cosine_similarity": 0.9998355507850647,
+      "worst_parameter": "decoder.layers.0.self_attention.linear_proj.bias",
+      "worst_error": {
+        "max_absolute_error": 0.000242624431848526,
+        "mean_absolute_error": 5.877325020264834e-05,
+        "max_relative_error": 9.38377571105957,
+        "mean_relative_error": 0.04698701947927475,
+        "cosine_similarity": 0.9999576210975647,
+        "has_nonfinite": false
+      },
+      "representative": [
+        {
+          "max_absolute_error": 0.000242624431848526,
+          "mean_absolute_error": 5.877325020264834e-05,
+          "max_relative_error": 9.38377571105957,
+          "mean_relative_error": 0.04698701947927475,
+          "name": "decoder.layers.0.self_attention.linear_proj.bias",
+          "cosine_similarity": 0.9999576210975647,
+          "has_nonfinite": false
+        },
+        {
+          "max_absolute_error": 9.158102329820395e-05,
+          "mean_absolute_error": 2.3756992959533818e-05,
+          "max_relative_error": 4.5866851806640625,
+          "mean_relative_error": 0.05173669755458832,
+          "name": "decoder.layers.0.mlp.linear_fc2.bias",
+          "cosine_similarity": 0.9999621510505676,
+          "has_nonfinite": false
+        },
+        {
+          "max_absolute_error": 7.678172551095486e-05,
+          "mean_absolute_error": 1.9328619600855745e-05,
+          "max_relative_error": 14.984397888183594,
+          "mean_relative_error": 0.04928048700094223,
+          "name": "decoder.layers.1.self_attention.linear_proj.bias",
+          "cosine_similarity": 0.999961256980896,
+          "has_nonfinite": false
+        },
+        {
+          "max_absolute_error": 6.103515625e-05,
+          "mean_absolute_error": 4.1317402974527795e-06,
+          "max_relative_error": 26.751310348510742,
+          "mean_relative_error": 0.041738249361515045,
+          "name": "decoder.layers.1.self_attention.linear_proj.weight",
+          "cosine_similarity": 0.9999034404754639,
+          "has_nonfinite": false
+        },
+        {
+          "max_absolute_error": 6.103515625e-05,
+          "mean_absolute_error": 4.276515483070398e-06,
+          "max_relative_error": 36.85429763793945,
+          "mean_relative_error": 0.04855135828256607,
+          "name": "decoder.layers.1.mlp.linear_fc2.weight",
+          "cosine_similarity": 0.999999463558197,
+          "has_nonfinite": false
+        },
+        {
+          "max_absolute_error": 6.103515625e-05,
+          "mean_absolute_error": 3.512172725095297e-06,
+          "max_relative_error": 42.1926383972168,
+          "mean_relative_error": 0.03987525776028633,
+          "name": "decoder.layers.2.self_attention.linear_proj.weight",
+          "cosine_similarity": 0.9999186396598816,
+          "has_nonfinite": false
+        },
+        {
+          "max_absolute_error": 5.266861990094185e-05,
+          "mean_absolute_error": 1.4473381270363461e-05,
+          "max_relative_error": 6.895861625671387,
+          "mean_relative_error": 0.048048920929431915,
+          "name": "decoder.layers.1.mlp.linear_fc2.bias",
+          "cosine_similarity": 0.9999664425849915,
+          "has_nonfinite": false
+        },
+        {
+          "max_absolute_error": 5.103962030261755e-05,
+          "mean_absolute_error": 1.2580881048052106e-05,
+          "max_relative_error": 8.244754791259766,
+          "mean_relative_error": 0.041672151535749435,
+          "name": "decoder.layers.2.self_attention.linear_proj.bias",
+          "cosine_similarity": 0.9999670386314392,
+          "has_nonfinite": false
+        }
+      ],
+      "any_nonfinite": false
+    }
+  },
+  "variant_a": {
+    "variant": "A_current_fp32_residual",
+    "bf16_hidden_residual": false,
+    "parameter_count": 355919872,
+    "parameter_dtypes": [
+      "float32"
+    ],
+    "optimizer_state_dtypes": [
+      "float32"
+    ],
+    "wrap_info": null,
+    "warmup_iterations": 3,
+    "measured_iterations": 10,
+    "peak_allocated_memory_mib": 31192.47314453125,
+    "peak_reserved_memory_mib": 31826.0,
+    "gpu_monitoring": {
+      "sample_interval_ms": 200,
+      "sample_count": 54,
+      "average_gpu_utilization_percent": 99.88888888888889,
+      "peak_nvidia_smi_memory_mib": 32620.0
+    },
+    "average_step_time_ms": 1077.9479037970304,
+    "median_step_time_ms": 1077.5527339428663,
+    "step_times_ms": [
+      1076.5638016164303,
+      1076.645439490676,
+      1077.333090826869,
+      1076.8639035522938,
+      1077.587340027094,
+      1077.5181278586388,
+      1078.7159204483032,
+      1078.793441876769,
+      1079.612996429205,
+      1079.8449758440256
+    ],
+    "tokens_per_second": 15199.250299841005,
+    "final_loss": 10.213311195373535,
+    "measured_losses": [
+      10.726261138916016,
+      10.659910202026367,
+      10.575550079345703,
+      10.477836608886719,
+      11.489130973815918,
+      10.34753131866455,
+      10.295866012573242,
+      10.488659858703613,
+      10.275252342224121,
+      10.213311195373535
+    ],
+    "mfu": {
+      "training_flops_per_iteration": 39698382716928.0,
+      "achieved_tflops": 36.82773775716985,
+      "gpu_dense_bf16_peak_tflops": 149.7,
+      "mfu_percent": 24.601027225898363
+    }
+  },
+  "variant_b": {
+    "variant": "B_bf16_hidden_residual",
+    "bf16_hidden_residual": true,
+    "parameter_count": 355919872,
+    "parameter_dtypes": [
+      "float32"
+    ],
+    "optimizer_state_dtypes": [
+      "float32"
+    ],
+    "wrap_info": {
+      "already_wrapped": false,
+      "wrapped_module": "decoder",
+      "target_dtype": "bfloat16",
+      "parameter_storage": "unchanged"
+    },
+    "warmup_iterations": 3,
+    "measured_iterations": 10,
+    "peak_allocated_memory_mib": 31256.47314453125,
+    "peak_reserved_memory_mib": 31920.0,
+    "gpu_monitoring": {
+      "sample_interval_ms": 200,
+      "sample_count": 54,
+      "average_gpu_utilization_percent": 99.88888888888889,
+      "peak_nvidia_smi_memory_mib": 32714.0
+    },
+    "average_step_time_ms": 1082.7870951965451,
+    "median_step_time_ms": 1082.8940579667687,
+    "step_times_ms": [
+      1082.1167416870594,
+      1082.0924397557974,
+      1082.3073256760836,
+      1082.476232200861,
+      1083.0997861921787,
+      1083.2895655184984,
+      1083.0183867365122,
+      1083.3266843110323,
+      1082.7697291970253,
+      1083.374060690403
+    ],
+    "tokens_per_second": 15131.321820035188,
+    "final_loss": 10.21160888671875,
+    "measured_losses": [
+      10.725093841552734,
+      10.658862113952637,
+      10.574831008911133,
+      10.478462219238281,
+      11.479606628417969,
+      10.346810340881348,
+      10.311895370483398,
+      10.438465118408203,
+      10.275243759155273,
+      10.21160888671875
+    ],
+    "mfu": {
+      "training_flops_per_iteration": 39698382716928.0,
+      "achieved_tflops": 36.66314725492923,
+      "gpu_dense_bf16_peak_tflops": 149.7,
+      "mfu_percent": 24.49108033061405
+    }
+  },
+  "profile_b": {
+    "profiled_steps": 5,
+    "aten_copy_cuda_ms_per_step": 256.7407717999993,
+    "aten_copy_calls_per_step": 1279.0,
+    "copy_cast_kernel_ms_per_step": 256.7359655999997,
+    "copy_cast_kernel_calls_per_step": 986.0,
+    "families": {
+      "bfloat16_copy": {
+        "cuda_ms_per_step": 175.29303820000072,
+        "calls_per_step": 635.0
+      },
+      "direct_copy": {
+        "cuda_ms_per_step": 81.44292739999878,
+        "calls_per_step": 351.0
+      }
+    }
+  },
+  "comparison": {
+    "step_time_ms": {
+      "A": 1077.9479037970304,
+      "B": 1082.7870951965451,
+      "delta_ms": 4.839191399514675,
+      "delta_percent": -0.4489262776493009
+    },
+    "tokens_per_second": {
+      "A": 15199.250299841005,
+      "B": 15131.321820035188,
+      "delta_percent": -0.44691993661377166
+    },
+    "mfu_percent": {
+      "A": 24.601027225898363,
+      "B": 24.49108033061405,
+      "delta_points": -0.10994689528431323
+    },
+    "peak_allocated_memory_mib": {
+      "A": 31192.47314453125,
+      "B": 31256.47314453125,
+      "delta_mib": 64.0
+    }
+  },
+  "decision": {
+    "promising": false,
+    "full_20_plus_100_benchmark_run": false,
+    "gates": {
+      "no_nan_inf": true,
+      "gradients_strongly_aligned": true,
+      "min_cosine_similarity": 0.9998355507850647,
+      "cosine_threshold": 0.99,
+      "copy_cast_decreased_substantially": false,
+      "copy_cast_reduction_percent_vs_phase41": -0.32232764474853054,
+      "throughput_improved_at_least_5_percent": false,
+      "throughput_delta_percent": -0.44691993661377166
+    },
+    "copy_cast_ms_per_step": {
+      "phase41": 255.9110933999933,
+      "variant_b": 256.7359655999997,
+      "delta": 0.8248722000064106
+    },
+    "bfloat16_copy_ms_per_step": {
+      "phase41": 174.722054399994,
+      "variant_b": 175.29303820000072,
+      "delta": 0.5709838000067293
+    },
+    "direct_copy_ms_per_step": {
+      "phase41": 81.18903899999928,
+      "variant_b": 81.44292739999878,
+      "delta": 0.25388839999949653
+    },
+    "hypothesis_supported": false,
+    "rationale": "Stop after the screen: numerical behavior is acceptable, but copy/cast did not fall and throughput did not improve by 5%. No 20+100 benchmark."
+  },
+  "diagnosis": {
+    "entry_cast_took_effect": true,
+    "evidence": [
+      "Decoder output and output-layer input are BF16 on variant B; embedding output remains FP32.",
+      "Final LayerNorm input is still FP32, so intra-block hidden/residual is re-materialized in FP32 after the entry cast.",
+      "aten::copy_ calls/step stayed 1279 vs Phase 4.1 1275; bfloat16_copy 635 vs 632; direct_copy 351 vs 350.",
+      "Copy/cast GPU time stayed 256.74 ms/step vs Phase 4.1 255.91 ms/step."
+    ],
+    "likely_reason": "Local LayerNorm and per-layer residual capture still produce FP32 residuals. Megatron x.to(residual.dtype) and Linear autocast of FP32 activations therefore still run every layer. A single decoder-entry cast is not enough to keep the residual stream BF16 inside the block.",
+    "next_lever_if_pursued": "Keep residual BF16 after each LayerNorm / residual snapshot inside TransformerLayer, without converting master weights. That likely needs a targeted Megatron residual path change, not another entry wrapper. Not implemented in this screen."
+  },
+  "environment": {
+    "timestamp_utc": "2026-08-23T18:25:30.844658+00:00",
+    "hostname": "58a9be29cbd5",
+    "platform": "Linux-6.8.0-65-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "pytorch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "nccl": "2.27.3",
+    "cudnn": 91002,
+    "megatron_core": "unavailable: Command '['python', '-c', \"import importlib.metadata as m; print(m.version('megatron-core'))\"]' returned non-zero exit status 1.",
+    "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+    "project_commit": "unavailable: Command '['git', 'rev-parse', 'HEAD']' returned non-zero exit status 128.",
+    "gpu": "NVIDIA A40",
+    "driver": "570.195.03",
+    "gpu_memory_total_mib": 46068.0,
+    "compute_capability": [
+      8,
+      6
+    ],
+    "bf16_supported": true,
+    "transformer_engine_installed": true,
+    "transformer_engine_version": "2.17.1+4329ff84",
+    "transformer_engine_disabled": false,
+    "cuda_graph_enabled": false
+  }
+}
