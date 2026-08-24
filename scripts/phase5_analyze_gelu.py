@@ -631,8 +631,25 @@ def main() -> None:
             "gpu": "1x NVIDIA A40 48GB",
             "gpu_price_per_hour_usd": 0.44,
             "image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+            "driver": baseline_screen["environment"]["driver"],
             "trace_preserved_on_stopped_pod": True,
         },
+        "constraint_deviations": [
+            {
+                "field": "NVIDIA driver",
+                "phase5_2_value": "570.195.03",
+                "phase5_3_value": baseline_screen["environment"]["driver"],
+                "reason": (
+                    "The Phase 5.2 Pod could not restart because its host had no "
+                    "free A40. The replacement A40 host supplied driver 580.159.03. "
+                    "A and B still ran on the same replacement Pod."
+                ),
+                "affects_internal_ab_control": False,
+                "affects_cross_phase_comparison": True,
+            }
+        ]
+        if baseline_screen["environment"]["driver"] != "570.195.03"
+        else [],
         "controls": {
             "only_intended_variable": "bias_activation_fusion (bias_gelu_fusion)",
             "A": {"bias_gelu_fusion": False, "bias_activation_fusion": False},
