@@ -17,6 +17,7 @@ import torch
 import torch.distributed as dist
 
 from megatron.core import parallel_state
+from megatron.core.transformer.cuda_graphs import create_cudagraphs
 
 from phase1_baseline import (
     A40_DENSE_BF16_PEAK_TFLOPS,
@@ -36,7 +37,6 @@ from phase6_megatron_ddp_lifecycle import (
     DDPOptimizerBundle,
     assert_main_grad_pointers,
     build_ddp_optimizer_bundle,
-    create_local_cudagraphs_preserving_gradients,
     finalize_gradients,
     lifecycle_metadata,
     main_grad_pointers,
@@ -99,9 +99,15 @@ def lifecycle_step(
             enabled=True,
             cache_enabled=False,
         ):
-            capture_stats = create_local_cudagraphs_preserving_gradients(
-                bundle.model
-            )
+            raw_stats = create_cudagraphs()
+        torch.cuda.synchronize()
+        if raw_stats is None:
+            raise RuntimeError("MCore did not create local CUDA Graphs")
+        capture_stats = {
+            "time_seconds": float(raw_stats["time"]),
+            "allocated_bytes": float(raw_stats["allocated_bytes"]),
+            "reserved_bytes": float(raw_stats["reserved_bytes"]),
+        }
 
     update_successful, _, _ = bundle.optimizer.step()
     if not update_successful:

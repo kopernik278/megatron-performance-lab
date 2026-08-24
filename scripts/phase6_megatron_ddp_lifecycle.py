@@ -16,7 +16,6 @@ from megatron.core.distributed import (
 )
 from megatron.core.optimizer import OptimizerConfig
 from megatron.core.optimizer.optimizer import FP32Optimizer
-from megatron.core.transformer.cuda_graphs import create_cudagraphs
 
 
 @dataclass
@@ -186,46 +185,6 @@ def finalize_gradients(model: DistributedDataParallel) -> None:
     """Run standard MCore gradient finalization before optimizer access."""
 
     finalize_model_grads([model])
-
-
-def create_local_cudagraphs_preserving_gradients(
-    model: DistributedDataParallel,
-) -> dict[str, float]:
-    """Capture local graphs without changing the finalized priming gradients.
-
-    The pinned MCore backward capture checks ``grad_added_to_main_grad`` as a
-    Python value. The first eager recording backward leaves that flag true, so
-    it must be false while capture records ``main_grad.add_(wgrad)``. Capture
-    executes the add once, therefore finalized buffers and flags are restored
-    afterward. Tensor addresses remain unchanged.
-    """
-
-    parameters = [parameter for _, parameter in named_trainable_parameters(model)]
-    gradient_backups = {
-        id(parameter): parameter.main_grad.detach().clone() for parameter in parameters
-    }
-    flag_backups = {
-        id(parameter): bool(parameter.grad_added_to_main_grad)
-        for parameter in parameters
-    }
-    for parameter in parameters:
-        parameter.grad_added_to_main_grad = False
-
-    try:
-        raw_stats = create_cudagraphs()
-        torch.cuda.synchronize()
-        if raw_stats is None:
-            raise RuntimeError("MCore did not create local CUDA Graphs")
-    finally:
-        for parameter in parameters:
-            parameter.main_grad.copy_(gradient_backups[id(parameter)])
-            parameter.grad_added_to_main_grad = flag_backups[id(parameter)]
-
-    return {
-        "time_seconds": float(raw_stats["time"]),
-        "allocated_bytes": float(raw_stats["allocated_bytes"]),
-        "reserved_bytes": float(raw_stats["reserved_bytes"]),
-    }
 
 
 def collect_main_gradients(model: torch.nn.Module) -> dict[str, torch.Tensor]:
