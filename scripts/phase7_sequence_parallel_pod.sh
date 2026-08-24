@@ -55,6 +55,7 @@ if ! python -c "import transformer_engine" >/dev/null 2>&1; then
   NVTE_FRAMEWORK=pytorch NVTE_CUDA_ARCHS=86 NVTE_WITH_NCCL_EP=0 MAX_JOBS=8 \
     python -m pip install --no-build-isolation --no-deps "${TE}"
 fi
+python -m pip install pydantic einops importlib-metadata nvdlfw-inspect onnx onnxscript
 
 ln -sfn "${ROOT}" /workspace/megatron-performance-lab
 ln -sfn "${MEGATRON}" /workspace/Megatron-LM
