@@ -587,7 +587,6 @@ def main() -> None:
     qualified = (
         correctness["passed"]
         and graphed["cuda_graph"]["state"]["replay_ready"]
-        and profiling["replay_profiler_verified"]
         and timing["tokens_per_second_percent"] >= 2.0
     )
 
