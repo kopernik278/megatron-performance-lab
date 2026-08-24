@@ -2,7 +2,7 @@
   "status": "success",
   "experiment": "Phase 7.1 two-GPU tensor-parallel baseline",
   "infrastructure": {
-    "pod_id": "x72b8bn80zqdeg",
+    "pod_id": "7rpwv95a5j6axg",
     "pod_count": 1,
     "gpu_count": 2,
     "gpu_type": "NVIDIA A40 48GB",
@@ -15,7 +15,7 @@
     "status": "success",
     "experiment": "Phase 7.1 two-A40 topology and NCCL sanity",
     "infrastructure": {
-      "pod_id": "x72b8bn80zqdeg",
+      "pod_id": "7rpwv95a5j6axg",
       "pod_count": 1,
       "gpu_count": 2,
       "gpu_type": "NVIDIA A40 48GB",
@@ -30,7 +30,7 @@
           "nvidia-smi"
         ],
         "exit_code": 0,
-        "output": "Mon Aug 24 14:46:31 2026       \n+-----------------------------------------------------------------------------------------+\n| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |\n|-----------------------------------------+------------------------+----------------------+\n| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |\n| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |\n|                                         |                        |               MIG M. |\n|=========================================+========================+======================|\n|   0  NVIDIA A40                     On  |   00000000:57:00.0 Off |                    0 |\n|  0%   37C    P0             98W /  300W |     422MiB /  46068MiB |      5%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n|   1  NVIDIA A40                     On  |   00000000:CE:00.0 Off |                    0 |\n|  0%   35C    P0             62W /  300W |     422MiB /  46068MiB |      7%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n                                                                                         \n+-----------------------------------------------------------------------------------------+\n| Processes:                                                                              |\n|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |\n|        ID   ID                                                               Usage      |\n|=========================================================================================|\n|    0   N/A  N/A            3249      C   /root/phase7-venv/bin/python            416MiB |\n|    1   N/A  N/A            3250      C   /root/phase7-venv/bin/python            416MiB |\n+-----------------------------------------------------------------------------------------+"
+        "output": "Mon Aug 24 15:09:00 2026       \n+-----------------------------------------------------------------------------------------+\n| NVIDIA-SMI 570.211.01             Driver Version: 570.211.01     CUDA Version: 12.8     |\n|-----------------------------------------+------------------------+----------------------+\n| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |\n| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |\n|                                         |                        |               MIG M. |\n|=========================================+========================+======================|\n|   0  NVIDIA A40                     On  |   00000000:98:00.0 Off |                    0 |\n|  0%   37C    P0             86W /  300W |     422MiB /  46068MiB |      4%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n|   1  NVIDIA A40                     On  |   00000000:D6:00.0 Off |                    0 |\n|  0%   37C    P0             88W /  300W |     422MiB /  46068MiB |      0%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n                                                                                         \n+-----------------------------------------------------------------------------------------+\n| Processes:                                                                              |\n|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |\n|        ID   ID                                                               Usage      |\n|=========================================================================================|\n+-----------------------------------------------------------------------------------------+"
       },
       "nvidia_smi_query": {
         "command": [
@@ -39,7 +39,7 @@
           "--format=csv,noheader"
         ],
         "exit_code": 0,
-        "output": "0, NVIDIA A40, GPU-269cd9c7-af4b-4459-d9e1-565eec9aa587, 00000000:57:00.0, 570.195.03, 46068 MiB\n1, NVIDIA A40, GPU-4d38d747-c12e-84ad-3a1e-58d68d1e2fb6, 00000000:CE:00.0, 570.195.03, 46068 MiB"
+        "output": "0, NVIDIA A40, GPU-155b9411-fabc-a904-5843-642ca8c7ad16, 00000000:98:00.0, 570.211.01, 46068 MiB\n1, NVIDIA A40, GPU-40e9f755-e4f8-cae8-aada-a9c51781d04b, 00000000:D6:00.0, 570.211.01, 46068 MiB"
       },
       "nvidia_smi_topology": {
         "command": [
@@ -48,7 +48,7 @@
           "-m"
         ],
         "exit_code": 0,
-        "output": "\u001b[4mGPU0\tGPU1\tNIC0\tNIC1\tCPU Affinity\tNUMA Affinity\tGPU NUMA ID\u001b[0m\nGPU0\t X \tSYS\tSYS\tSYS\t0-23,48-71\t0\t\tN/A\nGPU1\tSYS\t X \tNODE\tNODE\t24-47,72-95\t1\t\tN/A\nNIC0\tSYS\tNODE\t X \tPIX\t\t\t\t\nNIC1\tSYS\tNODE\tPIX\t X \t\t\t\t\n\nLegend:\n\n  X    = Self\n  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)\n  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node\n  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)\n  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)\n  PIX  = Connection traversing at most a single PCIe bridge\n  NV#  = Connection traversing a bonded set of # NVLinks\n\nNIC Legend:\n\n  NIC0: mlx5_0\n  NIC1: mlx5_1"
+        "output": "\u001b[4mGPU0\tGPU1\tNIC0\tNIC1\tCPU Affinity\tNUMA Affinity\tGPU NUMA ID\u001b[0m\nGPU0\t X \tNODE\tNODE\tNODE\t24-47,72-95\t1\t\tN/A\nGPU1\tNODE\t X \tNODE\tNODE\t24-47,72-95\t1\t\tN/A\nNIC0\tNODE\tNODE\t X \tPIX\t\t\t\t\nNIC1\tNODE\tNODE\tPIX\t X \t\t\t\t\n\nLegend:\n\n  X    = Self\n  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)\n  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node\n  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)\n  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)\n  PIX  = Connection traversing at most a single PCIe bridge\n  NV#  = Connection traversing a bonded set of # NVLinks\n\nNIC Legend:\n\n  NIC0: rocep177s0f0\n  NIC1: rocep177s0f1"
       },
       "nvidia_smi_nvlink": {
         "command": [
@@ -57,7 +57,7 @@
           "--status"
         ],
         "exit_code": 0,
-        "output": "GPU 0: NVIDIA A40 (UUID: GPU-269cd9c7-af4b-4459-d9e1-565eec9aa587)\nNVML: Unable to retrieve NVLink information as all links are inActive\nGPU 1: NVIDIA A40 (UUID: GPU-4d38d747-c12e-84ad-3a1e-58d68d1e2fb6)\nNVML: Unable to retrieve NVLink information as all links are inActive"
+        "output": "GPU 0: NVIDIA A40 (UUID: GPU-155b9411-fabc-a904-5843-642ca8c7ad16)\nNVML: Unable to retrieve NVLink information as all links are inActive\nGPU 1: NVIDIA A40 (UUID: GPU-40e9f755-e4f8-cae8-aada-a9c51781d04b)\nNVML: Unable to retrieve NVLink information as all links are inActive"
       },
       "lspci_nvidia": {
         "command": [
@@ -91,45 +91,45 @@
           "result": 3.0,
           "expected": 3.0,
           "passed": true,
-          "latency_ms": 0.8754990994930267
+          "latency_ms": 1.0611629113554955
         },
         {
           "rank": 1,
           "result": 3.0,
           "expected": 3.0,
           "passed": true,
-          "latency_ms": 0.7641278207302094
+          "latency_ms": 1.0804608464241028
         }
       ],
       "passed": true
     },
     "environment": {
-      "timestamp_utc": "2026-08-24T14:46:32.352553+00:00",
-      "hostname": "f1eb4c996ce3",
-      "platform": "Linux-6.8.0-65-generic-x86_64-with-glibc2.39",
+      "timestamp_utc": "2026-08-24T15:09:01.024084+00:00",
+      "hostname": "8f9af51d052f",
+      "platform": "Linux-6.8.0-52-generic-x86_64-with-glibc2.39",
       "python": "3.12.3",
       "pytorch": "2.8.0+cu128",
       "cuda_runtime": "12.8",
       "nccl": "2.27.3",
       "cudnn": 91002,
       "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
-      "project_commit": "7c6fdf01265048859718e81d6111bf879526c1cd",
+      "project_commit": "b0e81065675efadbe89eb44077cac36d89f79a43",
       "transformer_engine_installed": true,
       "transformer_engine_version": "2.17.1+4329ff84",
       "gpus": [
         {
           "index": 0,
           "name": "NVIDIA A40",
-          "driver": "570.195.03",
+          "driver": "570.211.01",
           "memory_total_mib": 46068.0,
-          "pci_bus_id": "00000000:57:00.0"
+          "pci_bus_id": "00000000:98:00.0"
         },
         {
           "index": 1,
           "name": "NVIDIA A40",
-          "driver": "570.195.03",
+          "driver": "570.211.01",
           "memory_total_mib": 46068.0,
-          "pci_bus_id": "00000000:CE:00.0"
+          "pci_bus_id": "00000000:D6:00.0"
         }
       ],
       "cuda_graph_enabled": false
@@ -247,7 +247,8 @@
           "mlp_fc2": true,
           "output_layer": true
         },
-        "tensor_parallel_size": 2
+        "tensor_parallel_size": 2,
+        "transformer_config_tensor_parallel_size": 2
       },
       {
         "rank": 1,
@@ -315,7 +316,8 @@
           "mlp_fc2": true,
           "output_layer": true
         },
-        "tensor_parallel_size": 2
+        "tensor_parallel_size": 2,
+        "transformer_config_tensor_parallel_size": 2
       }
     ],
     "all_required_modules_are_megatron_tp_modules": true
@@ -325,8 +327,8 @@
       "steps": 3,
       "rank0_losses": [
         11.03065299987793,
-        10.85554313659668,
-        10.754659652709961
+        10.855515480041504,
+        10.757501602172852
       ],
       "per_step_checks": [
         {
@@ -363,8 +365,8 @@
       "steps": 3,
       "rank0_losses": [
         11.031303405761719,
-        10.854846954345703,
-        10.76864242553711
+        10.854896545410156,
+        10.767608642578125
       ],
       "per_step_checks": [
         {
@@ -399,10 +401,10 @@
     },
     "tp1_vs_tp2_smoke_loss_absolute_errors": [
       0.0006504058837890625,
-      0.0006961822509765625,
-      0.013982772827148438
+      0.0006189346313476562,
+      0.010107040405273438
     ],
-    "tp1_vs_tp2_smoke_loss_max_absolute_error": 0.013982772827148438,
+    "tp1_vs_tp2_smoke_loss_max_absolute_error": 0.010107040405273438,
     "passed": true
   },
   "fast_benchmark": {
@@ -414,34 +416,34 @@
     },
     "tp1": {
       "tensor_parallel": 1,
-      "average_step_time_ms": 1044.5443658158183,
-      "median_step_time_ms": 1044.6625091135502,
-      "tokens_per_second": 15685.30790667148,
-      "aggregate_mfu_percent": 25.387744740453456,
+      "average_step_time_ms": 1043.9154018182307,
+      "median_step_time_ms": 1043.9999788068235,
+      "tokens_per_second": 15694.758379331606,
+      "aggregate_mfu_percent": 25.40304097747982,
       "rank_timing_and_memory": [
         {
           "rank": 0,
           "step_times_ms": [
-            1042.5496697425842,
-            1042.7360199391842,
-            1042.987409979105,
-            1042.5530411303043,
-            1044.0994948148727,
-            1044.0910793840885,
-            1044.7378605604172,
-            1044.335100799799,
-            1044.3080812692642,
-            1044.8882766067982,
-            1046.2978146970272,
-            1044.0197698771954,
-            1044.5871576666832,
-            1044.8622219264507,
-            1045.3462228178978,
-            1045.5302447080612,
-            1045.5328784883022,
-            1045.3919246792793,
-            1045.5584675073624,
-            1046.4745797216892
+            1042.1659760177135,
+            1041.9460898265243,
+            1042.0757783576846,
+            1041.9358145445585,
+            1041.6169725358486,
+            1041.662140749395,
+            1043.76704338938,
+            1043.8256533816457,
+            1044.353323057294,
+            1043.7304321676493,
+            1043.6156066134572,
+            1044.5897737517953,
+            1044.9283802881837,
+            1044.5734346285462,
+            1044.1743042320013,
+            1045.187613926828,
+            1046.0951840505004,
+            1045.7576205953956,
+            1046.0681030526757,
+            1046.2387911975384
           ],
           "peak_allocated_memory_mib": 32550.474609375,
           "peak_reserved_memory_mib": 33128.0
@@ -450,7 +452,7 @@
       "gpu_monitoring": {
         "0": {
           "sample_count": 208,
-          "average_utilization_percent": 99.90384615384616,
+          "average_utilization_percent": 99.91346153846153,
           "median_utilization_percent": 100.0,
           "peak_memory_mib": 34698.0
         }
@@ -458,34 +460,34 @@
     },
     "tp2": {
       "tensor_parallel": 2,
-      "average_step_time_ms": 1060.6333019211888,
-      "median_step_time_ms": 1060.5775695294142,
-      "tokens_per_second": 15447.374667873124,
-      "aggregate_mfu_percent": 12.501316751687902,
+      "average_step_time_ms": 825.1211529131979,
+      "median_step_time_ms": 823.6757307313383,
+      "tokens_per_second": 19856.47797557262,
+      "aggregate_mfu_percent": 16.069534537918074,
       "rank_timing_and_memory": [
         {
           "rank": 0,
           "step_times_ms": [
-            1060.5263486504555,
-            1060.4863464832306,
-            1060.2715834975243,
-            1060.3863671422005,
-            1060.377825051546,
-            1060.1397342979908,
-            1060.0741356611252,
-            1060.6033690273762,
-            1060.905609279871,
-            1060.9441325068474,
-            1060.6726557016373,
-            1060.6871768832207,
-            1060.3391043841839,
-            1060.3339187800884,
-            1060.4293420910835,
-            1061.1124075949192,
-            1060.5275370180607,
-            1061.0062628984451,
-            1060.9280094504356,
-            1061.295986175537
+            822.8516094386578,
+            822.6160183548927,
+            823.8656781613827,
+            822.3792975768447,
+            831.1538314446807,
+            822.5280893966556,
+            827.0381614565849,
+            821.1852833628654,
+            826.2682827189565,
+            821.9323577359319,
+            821.3469656184316,
+            821.1605912074447,
+            823.6238909885287,
+            830.3261660039425,
+            826.8905207514763,
+            825.9928515180945,
+            827.9548054561019,
+            834.6860203891993,
+            823.725413531065,
+            823.1838494539261
           ],
           "peak_allocated_memory_mib": 19803.630859375,
           "peak_reserved_memory_mib": 20126.0
@@ -493,26 +495,26 @@
         {
           "rank": 1,
           "step_times_ms": [
-            1060.1781532168388,
-            1060.5632774531841,
-            1060.2967664599419,
-            1060.3322722017765,
-            1060.3756979107857,
-            1060.1310469210148,
-            1060.1197853684425,
-            1060.5496726930141,
-            1060.9244219958782,
-            1060.8242191374302,
-            1060.7625767588615,
-            1060.7515387237072,
-            1060.2533780038357,
-            1060.4370422661304,
-            1060.3947788476944,
-            1061.0552914440632,
-            1060.5918616056442,
-            1061.0233210027218,
-            1060.785934329033,
-            1061.408806592226
+            823.0549450963736,
+            822.6331481710076,
+            823.7764993682504,
+            822.4600302055478,
+            831.214465200901,
+            823.1098335236311,
+            826.6058070585132,
+            820.9402887150645,
+            826.6614526510239,
+            821.6767823323607,
+            821.2434779852629,
+            821.2074926123023,
+            823.6120576038957,
+            830.3201049566269,
+            827.0195089280605,
+            825.8692687377334,
+            828.0209256336093,
+            834.6383776515722,
+            823.7275704741478,
+            823.3163105323911
           ],
           "peak_allocated_memory_mib": 19803.630859375,
           "peak_reserved_memory_mib": 20126.0
@@ -520,38 +522,38 @@
       ],
       "gpu_monitoring": {
         "0": {
-          "sample_count": 211,
-          "average_utilization_percent": 99.86729857819905,
+          "sample_count": 164,
+          "average_utilization_percent": 99.84146341463415,
           "median_utilization_percent": 100.0,
           "peak_memory_mib": 20980.0
         },
         "1": {
-          "sample_count": 211,
-          "average_utilization_percent": 99.90521327014218,
+          "sample_count": 164,
+          "average_utilization_percent": 99.86585365853658,
           "median_utilization_percent": 100.0,
           "peak_memory_mib": 20980.0
         }
       }
     },
-    "speedup": 0.9848308212874065,
-    "throughput_gain_percent": -1.516917871259349,
-    "scaling_efficiency": 0.49241541064370326,
-    "scaling_efficiency_percent": 49.241541064370324
+    "speedup": 1.2651662099954066,
+    "throughput_gain_percent": 26.516620999540663,
+    "scaling_efficiency": 0.6325831049977033,
+    "scaling_efficiency_percent": 63.25831049977033
   },
   "communication_profile": {
-    "profile_window_ms": 5521.747064,
+    "profile_window_ms": 4397.311484,
     "profiled_iterations": 5,
-    "profile_window_rank_count": 1,
-    "nccl_kernel_launches": 1010,
-    "nccl_kernel_launches_per_step_all_gpus": 202.0,
+    "profile_window_rank_count": 2,
+    "nccl_kernel_launches": 1011,
+    "nccl_kernel_launches_per_step_all_gpus": 202.2,
     "estimated_logical_collectives_per_step": 101.0,
-    "logical_count_estimation": "one NCCL kernel per rank per collective on this two-rank run; kernel launches divided by TP world size",
-    "average_nccl_kernel_time_ms_per_step_per_gpu": 493.2835956,
+    "logical_count_estimation": "NCCL NVTX all-reduce input-shape events divided by profiled iterations and TP world size; this avoids profile-window boundary spill in raw kernel counts",
+    "average_nccl_kernel_time_ms_per_step_per_gpu": 259.2820443,
     "collective_types": {
       "All-Reduce": {
-        "kernel_launch_count": 1010,
+        "kernel_launch_count": 1011,
         "estimated_logical_count_per_step": 101.0,
-        "average_kernel_time_ms_per_step_per_gpu": 493.2835956
+        "average_kernel_time_ms_per_step_per_gpu": 259.2820443
       },
       "All-Gather": {
         "kernel_launch_count": 0,
@@ -582,7 +584,7 @@
     "nvtx_collective_events": [
       {
         "name": "ncclAllReduce",
-        "count": 1020
+        "count": 1021
       },
       {
         "name": "ncclGroupStart",
@@ -738,56 +740,56 @@
     ],
     "attribution": {
       "MLP TP forward": {
-        "kernel_launch_count": 233,
-        "average_kernel_time_ms_per_step_per_gpu": 115.5889144
+        "kernel_launch_count": 241,
+        "average_kernel_time_ms_per_step_per_gpu": 61.2777787
       },
       "attention TP forward": {
-        "kernel_launch_count": 249,
-        "average_kernel_time_ms_per_step_per_gpu": 123.5486956
+        "kernel_launch_count": 242,
+        "average_kernel_time_ms_per_step_per_gpu": 61.25303290000001
       },
       "backward TP": {
-        "kernel_launch_count": 490,
-        "average_kernel_time_ms_per_step_per_gpu": 243.954895
+        "kernel_launch_count": 489,
+        "average_kernel_time_ms_per_step_per_gpu": 125.7340662
       },
       "unattributed": {
         "kernel_launch_count": 1,
-        "average_kernel_time_ms_per_step_per_gpu": 0.9571619
+        "average_kernel_time_ms_per_step_per_gpu": 0.5201032
       },
       "vocabulary embedding forward": {
-        "kernel_launch_count": 9,
-        "average_kernel_time_ms_per_step_per_gpu": 9.085739
+        "kernel_launch_count": 10,
+        "average_kernel_time_ms_per_step_per_gpu": 10.3799748
       },
       "vocabulary/output forward": {
         "kernel_launch_count": 28,
-        "average_kernel_time_ms_per_step_per_gpu": 0.1481897
+        "average_kernel_time_ms_per_step_per_gpu": 0.1170885
       }
     },
     "per_device_overlap": {
       "0": {
-        "communication_union_ms_per_step": 493.91080380000005,
-        "compute_union_ms_per_step": 598.940291,
+        "communication_union_ms_per_step": 265.407601,
+        "compute_union_ms_per_step": 599.4899848,
         "communication_compute_overlap_ms_per_step": 0.0,
         "communication_overlap_percent": 0.0,
-        "exposed_communication_ms_per_step": 493.91080380000005
+        "exposed_communication_ms_per_step": 265.407601
       },
       "1": {
-        "communication_union_ms_per_step": 492.6563874,
-        "compute_union_ms_per_step": 598.5435948,
+        "communication_union_ms_per_step": 253.0230724,
+        "compute_union_ms_per_step": 599.9531468,
         "communication_compute_overlap_ms_per_step": 0.0,
         "communication_overlap_percent": 0.0,
-        "exposed_communication_ms_per_step": 492.6563874
+        "exposed_communication_ms_per_step": 253.0230724
       }
     },
     "top_nccl_kernels": [
       {
         "name": "ncclDevKernel_AllReduce_Sum_bf16_RING_LL(ncclDevKernelArgsStorage<(unsigned long)4096>)",
         "count": 970,
-        "total_ms_all_gpus": 4830.454743
+        "total_ms_all_gpus": 2482.585674
       },
       {
         "name": "ncclDevKernel_AllReduce_Sum_f32_RING_LL(ncclDevKernelArgsStorage<(unsigned long)4096>)",
-        "count": 40,
-        "total_ms_all_gpus": 102.381213
+        "count": 41,
+        "total_ms_all_gpus": 110.234769
       }
     ],
     "tensor_sizes": {
@@ -813,22 +815,22 @@
     },
     "trace": {
       "path": "profiles/phase71_work/tp2_communication.nsys-rep",
-      "size_bytes": 10674255,
-      "sha256": "3642835fb7bb5d1af2ce902fed928cf34c55dd727d6ea6281c15292498e47c5e",
+      "size_bytes": 10922771,
+      "sha256": "2987dbafe07272ea610f1ca75dc075fc8b661fd6ee1a64c799ce0adfc733bb78",
       "sqlite_path": "profiles/phase71_work/tp2_communication.sqlite",
-      "sqlite_size_bytes": 39882752,
-      "sqlite_sha256": "984a8809f0eb89578428e2cf1d01602002be3cec749157764288d172a136adb4",
+      "sqlite_size_bytes": 39186432,
+      "sqlite_sha256": "598412111054fa4022e281920c41af048b56552a01c6fec702a6ce17b996fc1e",
       "preserved_on_pod": true
     }
   },
   "communication_summary": {
-    "nccl_ms_per_step_per_gpu": 493.2835956,
+    "nccl_ms_per_step_per_gpu": 259.2820443,
     "collectives_per_step": 101.0,
     "collective_types": {
       "All-Reduce": {
-        "kernel_launch_count": 1010,
+        "kernel_launch_count": 1011,
         "estimated_logical_count_per_step": 101.0,
-        "average_kernel_time_ms_per_step_per_gpu": 493.2835956
+        "average_kernel_time_ms_per_step_per_gpu": 259.2820443
       },
       "All-Gather": {
         "kernel_launch_count": 0,
@@ -857,8 +859,8 @@
       }
     },
     "average_communication_compute_overlap_percent": 0.0,
-    "average_exposed_communication_ms_per_step": 493.2835956,
-    "dominant_distributed_bottleneck": "97 large activation All-Reduces per step from row-parallel forward projections and column-parallel backward dgrad over the cross-NUMA SYS PCIe path"
+    "average_exposed_communication_ms_per_step": 259.21533669999997,
+    "dominant_distributed_bottleneck": "97 large activation All-Reduces per step from row-parallel forward projections and column-parallel backward dgrad over the same-NUMA NODE PCIe path"
   },
   "decision": {
     "cuda_graph_enabled": false,
@@ -866,32 +868,32 @@
     "baseline_established": true
   },
   "environment": {
-    "timestamp_utc": "2026-08-24T14:48:09.426636+00:00",
-    "hostname": "f1eb4c996ce3",
-    "platform": "Linux-6.8.0-65-generic-x86_64-with-glibc2.39",
+    "timestamp_utc": "2026-08-24T15:10:32.596156+00:00",
+    "hostname": "8f9af51d052f",
+    "platform": "Linux-6.8.0-52-generic-x86_64-with-glibc2.39",
     "python": "3.12.3",
     "pytorch": "2.8.0+cu128",
     "cuda_runtime": "12.8",
     "nccl": "2.27.3",
     "cudnn": 91002,
     "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
-    "project_commit": "7c6fdf01265048859718e81d6111bf879526c1cd",
+    "project_commit": "b0e81065675efadbe89eb44077cac36d89f79a43",
     "transformer_engine_installed": true,
     "transformer_engine_version": "2.17.1+4329ff84",
     "gpus": [
       {
         "index": 0,
         "name": "NVIDIA A40",
-        "driver": "570.195.03",
+        "driver": "570.211.01",
         "memory_total_mib": 46068.0,
-        "pci_bus_id": "00000000:57:00.0"
+        "pci_bus_id": "00000000:98:00.0"
       },
       {
         "index": 1,
         "name": "NVIDIA A40",
-        "driver": "570.195.03",
+        "driver": "570.211.01",
         "memory_total_mib": 46068.0,
-        "pci_bus_id": "00000000:CE:00.0"
+        "pci_bus_id": "00000000:D6:00.0"
       }
     ],
     "cuda_graph_enabled": false

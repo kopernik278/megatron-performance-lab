@@ -362,18 +362,20 @@ def analyze_trace(
         / iterations
         / tp
     )
+    logical_all_reduce_calls_per_step = (
+        sum(all_reduce_shapes.values()) / iterations / tp
+    )
     result = {
         "profile_window_ms": (window_end - window_start) / NS_PER_MS,
         "profiled_iterations": iterations,
         "profile_window_rank_count": len(windows),
         "nccl_kernel_launches": len(nccl_rows),
         "nccl_kernel_launches_per_step_all_gpus": len(nccl_rows) / iterations,
-        "estimated_logical_collectives_per_step": (
-            len(nccl_rows) / iterations / tp
-        ),
+        "estimated_logical_collectives_per_step": logical_all_reduce_calls_per_step,
         "logical_count_estimation": (
-            "one NCCL kernel per rank per collective on this two-rank run; "
-            "kernel launches divided by TP world size"
+            "NCCL NVTX all-reduce input-shape events divided by profiled "
+            "iterations and TP world size; this avoids profile-window boundary "
+            "spill in raw kernel counts"
         ),
         "average_nccl_kernel_time_ms_per_step_per_gpu": (
             average_nccl_kernel_time_ms_per_step_per_gpu
@@ -382,7 +384,9 @@ def analyze_trace(
             kind: {
                 "kernel_launch_count": type_counts.get(kind, 0),
                 "estimated_logical_count_per_step": (
-                    type_counts.get(kind, 0) / iterations / tp
+                    logical_all_reduce_calls_per_step
+                    if kind == "All-Reduce"
+                    else type_counts.get(kind, 0) / iterations / tp
                 ),
                 "average_kernel_time_ms_per_step_per_gpu": (
                     type_times_ns.get(kind, 0) / NS_PER_MS / iterations / tp
@@ -556,6 +560,13 @@ def main() -> None:
     average_exposed_ms = statistics.fmean(
         item["exposed_communication_ms_per_step"] for item in per_device_overlap
     )
+    topology_matrix = topology["commands"]["nvidia_smi_topology"]["output"]
+    if "\nGPU0\t X \tSYS" in topology_matrix:
+        topology_path = "cross-NUMA SYS PCIe path"
+    elif "\nGPU0\t X \tNODE" in topology_matrix:
+        topology_path = "same-NUMA NODE PCIe path"
+    else:
+        topology_path = "observed PCIe path"
 
     result = {
         "status": "success",
@@ -621,8 +632,8 @@ def main() -> None:
             "average_exposed_communication_ms_per_step": average_exposed_ms,
             "dominant_distributed_bottleneck": (
                 "97 large activation All-Reduces per step from row-parallel "
-                "forward projections and column-parallel backward dgrad over "
-                "the cross-NUMA SYS PCIe path"
+                "forward projections and column-parallel backward dgrad over the "
+                f"{topology_path}"
             ),
         },
         "decision": {
