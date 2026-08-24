@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Analyze Phase 6.1 CUDA Graph timing runs and Nsight Systems traces."""
+"""Analyze Phase 6.3 DDP CUDA Graph timing runs and Nsight Systems traces."""
 
 from __future__ import annotations
 
@@ -608,26 +608,26 @@ def main() -> None:
 
     result = {
         "status": "success",
-        "experiment": "Phase 6.1 CUDA Graph feasibility and fast A/B",
+        "experiment": "Phase 6.3 MCore DDP CUDA Graph fast A/B",
         "mechanism": {
             "selected": (
                 "Megatron Core cuda_graph_impl=local with cuda_graph_modules=[]; "
                 "one forward and one backward graph per TransformerLayer"
             ),
             "selection_reason": (
-                "Existing MCore path natively registers graph-safe RNG states, "
-                "copies changing layer inputs into static buffers, and leaves "
-                "optimizer/zero_grad outside capture."
+                "MCore DDP owns persistent main_grad buffers while the local graph "
+                "path records weight-gradient accumulation into those buffers. "
+                "FP32Optimizer leaves the unchanged AdamW step outside capture."
             ),
             "alternatives_rejected": {
                 "transformer_engine": (
-                    "Requires the higher-level TECudaGraphHelper integration and "
-                    "Megatron training stack not used by this raw-model harness."
+                    "Would change the selected MCore local graph mechanism and "
+                    "requires separate higher-level capture integration."
                 ),
                 "full_iteration": (
                     "FullCudaGraphWrapper requires Megatron's forward_backward_func "
-                    "and static data-iterator contract; adapting the direct loop "
-                    "would be more invasive."
+                    "and static data-iterator contract; it is outside this "
+                    "per-TransformerLayer experiment."
                 ),
                 "custom_torch_cudagraph": (
                     "Rejected in favor of the pinned MCore implementation."
@@ -641,10 +641,17 @@ def main() -> None:
                 "parameter_addresses": (
                     "AdamW updates parameters in place, preserving parameter storage"
                 ),
-                "optimizer": "kept eager and outside all graphs",
+                "gradient_lifecycle": (
+                    "MCore DDP allocates all main_grad views, performs in-place "
+                    "buffer reset, and finalizes gradients before optimizer access"
+                ),
+                "optimizer": (
+                    "MCore FP32Optimizer exposes DDP main_grad to the unchanged "
+                    "torch.optim.AdamW, outside all graphs"
+                ),
                 "zero_grad": (
-                    "kept eager; graph-owned TransformerLayer main_grad buffers are "
-                    "zeroed and temporarily exposed to raw AdamW as param.grad"
+                    "DDP.zero_grad_buffer runs before FP32Optimizer.zero_grad and "
+                    "preserves all graph-visible buffer addresses"
                 ),
                 "dropout_rng": (
                     "MCore CUDAGraph objects register graph-safe Megatron RNG states; "
@@ -658,6 +665,7 @@ def main() -> None:
                     "BF16 autocast, FP32 parameters/residuals/AdamW, dropout, and all "
                     "fusion flags are unchanged"
                 ),
+                "distributed_optimizer": "disabled",
             },
             "pinned_source": {
                 "megatron_lm_commit": baseline["environment"]["megatron_lm_commit"],
