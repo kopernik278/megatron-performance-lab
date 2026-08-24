@@ -138,7 +138,10 @@ def run_command(command: list[str], cwd: str | None = None) -> str:
         return f"unavailable: {exc}"
 
 
-def initialize_single_gpu_distributed(seed: int) -> int:
+def initialize_single_gpu_distributed(
+    seed: int,
+    use_cudagraphable_rng: bool = False,
+) -> int:
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is required for this baseline")
 
@@ -152,7 +155,11 @@ def initialize_single_gpu_distributed(seed: int) -> int:
         tensor_model_parallel_size=1,
         pipeline_model_parallel_size=1,
     )
-    model_parallel_cuda_manual_seed(seed)
+    model_parallel_cuda_manual_seed(
+        seed,
+        use_cudagraphable_rng=use_cudagraphable_rng,
+        force_reset_rng=use_cudagraphable_rng,
+    )
     torch.manual_seed(seed)
     return local_rank
 
@@ -227,6 +234,8 @@ def build_model(
     hidden_dropout: float = 0.1,
     bias_dropout_fusion: bool = False,
     instrument_bda: bool = False,
+    cuda_graph_impl: str = "none",
+    cuda_graph_warmup_steps: int = 3,
 ) -> GPTModel:
     if attention_implementation is None:
         attention_implementation = getattr(
@@ -257,6 +266,9 @@ def build_model(
         bf16=False,
         fp16=False,
         attention_backend=attention_backend,
+        cuda_graph_impl=cuda_graph_impl,
+        cuda_graph_modules=[],
+        cuda_graph_warmup_steps=cuda_graph_warmup_steps,
     )
     model = GPTModel(
         config=config,
