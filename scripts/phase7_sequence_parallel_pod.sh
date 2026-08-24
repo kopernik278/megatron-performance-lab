@@ -18,7 +18,10 @@ export CUDA_DEVICE_MAX_CONNECTIONS=1
 export NVTE_FRAMEWORK=pytorch
 export NVTE_FLASH_ATTN=0
 export NVTE_FUSED_ATTN=1
-export LD_LIBRARY_PATH="${CUDNN_LIB}:/usr/local/cuda/lib64:${LD_LIBRARY_PATH:-}"
+export CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
+export PATH="${CUDA_HOME}/bin:${PATH}"
+export CUDACXX="${CUDA_HOME}/bin/nvcc"
+export LD_LIBRARY_PATH="${CUDNN_LIB}:${CUDA_HOME}/lib64:${LD_LIBRARY_PATH:-}"
 export LD_PRELOAD="${CUDNN_LIB}/libcudnn.so.9"
 
 if [[ ! -d "${ROOT}/.git" ]]; then
@@ -47,7 +50,7 @@ if [[ ! -x "${ROOT}/.venv/bin/python" ]]; then
 fi
 # shellcheck disable=SC1091
 source "${ROOT}/.venv/bin/activate"
-python -m pip install -U pip setuptools wheel ninja cmake "pybind11[global]"
+python -m pip install -U pip setuptools wheel ninja "pybind11[global]" "cmake>=3.21,<4"
 if ! python -c "import transformer_engine" >/dev/null 2>&1; then
   NVTE_FRAMEWORK=pytorch NVTE_CUDA_ARCHS=86 NVTE_WITH_NCCL_EP=0 MAX_JOBS=8 \
     python -m pip install --no-build-isolation --no-deps "${TE}"
