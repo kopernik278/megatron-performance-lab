@@ -1,0 +1,763 @@
+{
+  "status": "success",
+  "experiment": "Phase 7.4 TE Userbuffers TP communication overlap",
+  "run_label": "phase74_B_te_linear_sp",
+  "run_mode": "benchmark",
+  "model_config": {
+    "architecture": "Megatron Core GPTModel",
+    "num_layers": 24,
+    "hidden_size": 1024,
+    "ffn_hidden_size": 4096,
+    "num_attention_heads": 16,
+    "head_dimension": 64,
+    "vocab_size": 50304,
+    "sequence_length": 2048,
+    "micro_batch_size": 8,
+    "attention_implementation": "te-fused",
+    "bias_dropout_fusion": true,
+    "bias_activation_fusion": false,
+    "cuda_graph_impl": "none",
+    "sequence_parallel": true,
+    "te_linear": true,
+    "tp_comm_overlap": false,
+    "layernorm_implementation": "TENorm"
+  },
+  "parallelism": {
+    "tensor_parallel": 2,
+    "sequence_parallel": true,
+    "tp_comm_overlap": false,
+    "te_linear": true,
+    "pipeline_parallel": 1,
+    "data_parallel": 1,
+    "world_size": 2
+  },
+  "sharding_verification": [
+    {
+      "rank": 0,
+      "embedding": {
+        "name": "embedding",
+        "type": "megatron.core.tensor_parallel.layers.VocabParallelEmbedding",
+        "weight_shape": [
+          25152,
+          1024
+        ],
+        "weight_numel": 25755648,
+        "sequence_parallel": false,
+        "allreduce_dgrad": null,
+        "input_is_parallel": null,
+        "reduce_scatter_embeddings": false
+      },
+      "attention_qkv": {
+        "name": "attention_qkv",
+        "type": "megatron.core.extensions.transformer_engine.TELayerNormColumnParallelLinear",
+        "weight_shape": [
+          1536,
+          1024
+        ],
+        "weight_numel": 1572864,
+        "sequence_parallel": true,
+        "allreduce_dgrad": null,
+        "input_is_parallel": null,
+        "reduce_scatter_embeddings": null
+      },
+      "attention_projection": {
+        "name": "attention_projection",
+        "type": "megatron.core.extensions.transformer_engine.TERowParallelLinear",
+        "weight_shape": [
+          1024,
+          512
+        ],
+        "weight_numel": 524288,
+        "sequence_parallel": true,
+        "allreduce_dgrad": null,
+        "input_is_parallel": null,
+        "reduce_scatter_embeddings": null
+      },
+      "mlp_fc1": {
+        "name": "mlp_fc1",
+        "type": "megatron.core.extensions.transformer_engine.TELayerNormColumnParallelLinear",
+        "weight_shape": [
+          2048,
+          1024
+        ],
+        "weight_numel": 2097152,
+        "sequence_parallel": true,
+        "allreduce_dgrad": null,
+        "input_is_parallel": null,
+        "reduce_scatter_embeddings": null
+      },
+      "mlp_fc2": {
+        "name": "mlp_fc2",
+        "type": "megatron.core.extensions.transformer_engine.TERowParallelLinear",
+        "weight_shape": [
+          1024,
+          2048
+        ],
+        "weight_numel": 2097152,
+        "sequence_parallel": true,
+        "allreduce_dgrad": null,
+        "input_is_parallel": null,
+        "reduce_scatter_embeddings": null
+      },
+      "output_layer": {
+        "name": "output_layer",
+        "type": "megatron.core.tensor_parallel.layers.ColumnParallelLinear",
+        "weight_shape": null,
+        "weight_numel": null,
+        "effective_weight_shape": [
+          25152,
+          1024
+        ],
+        "tied_to_embedding": true,
+        "sequence_parallel": true,
+        "allreduce_dgrad": false,
+        "input_is_parallel": null,
+        "reduce_scatter_embeddings": null
+      },
+      "type_checks": {
+        "embedding": true,
+        "attention_qkv": true,
+        "attention_projection": true,
+        "mlp_fc1": true,
+        "mlp_fc2": true,
+        "output_layer": true
+      },
+      "tensor_parallel_size": 2,
+      "transformer_config_tensor_parallel_size": 2,
+      "transformer_config_sequence_parallel": true
+    },
+    {
+      "rank": 1,
+      "embedding": {
+        "name": "embedding",
+        "type": "megatron.core.tensor_parallel.layers.VocabParallelEmbedding",
+        "weight_shape": [
+          25152,
+          1024
+        ],
+        "weight_numel": 25755648,
+        "sequence_parallel": false,
+        "allreduce_dgrad": null,
+        "input_is_parallel": null,
+        "reduce_scatter_embeddings": false
+      },
+      "attention_qkv": {
+        "name": "attention_qkv",
+        "type": "megatron.core.extensions.transformer_engine.TELayerNormColumnParallelLinear",
+        "weight_shape": [
+          1536,
+          1024
+        ],
+        "weight_numel": 1572864,
+        "sequence_parallel": true,
+        "allreduce_dgrad": null,
+        "input_is_parallel": null,
+        "reduce_scatter_embeddings": null
+      },
+      "attention_projection": {
+        "name": "attention_projection",
+        "type": "megatron.core.extensions.transformer_engine.TERowParallelLinear",
+        "weight_shape": [
+          1024,
+          512
+        ],
+        "weight_numel": 524288,
+        "sequence_parallel": true,
+        "allreduce_dgrad": null,
+        "input_is_parallel": null,
+        "reduce_scatter_embeddings": null
+      },
+      "mlp_fc1": {
+        "name": "mlp_fc1",
+        "type": "megatron.core.extensions.transformer_engine.TELayerNormColumnParallelLinear",
+        "weight_shape": [
+          2048,
+          1024
+        ],
+        "weight_numel": 2097152,
+        "sequence_parallel": true,
+        "allreduce_dgrad": null,
+        "input_is_parallel": null,
+        "reduce_scatter_embeddings": null
+      },
+      "mlp_fc2": {
+        "name": "mlp_fc2",
+        "type": "megatron.core.extensions.transformer_engine.TERowParallelLinear",
+        "weight_shape": [
+          1024,
+          2048
+        ],
+        "weight_numel": 2097152,
+        "sequence_parallel": true,
+        "allreduce_dgrad": null,
+        "input_is_parallel": null,
+        "reduce_scatter_embeddings": null
+      },
+      "output_layer": {
+        "name": "output_layer",
+        "type": "megatron.core.tensor_parallel.layers.ColumnParallelLinear",
+        "weight_shape": null,
+        "weight_numel": null,
+        "effective_weight_shape": [
+          25152,
+          1024
+        ],
+        "tied_to_embedding": true,
+        "sequence_parallel": true,
+        "allreduce_dgrad": false,
+        "input_is_parallel": null,
+        "reduce_scatter_embeddings": null
+      },
+      "type_checks": {
+        "embedding": true,
+        "attention_qkv": true,
+        "attention_projection": true,
+        "mlp_fc1": true,
+        "mlp_fc2": true,
+        "output_layer": true
+      },
+      "tensor_parallel_size": 2,
+      "transformer_config_tensor_parallel_size": 2,
+      "transformer_config_sequence_parallel": true
+    }
+  ],
+  "sequence_parallel_runtime": [
+    {
+      "rank": 0,
+      "requested": true,
+      "transformer_config_sequence_parallel": true,
+      "active": true,
+      "te_linear_active": true,
+      "tp_comm_overlap_config": false,
+      "module_flags": {
+        "attention_qkv": {
+          "type": "TELayerNormColumnParallelLinear",
+          "sequence_parallel": true,
+          "allreduce_dgrad": false,
+          "ub_name": null,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false
+        },
+        "attention_projection": {
+          "type": "TERowParallelLinear",
+          "sequence_parallel": true,
+          "input_is_parallel": false,
+          "ub_name": null,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false
+        },
+        "mlp_fc1": {
+          "type": "TELayerNormColumnParallelLinear",
+          "sequence_parallel": true,
+          "allreduce_dgrad": false,
+          "ub_name": null,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false
+        },
+        "mlp_fc2": {
+          "type": "TERowParallelLinear",
+          "sequence_parallel": true,
+          "input_is_parallel": false,
+          "ub_name": null,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false
+        },
+        "output_layer": {
+          "type": "ColumnParallelLinear",
+          "sequence_parallel": true,
+          "allreduce_dgrad": false
+        }
+      },
+      "sequence_length_divisible_by_tp": true,
+      "captured_linear_input_shapes": {
+        "attention_qkv": [
+          1024,
+          8,
+          1024
+        ],
+        "attention_projection": [
+          2048,
+          8,
+          512
+        ],
+        "mlp_fc1": [
+          1024,
+          8,
+          1024
+        ],
+        "mlp_fc2": [
+          2048,
+          8,
+          2048
+        ]
+      }
+    },
+    {
+      "rank": 1,
+      "requested": true,
+      "transformer_config_sequence_parallel": true,
+      "active": true,
+      "te_linear_active": true,
+      "tp_comm_overlap_config": false,
+      "module_flags": {
+        "attention_qkv": {
+          "type": "TELayerNormColumnParallelLinear",
+          "sequence_parallel": true,
+          "allreduce_dgrad": false,
+          "ub_name": null,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false
+        },
+        "attention_projection": {
+          "type": "TERowParallelLinear",
+          "sequence_parallel": true,
+          "input_is_parallel": false,
+          "ub_name": null,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false
+        },
+        "mlp_fc1": {
+          "type": "TELayerNormColumnParallelLinear",
+          "sequence_parallel": true,
+          "allreduce_dgrad": false,
+          "ub_name": null,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false
+        },
+        "mlp_fc2": {
+          "type": "TERowParallelLinear",
+          "sequence_parallel": true,
+          "input_is_parallel": false,
+          "ub_name": null,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false
+        },
+        "output_layer": {
+          "type": "ColumnParallelLinear",
+          "sequence_parallel": true,
+          "allreduce_dgrad": false
+        }
+      },
+      "sequence_length_divisible_by_tp": true,
+      "captured_linear_input_shapes": {
+        "attention_qkv": [
+          1024,
+          8,
+          1024
+        ],
+        "attention_projection": [
+          2048,
+          8,
+          512
+        ],
+        "mlp_fc1": [
+          1024,
+          8,
+          1024
+        ],
+        "mlp_fc2": [
+          2048,
+          8,
+          2048
+        ]
+      }
+    }
+  ],
+  "userbuffers_runtime": [
+    {
+      "rank": 0,
+      "requested": false,
+      "active": false,
+      "silent_fallback": false,
+      "config_tp_comm_overlap": false,
+      "communicator_names": [],
+      "communicator_count": 0,
+      "linear_userbuffers": {
+        "attention_qkv": {
+          "type": "TELayerNormColumnParallelLinear",
+          "ub_name": null,
+          "ub_overlap_ag": false,
+          "ub_overlap_rs": false,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false,
+          "ub_overlap_ag_dgrad": false,
+          "ub_overlap_rs_dgrad": false,
+          "ub_bulk_dgrad": false,
+          "ub_bulk_wgrad": false
+        },
+        "attention_projection": {
+          "type": "TERowParallelLinear",
+          "ub_name": null,
+          "ub_overlap_ag": false,
+          "ub_overlap_rs": false,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false,
+          "ub_overlap_ag_dgrad": false,
+          "ub_overlap_rs_dgrad": false,
+          "ub_bulk_dgrad": false,
+          "ub_bulk_wgrad": false
+        },
+        "mlp_fc1": {
+          "type": "TELayerNormColumnParallelLinear",
+          "ub_name": null,
+          "ub_overlap_ag": false,
+          "ub_overlap_rs": false,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false,
+          "ub_overlap_ag_dgrad": false,
+          "ub_overlap_rs_dgrad": false,
+          "ub_bulk_dgrad": false,
+          "ub_bulk_wgrad": false
+        },
+        "mlp_fc2": {
+          "type": "TERowParallelLinear",
+          "ub_name": null,
+          "ub_overlap_ag": false,
+          "ub_overlap_rs": false,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false,
+          "ub_overlap_ag_dgrad": false,
+          "ub_overlap_rs_dgrad": false,
+          "ub_bulk_dgrad": false,
+          "ub_bulk_wgrad": false
+        }
+      },
+      "initialization": {
+        "requested": false,
+        "ub_skipmc": "1",
+        "cuda_device_max_connections": "1",
+        "nccl_p2p_disable": "0",
+        "initialized": false,
+        "communicator_names": [],
+        "shape": [
+          16384,
+          1024
+        ],
+        "bootstrap_backend": "nccl"
+      }
+    },
+    {
+      "rank": 1,
+      "requested": false,
+      "active": false,
+      "silent_fallback": false,
+      "config_tp_comm_overlap": false,
+      "communicator_names": [],
+      "communicator_count": 0,
+      "linear_userbuffers": {
+        "attention_qkv": {
+          "type": "TELayerNormColumnParallelLinear",
+          "ub_name": null,
+          "ub_overlap_ag": false,
+          "ub_overlap_rs": false,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false,
+          "ub_overlap_ag_dgrad": false,
+          "ub_overlap_rs_dgrad": false,
+          "ub_bulk_dgrad": false,
+          "ub_bulk_wgrad": false
+        },
+        "attention_projection": {
+          "type": "TERowParallelLinear",
+          "ub_name": null,
+          "ub_overlap_ag": false,
+          "ub_overlap_rs": false,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false,
+          "ub_overlap_ag_dgrad": false,
+          "ub_overlap_rs_dgrad": false,
+          "ub_bulk_dgrad": false,
+          "ub_bulk_wgrad": false
+        },
+        "mlp_fc1": {
+          "type": "TELayerNormColumnParallelLinear",
+          "ub_name": null,
+          "ub_overlap_ag": false,
+          "ub_overlap_rs": false,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false,
+          "ub_overlap_ag_dgrad": false,
+          "ub_overlap_rs_dgrad": false,
+          "ub_bulk_dgrad": false,
+          "ub_bulk_wgrad": false
+        },
+        "mlp_fc2": {
+          "type": "TERowParallelLinear",
+          "ub_name": null,
+          "ub_overlap_ag": false,
+          "ub_overlap_rs": false,
+          "ub_overlap_ag_fprop": false,
+          "ub_overlap_rs_fprop": false,
+          "ub_overlap_ag_dgrad": false,
+          "ub_overlap_rs_dgrad": false,
+          "ub_bulk_dgrad": false,
+          "ub_bulk_wgrad": false
+        }
+      },
+      "initialization": {
+        "requested": false,
+        "ub_skipmc": "1",
+        "cuda_device_max_connections": "1",
+        "nccl_p2p_disable": "0",
+        "initialized": false,
+        "communicator_names": [],
+        "shape": [
+          16384,
+          1024
+        ],
+        "bootstrap_backend": "nccl"
+      }
+    }
+  ],
+  "lifecycle": {
+    "wrapper": "DistributedDataParallel",
+    "main_grad_parameter_count": 292,
+    "grad_reduce_in_fp32": false,
+    "overlap_grad_reduce": false,
+    "overlap_param_gather": false,
+    "use_distributed_optimizer": false,
+    "optimizer_wrapper": "FP32Optimizer",
+    "base_optimizer": "AdamW",
+    "clip_grad": 0.0,
+    "optimizer_cuda_graph": false,
+    "optimizer_state_dtypes": [
+      "torch.float32"
+    ]
+  },
+  "correctness_smoke": {
+    "steps": 3,
+    "rank0_losses": [
+      11.035116195678711,
+      10.854608535766602,
+      10.677815437316895
+    ],
+    "per_step_checks": [
+      {
+        "step": 0,
+        "loss_finite": true,
+        "main_grads_finite": true,
+        "optimizer_consumed_main_grad": true,
+        "main_grad_addresses_stable": true
+      },
+      {
+        "step": 1,
+        "loss_finite": true,
+        "main_grads_finite": true,
+        "optimizer_consumed_main_grad": true,
+        "main_grad_addresses_stable": true
+      },
+      {
+        "step": 2,
+        "loss_finite": true,
+        "main_grads_finite": true,
+        "optimizer_consumed_main_grad": true,
+        "main_grad_addresses_stable": true
+      }
+    ],
+    "parameters_updated": true,
+    "all_ranks_initialized": true,
+    "forward_succeeded": true,
+    "backward_succeeded": true,
+    "sequence_parallel_active": true,
+    "te_linear_active": true,
+    "userbuffers_active": false,
+    "userbuffers_silent_fallback": false,
+    "max_measured_loss_difference_between_ranks": 0.0,
+    "nccl_errors": false,
+    "deadlock": false
+  },
+  "precision": {
+    "forward_backward": "BF16 autocast",
+    "parameter_storage": "FP32",
+    "main_grad": "FP32",
+    "optimizer_state": "FP32"
+  },
+  "optimizer": {
+    "wrapper": "MCore FP32Optimizer",
+    "base": "torch.optim.AdamW",
+    "learning_rate": 0.0001,
+    "foreach": false,
+    "fused": false,
+    "distributed_optimizer": false
+  },
+  "data": {
+    "type": "fixed synthetic random token IDs",
+    "seed": 1235,
+    "same_batch_on_all_tp_ranks": true
+  },
+  "tokens_per_step": 16384,
+  "smoke_iterations": 3,
+  "warmup_iterations": 5,
+  "measured_iterations": 20,
+  "warmup_final_loss": 10.38455867767334,
+  "measured_losses_rank0": [
+    10.357192993164062,
+    10.29798698425293,
+    10.230049133300781,
+    10.158023834228516,
+    10.083301544189453,
+    10.030838012695312,
+    10.055828094482422,
+    10.038633346557617,
+    10.000515937805176,
+    9.954082489013672,
+    9.902952194213867,
+    9.855522155761719,
+    9.811311721801758,
+    9.772554397583008,
+    9.740178108215332,
+    9.713231086730957,
+    9.690502166748047,
+    9.671310424804688,
+    9.654109954833984,
+    9.639305114746094
+  ],
+  "average_step_time_ms": 699.0232839249074,
+  "median_step_time_ms": 699.0006705746055,
+  "step_time_standard_deviation_ms": 0.29073425860185986,
+  "global_step_times_ms": [
+    699.2409750819206,
+    699.7007522732019,
+    699.2558483034372,
+    698.993444442749,
+    698.8420560956001,
+    699.1218570619822,
+    699.4064468890429,
+    699.4353178888559,
+    699.0215238183737,
+    698.7577453255653,
+    698.4430681914091,
+    698.9594884216785,
+    698.8496035337448,
+    699.0078967064619,
+    698.96081648767,
+    699.0862488746643,
+    699.0476436913013,
+    698.9704705774784,
+    698.6850518733263,
+    698.6794229596853
+  ],
+  "rank_timing_and_memory": [
+    {
+      "rank": 0,
+      "step_times_ms": [
+        699.0943718701601,
+        699.7007522732019,
+        698.6189782619476,
+        698.993444442749,
+        698.8420560956001,
+        699.0293804556131,
+        699.3872802704573,
+        699.362562969327,
+        699.0215238183737,
+        698.7577453255653,
+        698.2762143015862,
+        698.9594884216785,
+        698.820024728775,
+        698.9906542003155,
+        698.9282723516226,
+        699.0862488746643,
+        699.0003623068333,
+        698.9704705774784,
+        698.6786127090454,
+        698.6332889646292
+      ],
+      "peak_allocated_memory_mib": 12073.982421875,
+      "peak_reserved_memory_mib": 12436.0
+    },
+    {
+      "rank": 1,
+      "step_times_ms": [
+        699.2409750819206,
+        699.1568468511105,
+        699.2558483034372,
+        698.6587233841419,
+        698.8268867135048,
+        699.1218570619822,
+        699.4064468890429,
+        699.4353178888559,
+        698.9280357956886,
+        698.6912321299314,
+        698.4430681914091,
+        698.6857894808054,
+        698.8496035337448,
+        699.0078967064619,
+        698.96081648767,
+        698.9920660853386,
+        699.0476436913013,
+        698.9378873258829,
+        698.6850518733263,
+        698.6794229596853
+      ],
+      "peak_allocated_memory_mib": 12073.982421875,
+      "peak_reserved_memory_mib": 12436.0
+    }
+  ],
+  "gpu_monitoring": {
+    "0": {
+      "sample_count": 139,
+      "average_utilization_percent": 99.85611510791367,
+      "median_utilization_percent": 100.0,
+      "peak_memory_mib": 16938.0
+    },
+    "1": {
+      "sample_count": 139,
+      "average_utilization_percent": 99.85611510791367,
+      "median_utilization_percent": 100.0,
+      "peak_memory_mib": 16938.0
+    }
+  },
+  "tokens_per_second": 23438.41811392373,
+  "mfu": {
+    "training_flops_per_iteration": 39698382716928.0,
+    "aggregate_achieved_tflops": 56.79121658727551,
+    "achieved_tflops_per_gpu": 28.395608293637753,
+    "a40_dense_bf16_peak_tflops_per_gpu": 149.7,
+    "aggregate_mfu_percent": 18.968342213518874
+  },
+  "transformer_engine_backend": {
+    "flash_attention": false,
+    "fused_attention": true,
+    "unfused_attention": false,
+    "fused_sub_backend": 1
+  },
+  "instrumentation": {
+    "cuda_profiler_capture_range": false,
+    "module_nvtx_attribution": false,
+    "cuda_graph_enabled": false
+  },
+  "environment": {
+    "timestamp_utc": "2026-08-24T20:38:33.573791+00:00",
+    "hostname": "5ca434e33992",
+    "platform": "Linux-6.8.0-65-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "pytorch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "nccl": "2.27.3",
+    "cudnn": 91002,
+    "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+    "project_commit": "e0d08d67320a51291f5bfe6d98d6718428aa7d75",
+    "transformer_engine_installed": true,
+    "transformer_engine_version": "2.17.1+4329ff84",
+    "gpus": [
+      {
+        "index": 0,
+        "name": "NVIDIA A40",
+        "driver": "580.126.09",
+        "memory_total_mib": 46068.0,
+        "pci_bus_id": "00000000:98:00.0"
+      },
+      {
+        "index": 1,
+        "name": "NVIDIA A40",
+        "driver": "580.126.09",
+        "memory_total_mib": 46068.0,
+        "pci_bus_id": "00000000:D2:00.0"
+      }
+    ],
+    "cuda_graph_enabled": false,
+    "ub_skipmc": "1",
+    "cuda_device_max_connections": "1",
+    "nccl_p2p_disable": "0"
+  }
+}

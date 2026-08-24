@@ -122,6 +122,24 @@ def is_nccl_kernel(name: str) -> bool:
     return "nccl" in name.lower()
 
 
+def is_userbuffer_kernel(name: str) -> bool:
+    lower = name.lower()
+    return any(
+        token in lower
+        for token in (
+            "userbuffer",
+            "ubuf",
+            "commoverlap",
+            "comm_gemm",
+            "commgemm",
+        )
+    )
+
+
+def is_communication_kernel(name: str) -> bool:
+    return is_nccl_kernel(name) or is_userbuffer_kernel(name)
+
+
 def nvtx_collective_kind(name: str) -> str | None:
     compact = name.lower().replace("-", "").replace("_", "")
     if "allgather" in compact:
@@ -278,6 +296,7 @@ def analyze_trace(
     )
 
     nccl_rows = []
+    userbuffer_rows = []
     compute_rows = []
     for row in kernels:
         name = kernel_name(row, strings)
@@ -294,16 +313,57 @@ def analyze_trace(
         }
         if is_nccl_kernel(name):
             nccl_rows.append(entry)
+        elif is_userbuffer_kernel(name):
+            userbuffer_rows.append(entry)
         else:
             compute_rows.append(entry)
 
-    devices = sorted({row["device_id"] for row in nccl_rows + compute_rows})
+    memcpy_rows = []
+    if table_exists(connection, "CUPTI_ACTIVITY_KIND_MEMCPY"):
+        memcpy_columns = table_columns(connection, "CUPTI_ACTIVITY_KIND_MEMCPY")
+        memcpy_select = ["start", "end"]
+        memcpy_select.extend(
+            field
+            for field in ("copyKind", "srcKind", "dstKind", "deviceId", "srcDeviceId", "dstDeviceId")
+            if field in memcpy_columns
+        )
+        for row in connection.execute(
+            f"""
+            SELECT {', '.join(memcpy_select)}
+            FROM CUPTI_ACTIVITY_KIND_MEMCPY
+            WHERE end > ? AND start < ?
+            """,
+            (window_start, window_end),
+        ):
+            copy_kind = string_value(row["copyKind"], strings) if "copyKind" in row.keys() else ""
+            src_device = int(row["srcDeviceId"]) if "srcDeviceId" in row.keys() and row["srcDeviceId"] is not None else None
+            dst_device = int(row["dstDeviceId"]) if "dstDeviceId" in row.keys() and row["dstDeviceId"] is not None else None
+            peer = (
+                "peer" in copy_kind.lower()
+                or "p2p" in copy_kind.lower()
+                or (src_device is not None and dst_device is not None and src_device != dst_device)
+            )
+            if not peer:
+                continue
+            memcpy_rows.append(
+                {
+                    "name": f"Memcpy {copy_kind}",
+                    "start": int(row["start"]),
+                    "end": int(row["end"]),
+                    "duration_ns": int(row["end"] - row["start"]),
+                    "device_id": int(row["deviceId"]) if "deviceId" in row.keys() and row["deviceId"] is not None else (src_device or 0),
+                    "copy_kind": copy_kind,
+                }
+            )
+
+    comm_rows = nccl_rows + userbuffer_rows + memcpy_rows
+    devices = sorted({row["device_id"] for row in comm_rows + compute_rows})
     per_device = {}
     for device in devices:
         comm = merge_intervals(
             (
                 (row["start"], row["end"])
-                for row in nccl_rows
+                for row in comm_rows
                 if row["device_id"] == device
             ),
             window_start,
@@ -332,6 +392,17 @@ def analyze_trace(
             ),
             "exposed_communication_ms_per_step": (
                 (comm_ns - overlap_ns) / NS_PER_MS / iterations
+            ),
+            "idle_or_gap_ms_per_step": (
+                (window_end - window_start - interval_total(
+                    merge_intervals(
+                        [(row["start"], row["end"]) for row in comm_rows + compute_rows if row["device_id"] == device],
+                        window_start,
+                        window_end,
+                    )
+                ))
+                / NS_PER_MS
+                / iterations
             ),
         }
 
@@ -397,6 +468,26 @@ def analyze_trace(
         ),
         "average_nccl_kernel_time_ms_per_step_per_gpu": (
             average_nccl_kernel_time_ms_per_step_per_gpu
+        ),
+        "userbuffer_kernel_launches": len(userbuffer_rows),
+        "average_userbuffer_kernel_time_ms_per_step_per_gpu": (
+            sum(row["duration_ns"] for row in userbuffer_rows)
+            / NS_PER_MS
+            / iterations
+            / tp
+        ),
+        "p2p_memcpy_count": len(memcpy_rows),
+        "average_p2p_memcpy_ms_per_step_per_gpu": (
+            sum(row["duration_ns"] for row in memcpy_rows)
+            / NS_PER_MS
+            / iterations
+            / tp
+        ),
+        "average_communication_kernel_time_ms_per_step_per_gpu": (
+            sum(row["duration_ns"] for row in comm_rows)
+            / NS_PER_MS
+            / iterations
+            / tp
         ),
         "collective_types": {
             kind: {
