@@ -157,8 +157,39 @@ def initialize_single_gpu_distributed(seed: int) -> int:
     return local_rank
 
 
-def get_transformer_layer_spec(attention_implementation: str) -> Any:
+def bda_nvtx_factory(name: str, factory: Any) -> Any:
+    """Wrap a BDA factory with a forward-only NVTX attribution range."""
+
+    def instrumented_factory(training: bool, fused: bool) -> Any:
+        bda = factory(training, fused)
+
+        def instrumented_bda(
+            x_with_bias: tuple[torch.Tensor, torch.Tensor | None],
+            residual: torch.Tensor,
+            probability: float,
+        ) -> torch.Tensor:
+            with torch.cuda.nvtx.range(f"bda::{name}"):
+                return bda(x_with_bias, residual, probability)
+
+        return instrumented_bda
+
+    return instrumented_factory
+
+
+def get_transformer_layer_spec(
+    attention_implementation: str,
+    instrument_bda: bool = False,
+) -> Any:
     layer_spec = get_gpt_layer_local_spec()
+    if instrument_bda:
+        layer_spec.submodules.self_attn_bda = bda_nvtx_factory(
+            "self_attention",
+            layer_spec.submodules.self_attn_bda,
+        )
+        layer_spec.submodules.mlp_bda = bda_nvtx_factory(
+            "mlp",
+            layer_spec.submodules.mlp_bda,
+        )
     if attention_implementation == LOCAL_UNFUSED_ATTENTION:
         return layer_spec
     if attention_implementation == TE_FUSED_ATTENTION:
@@ -193,6 +224,9 @@ def build_model(
     args: argparse.Namespace,
     attention_implementation: str | None = None,
     attention_dropout: float = 0.1,
+    hidden_dropout: float = 0.1,
+    bias_dropout_fusion: bool = False,
+    instrument_bda: bool = False,
 ) -> GPTModel:
     if attention_implementation is None:
         attention_implementation = getattr(
@@ -208,11 +242,15 @@ def build_model(
         hidden_size=args.hidden_size,
         ffn_hidden_size=args.ffn_hidden_size,
         num_attention_heads=args.num_attention_heads,
-        hidden_dropout=0.1,
+        hidden_dropout=hidden_dropout,
         attention_dropout=attention_dropout,
         layernorm_epsilon=1.0e-5,
         add_bias_linear=True,
         gated_linear_unit=False,
+        bias_activation_fusion=False,
+        bias_dropout_fusion=bias_dropout_fusion,
+        masked_softmax_fusion=False,
+        cross_entropy_loss_fusion=False,
         use_cpu_initialization=True,
         params_dtype=torch.float32,
         pipeline_dtype=torch.float32,
@@ -222,7 +260,10 @@ def build_model(
     )
     model = GPTModel(
         config=config,
-        transformer_layer_spec=get_transformer_layer_spec(attention_implementation),
+        transformer_layer_spec=get_transformer_layer_spec(
+            attention_implementation,
+            instrument_bda=instrument_bda,
+        ),
         vocab_size=args.vocab_size,
         max_sequence_length=args.sequence_length,
         parallel_output=True,
