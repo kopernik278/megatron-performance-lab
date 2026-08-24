@@ -141,6 +141,7 @@ def run_command(command: list[str], cwd: str | None = None) -> str:
 def initialize_single_gpu_distributed(
     seed: int,
     use_cudagraphable_rng: bool = False,
+    use_te_rng_tracker: bool = False,
 ) -> int:
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is required for this baseline")
@@ -157,8 +158,9 @@ def initialize_single_gpu_distributed(
     )
     model_parallel_cuda_manual_seed(
         seed,
+        te_rng_tracker=use_te_rng_tracker,
         use_cudagraphable_rng=use_cudagraphable_rng,
-        force_reset_rng=use_cudagraphable_rng,
+        force_reset_rng=use_cudagraphable_rng or use_te_rng_tracker,
     )
     torch.manual_seed(seed)
     return local_rank

@@ -400,7 +400,7 @@ def verify_controls(
         "params_dtype": str(config.params_dtype),
         "pipeline_dtype": str(config.pipeline_dtype),
         "fp32_residual_connection": bool(config.fp32_residual_connection),
-        "graph_safe_rng_tracker_for_both_variants": True,
+        "graph_safe_rng_tracker_for_both_variants": "Transformer Engine",
     }
 
 
@@ -409,7 +409,7 @@ def main() -> None:
     model_args = baseline_model_args()
     local_rank = initialize_single_gpu_distributed(
         model_args.seed,
-        use_cudagraphable_rng=True,
+        use_te_rng_tracker=True,
     )
     try:
         if os.environ.get("TRANSFORMER_ENGINE_DISABLE") == "1":

@@ -189,7 +189,7 @@ def main() -> None:
     model_args = small_model_args()
     initialize_single_gpu_distributed(
         model_args.seed,
-        use_cudagraphable_rng=True,
+        use_te_rng_tracker=True,
     )
     try:
         device = torch.device("cuda:0")
@@ -390,7 +390,7 @@ def main() -> None:
                 "only_intended_runtime_difference": "CUDA Graph capture/replay",
                 "verified": bool(controls_ok),
                 "state_dict_tensor_count": len(state_dict),
-                "graph_safe_rng_tracker_for_both_variants": True,
+                "graph_safe_rng_tracker_for_both_variants": "Transformer Engine",
             },
             "transformer_engine_backend": fused_backend_status(),
             "environment": {
