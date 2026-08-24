@@ -1,0 +1,187 @@
+{
+  "status": "blocked",
+  "experiment": "Phase 6.1 CUDA Graph feasibility and fast A/B screening",
+  "outcome": "capture_replay_succeeded_but_correctness_failed",
+  "mechanism": {
+    "selected": "Megatron Core cuda_graph_impl=local with cuda_graph_modules=[]",
+    "capture_scope": "one forward and one backward graph per TransformerLayer",
+    "selection_reason": [
+      "This is the pinned Megatron-LM native training CUDA Graph implementation.",
+      "It owns static layer input/output buffers and a shared graph memory pool.",
+      "It explicitly registers graph-safe RNG states for dropout.",
+      "It leaves optimizer.step and zero_grad outside capture."
+    ],
+    "alternatives_not_used": {
+      "transformer_engine": "Requires TECudaGraphHelper and the higher-level Megatron training stack that the accepted direct GPTModel harness does not use.",
+      "full_iteration": "FullCudaGraphWrapper requires Megatron's forward_backward_func and static data-iterator contract; adapting the direct loop would be invasive.",
+      "custom_pytorch_graph": "Rejected in favor of the existing pinned Megatron mechanism."
+    }
+  },
+  "source_feasibility": {
+    "fixed_shapes": {
+      "status": "satisfied",
+      "detail": "The accepted batch=8, sequence=2048 workload is static."
+    },
+    "dynamic_allocations": {
+      "status": "handled_within_captured_layers",
+      "detail": "MCore allocates captured layer intermediates from its CUDA Graph pool; embeddings, final normalization, loss, and optimizer remain eager."
+    },
+    "changing_tensor_addresses": {
+      "status": "handled_for_layer_inputs",
+      "detail": "CudaGraphManager copies runtime layer inputs into graph-owned static buffers and requires matching shape, dtype, device, and requires_grad metadata."
+    },
+    "parameter_addresses": {
+      "status": "satisfied",
+      "detail": "torch.optim.AdamW updates parameter storage in place."
+    },
+    "dropout_rng": {
+      "status": "handled_after_required_tracker_change",
+      "detail": "cuDNN FusedAttention rejected the MCore graph-safe tracker during capture. Transformer Engine's graph-safe RNG tracker was then enabled identically for A and B, after which capture and replay succeeded."
+    },
+    "optimizer": {
+      "status": "blocking_in_current_harness",
+      "detail": "The local MCore backward graph accumulates directly into parameter.main_grad, which is normally supplied by MCore DDP. The accepted workload instead uses raw torch.optim.AdamW and ordinary parameter.grad."
+    },
+    "zero_grad": {
+      "status": "blocking_in_current_harness",
+      "detail": "The minimal adapter allocated persistent main_grad buffers, zeroed them eagerly, and exposed them to AdamW as param.grad. Capture and replay worked, but gradients did not reproduce eager execution."
+    },
+    "dynamic_shapes": {
+      "status": "not_present",
+      "detail": "No variable sequence length, micro-batch, MoE routing, or pipeline schedule is used."
+    },
+    "numerical_configuration": {
+      "status": "unchanged",
+      "detail": "BF16 autocast, FP32 parameters/residuals/AdamW, cuDNN FusedAttention, bias_dropout_fusion=true, and bias_activation_fusion=false were retained."
+    }
+  },
+  "correctness": {
+    "status": "failed",
+    "same_initial_weights": true,
+    "same_seed": true,
+    "dropout_for_correctness": 0.0,
+    "atol": 1e-05,
+    "rtol": 1e-05,
+    "loss": {
+      "eager": 6.951542854309082,
+      "graphed": 6.951542854309082,
+      "absolute_error": 0.0,
+      "all_close": true
+    },
+    "per_token_loss": {
+      "max_absolute_error": 0.0,
+      "mean_absolute_error": 0.0,
+      "max_relative_error": 0.0,
+      "mean_relative_error": 0.0,
+      "all_close": true
+    },
+    "gradients": {
+      "compared_parameter_count": 28,
+      "all_close": false,
+      "global_cosine_similarity": 0.99989644421074,
+      "worst_absolute_parameter": "embedding.word_embeddings.weight",
+      "worst_absolute_error": {
+        "max_absolute_error": 0.0042900945991277695,
+        "mean_absolute_error": 6.9020629780425224e-06,
+        "max_relative_error": 26.02348518371582,
+        "mean_relative_error": 0.00509352283552289
+      },
+      "worst_relative_parameter": "decoder.layers.0.self_attention.linear_qkv.weight",
+      "worst_relative_error": {
+        "max_absolute_error": 0.00048828125,
+        "mean_absolute_error": 1.595838875800837e-05,
+        "max_relative_error": 265.9298400878906,
+        "mean_relative_error": 0.09353160113096237
+      }
+    },
+    "finite": {
+      "all_finite": true,
+      "eager_nan_count": 0,
+      "eager_inf_count": 0,
+      "graphed_nan_count": 0,
+      "graphed_inf_count": 0
+    }
+  },
+  "capture_replay": {
+    "succeeded": true,
+    "verified_programmatically": true,
+    "correctness_model": {
+      "transformer_layer_count": 2,
+      "manager_count": 2,
+      "runner_count": 2,
+      "forward_graph_count": 2,
+      "backward_graph_count": 2,
+      "global_graphs_created": true,
+      "replay_ready_after_execution": true
+    },
+    "capture_warmup_iterations": 5,
+    "capture_time_seconds": 0.40032482147216797,
+    "capture_allocated_bytes": 17043456,
+    "capture_reserved_bytes": 23068672,
+    "production_model_capture_attempted": false,
+    "profiler_replay_verification": "not_run_after_correctness_failure"
+  },
+  "fast_ab_screen": {
+    "status": "not_run",
+    "reason": "The correctness prerequisite failed before production-size timing.",
+    "protocol_planned": {
+      "graph_capture_warmup_iterations": 5,
+      "benchmark_warmup_iterations": 3,
+      "measured_iterations": 15
+    },
+    "A": {
+      "average_step_time_ms": null,
+      "median_step_time_ms": null,
+      "tokens_per_second": null,
+      "mfu_percent": null,
+      "peak_vram_mib": null,
+      "cpu_time_ms_per_step": null
+    },
+    "B": {
+      "average_step_time_ms": null,
+      "median_step_time_ms": null,
+      "tokens_per_second": null,
+      "mfu_percent": null,
+      "peak_vram_mib": null,
+      "cpu_time_ms_per_step": null
+    },
+    "speedup_percent": null
+  },
+  "nsight_systems": {
+    "status": "not_run",
+    "reason": "No performance profiling was performed after the correctness blocker.",
+    "kernel_count_per_step": null,
+    "cuda_api_launch_count_per_step": null,
+    "cpu_launch_gaps": null,
+    "gpu_idle_ms_per_step": null
+  },
+  "decision": {
+    "formal_validation_threshold_percent": 2.0,
+    "formal_validation_eligible": false,
+    "formal_validation_run": false,
+    "reason": "Correctness failed; throughput screening and the 2% gate were not evaluated.",
+    "recommendation": "Do not adopt CUDA Graph for the current raw-GPTModel/raw-AdamW harness. Revisit only if the training loop migrates to MCore DDP/main_grad or the full Megatron training stack."
+  },
+  "infrastructure": {
+    "pod_id": "9c001avwsjbibr",
+    "pod_status": "EXITED",
+    "cloud": "Secure Cloud",
+    "data_center": "CA-MTL-1",
+    "gpu": "1x NVIDIA A40 48GB",
+    "image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+    "driver": "570.195.03",
+    "cuda_runtime": "12.8",
+    "pytorch": "2.8.0+cu128",
+    "nccl": "2.27.3",
+    "cudnn": 91002,
+    "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+    "transformer_engine": "2.17.1+4329ff84",
+    "experiment_code_commit": "b75cd4a4a04e557c631086011ad8482d246edf3f",
+    "driver_rejected_pod": {
+      "pod_id": "lpj6kn98kfy2c9",
+      "driver": "550.127.05",
+      "status": "deleted_before_setup",
+      "reason": "Pinned driver mismatch"
+    }
+  }
+}
