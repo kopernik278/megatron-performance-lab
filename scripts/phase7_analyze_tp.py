@@ -470,12 +470,12 @@ def analyze_trace(
                 "mlp_fc2_forward": run["model_config"]["num_layers"],
                 "qkv_dgrad_backward": run["model_config"]["num_layers"],
                 "fc1_dgrad_backward": run["model_config"]["num_layers"],
-                "total": run["model_config"]["num_layers"] * 4,
+                "output_layer_dgrad_backward": 1,
+                "total": run["model_config"]["num_layers"] * 4 + 1,
             },
             "expected_other_all_reduces": {
                 "embedding_forward": 1,
                 "vocab_parallel_cross_entropy": 3,
-                "tensor_parallel_layernorm_gradient_finalization": 1,
             },
             "all_gather_expected": False,
             "reduce_scatter_expected": False,
@@ -620,8 +620,9 @@ def main() -> None:
             ),
             "average_exposed_communication_ms_per_step": average_exposed_ms,
             "dominant_distributed_bottleneck": (
-                "large activation All-Reduce traffic from row-parallel forward "
-                "projections and column-parallel backward dgrad"
+                "97 large activation All-Reduces per step from row-parallel "
+                "forward projections and column-parallel backward dgrad over "
+                "the cross-NUMA SYS PCIe path"
             ),
         },
         "decision": {
