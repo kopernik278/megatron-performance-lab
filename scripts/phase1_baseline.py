@@ -225,6 +225,7 @@ def build_model(
     attention_implementation: str | None = None,
     attention_dropout: float = 0.1,
     hidden_dropout: float = 0.1,
+    bias_activation_fusion: bool = False,
     bias_dropout_fusion: bool = False,
     instrument_bda: bool = False,
 ) -> GPTModel:
@@ -247,7 +248,7 @@ def build_model(
         layernorm_epsilon=1.0e-5,
         add_bias_linear=True,
         gated_linear_unit=False,
-        bias_activation_fusion=False,
+        bias_activation_fusion=bias_activation_fusion,
         bias_dropout_fusion=bias_dropout_fusion,
         masked_softmax_fusion=False,
         cross_entropy_loss_fusion=False,

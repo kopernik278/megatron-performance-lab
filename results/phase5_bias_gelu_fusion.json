@@ -1,0 +1,956 @@
+{
+  "status": "success",
+  "experiment": "Phase 5.3 Bias-plus-GELU fusion A/B",
+  "correctness": {
+    "status": "success",
+    "comparison": "bias_gelu_fusion=False versus True",
+    "passed": false,
+    "strict_allclose_passed": false,
+    "same_initial_weights": true,
+    "same_seed": true,
+    "model_seed": 1234,
+    "dropout": {
+      "hidden_dropout": 0.0,
+      "attention_dropout": 0.0,
+      "correctness_only": true
+    },
+    "precision": "BF16 autocast with FP32 parameters and residual stream",
+    "atol": 1e-05,
+    "rtol": 1e-05,
+    "known_formula_difference": {
+      "baseline": "torch.nn.functional.gelu exact/erf path",
+      "fused": "Megatron bias_gelu tanh approximation",
+      "source": "megatron/core/fusions/fused_bias_gelu.py"
+    },
+    "model_config": {
+      "num_layers": 2,
+      "hidden_size": 128,
+      "ffn_hidden_size": 512,
+      "num_attention_heads": 4,
+      "sequence_length": 128,
+      "vocab_size": 1024,
+      "micro_batch_size": 1,
+      "attention_implementation": "te-fused",
+      "bias_dropout_fusion": true
+    },
+    "loss": {
+      "baseline": 6.951542854309082,
+      "fused": 6.9514288902282715,
+      "absolute_error": 0.00011396408081054688,
+      "all_close": false
+    },
+    "per_token_loss": {
+      "max_absolute_error": 0.0027227401733398438,
+      "mean_absolute_error": 0.0007213316857814789,
+      "max_relative_error": 0.00038953067269176245,
+      "mean_relative_error": 0.00010450230911374092,
+      "all_close": false
+    },
+    "forward_output": {
+      "max_absolute_error": 0.0078125,
+      "mean_absolute_error": 0.0006500239251181483,
+      "max_relative_error": 135.8816375732422,
+      "mean_relative_error": 0.023381834849715233,
+      "all_close": false
+    },
+    "gradients": {
+      "compared_parameter_count": 28,
+      "all_close": false,
+      "global_cosine_similarity": 0.9999915541440922,
+      "worst_absolute_parameter": "decoder.layers.0.self_attention.linear_proj.bias",
+      "worst_absolute_error": {
+        "max_absolute_error": 0.0009060129523277283,
+        "mean_absolute_error": 0.0002359430945944041,
+        "max_relative_error": 1.1321579217910767,
+        "mean_relative_error": 0.026304081082344055
+      },
+      "worst_relative_parameter": "decoder.layers.0.mlp.linear_fc2.weight",
+      "worst_relative_error": {
+        "max_absolute_error": 0.0001220703125,
+        "mean_absolute_error": 1.5007679394329898e-05,
+        "max_relative_error": 40.92976379394531,
+        "mean_relative_error": 0.02160577103495598
+      }
+    },
+    "finite": {
+      "all_finite": true,
+      "baseline": {
+        "forward_output": {
+          "all_finite": true,
+          "nan_count": 0,
+          "inf_count": 0,
+          "element_count": 131072
+        },
+        "per_token_loss": {
+          "all_finite": true,
+          "nan_count": 0,
+          "inf_count": 0,
+          "element_count": 128
+        },
+        "loss": {
+          "all_finite": true,
+          "nan_count": 0,
+          "inf_count": 0,
+          "element_count": 1
+        },
+        "gradients": {
+          "all_finite": true,
+          "nan_count": 0,
+          "inf_count": 0,
+          "element_count": 544256
+        }
+      },
+      "fused": {
+        "forward_output": {
+          "all_finite": true,
+          "nan_count": 0,
+          "inf_count": 0,
+          "element_count": 131072
+        },
+        "per_token_loss": {
+          "all_finite": true,
+          "nan_count": 0,
+          "inf_count": 0,
+          "element_count": 128
+        },
+        "loss": {
+          "all_finite": true,
+          "nan_count": 0,
+          "inf_count": 0,
+          "element_count": 1
+        },
+        "gradients": {
+          "all_finite": true,
+          "nan_count": 0,
+          "inf_count": 0,
+          "element_count": 544256
+        }
+      }
+    },
+    "controls": {
+      "only_intended_difference": "bias_activation_fusion",
+      "verified": true,
+      "baseline": {
+        "transformer_config": {
+          "bias_activation_fusion": false,
+          "bias_dropout_fusion": true,
+          "masked_softmax_fusion": false,
+          "cross_entropy_loss_fusion": false
+        },
+        "activation_function": "torch.nn.functional.gelu",
+        "activation_is_f_gelu_in_all_layers": true,
+        "add_bias_linear": true,
+        "gated_linear_unit": false,
+        "use_te_activation_func": false,
+        "bda_function": "megatron.core.fusions.fused_bias_dropout.bias_dropout_add_fused_train",
+        "parameter_dtypes": [
+          "torch.float32"
+        ],
+        "params_dtype": "torch.float32",
+        "pipeline_dtype": "torch.float32",
+        "fp32_residual_connection": false
+      },
+      "fused": {
+        "transformer_config": {
+          "bias_activation_fusion": true,
+          "bias_dropout_fusion": true,
+          "masked_softmax_fusion": false,
+          "cross_entropy_loss_fusion": false
+        },
+        "activation_function": "torch.nn.functional.gelu",
+        "activation_is_f_gelu_in_all_layers": true,
+        "add_bias_linear": true,
+        "gated_linear_unit": false,
+        "use_te_activation_func": false,
+        "bda_function": "megatron.core.fusions.fused_bias_dropout.bias_dropout_add_fused_train",
+        "parameter_dtypes": [
+          "torch.float32"
+        ],
+        "params_dtype": "torch.float32",
+        "pipeline_dtype": "torch.float32",
+        "fp32_residual_connection": false
+      },
+      "state_dict_tensor_count": 40
+    },
+    "runtime_path_verification": {
+      "verified": true,
+      "baseline": {
+        "verified": true,
+        "observed_bias_gelu_impl_calls": 0,
+        "expected_bias_gelu_impl_calls": 0,
+        "selected_path": "bias add followed by torch.nn.functional.gelu",
+        "source_branch_conditions": {
+          "bias_activation_fusion": false,
+          "activation_func_is_f_gelu": true,
+          "gated_linear_unit": false,
+          "add_bias_linear": true
+        }
+      },
+      "fused": {
+        "verified": true,
+        "observed_bias_gelu_impl_calls": 2,
+        "expected_bias_gelu_impl_calls": 2,
+        "selected_path": "megatron.core.fusions.fused_bias_gelu.bias_gelu_impl",
+        "source_branch_conditions": {
+          "bias_activation_fusion": true,
+          "activation_func_is_f_gelu": true,
+          "gated_linear_unit": false,
+          "add_bias_linear": true
+        }
+      }
+    },
+    "transformer_engine_backend": {
+      "flash_attention": false,
+      "fused_attention": true,
+      "unfused_attention": false,
+      "fused_sub_backend": 1
+    },
+    "environment": {
+      "timestamp_utc": "2026-08-24T07:04:47.155016+00:00",
+      "hostname": "55c03bd9d1cc",
+      "platform": "Linux-6.8.0-134-generic-x86_64-with-glibc2.39",
+      "python": "3.12.3",
+      "pytorch": "2.8.0+cu128",
+      "cuda_runtime": "12.8",
+      "nccl": "2.27.3",
+      "cudnn": 91002,
+      "megatron_core": "unavailable: Command '['python', '-c', \"import importlib.metadata as m; print(m.version('megatron-core'))\"]' returned non-zero exit status 1.",
+      "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+      "project_commit": "3bba64817db06b94ecf510b97aab8f76b52adeb3",
+      "gpu": "NVIDIA A40",
+      "driver": "580.159.03",
+      "gpu_memory_total_mib": 46068.0,
+      "compute_capability": [
+        8,
+        6
+      ],
+      "bf16_supported": true,
+      "transformer_engine_installed": true,
+      "transformer_engine_version": "2.17.1+4329ff84",
+      "transformer_engine_disabled": false,
+      "cuda_graph_enabled": false
+    }
+  },
+  "infrastructure": {
+    "pod_id": "dcyms83qyyo3lb",
+    "cloud": "Secure Cloud",
+    "gpu": "1x NVIDIA A40 48GB",
+    "gpu_price_per_hour_usd": 0.44,
+    "image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404",
+    "driver": "580.159.03",
+    "trace_preserved_on_stopped_pod": true
+  },
+  "constraint_deviations": [
+    {
+      "field": "NVIDIA driver",
+      "phase5_2_value": "570.195.03",
+      "phase5_3_value": "580.159.03",
+      "reason": "The Phase 5.2 Pod could not restart because its host had no free A40. The replacement A40 host supplied driver 580.159.03. A and B still ran on the same replacement Pod.",
+      "affects_internal_ab_control": false,
+      "affects_cross_phase_comparison": true
+    }
+  ],
+  "controls": {
+    "only_intended_variable": "bias_activation_fusion (bias_gelu_fusion)",
+    "A": {
+      "bias_gelu_fusion": false,
+      "bias_activation_fusion": false
+    },
+    "B": {
+      "bias_gelu_fusion": true,
+      "bias_activation_fusion": true
+    },
+    "model_config_except_intended_variable": {
+      "architecture": "Megatron Core GPTModel",
+      "num_layers": 24,
+      "hidden_size": 1024,
+      "ffn_hidden_size": 4096,
+      "num_attention_heads": 16,
+      "head_dimension": 64,
+      "vocab_size": 50304,
+      "max_position_embeddings": 2048,
+      "position_embedding_type": "learned_absolute",
+      "share_embeddings_and_output_weights": true,
+      "hidden_dropout": 0.1,
+      "attention_dropout": 0.1,
+      "layernorm_epsilon": 1e-05,
+      "attention_backend": "fused",
+      "attention_implementation": "te-fused",
+      "core_attention": "TEDotProductAttention",
+      "transformer_layer_spec": "get_gpt_layer_local_spec",
+      "bias_dropout_fusion": true,
+      "masked_softmax_fusion": false,
+      "cross_entropy_loss_fusion": false,
+      "cuda_graph_enabled": false
+    },
+    "parameter_count": 355919872,
+    "parallelism": {
+      "tensor_parallel": 1,
+      "pipeline_parallel": 1,
+      "data_parallel": 1
+    },
+    "precision": {
+      "forward_backward": "BF16 autocast",
+      "parameter_storage": "FP32",
+      "residual_stream": "FP32",
+      "optimizer_state": "FP32",
+      "bf16_enabled": true
+    },
+    "optimizer": {
+      "name": "torch.optim.AdamW",
+      "learning_rate": 0.0001,
+      "foreach": false,
+      "fused": false
+    },
+    "data": {
+      "type": "fixed synthetic random token IDs",
+      "seed": 1235,
+      "model_seed": 1234,
+      "training_rng_seed": 1236
+    },
+    "environment": {
+      "timestamp_utc": "2026-08-24T07:00:53.384588+00:00",
+      "hostname": "55c03bd9d1cc",
+      "platform": "Linux-6.8.0-134-generic-x86_64-with-glibc2.39",
+      "python": "3.12.3",
+      "pytorch": "2.8.0+cu128",
+      "cuda_runtime": "12.8",
+      "nccl": "2.27.3",
+      "cudnn": 91002,
+      "megatron_core": "unavailable: Command '['python', '-c', \"import importlib.metadata as m; print(m.version('megatron-core'))\"]' returned non-zero exit status 1.",
+      "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+      "project_commit": "9c9b05acec9105dbeb7ac0593395907b60b98d29",
+      "gpu": "NVIDIA A40",
+      "driver": "580.159.03",
+      "gpu_memory_total_mib": 46068.0,
+      "compute_capability": [
+        8,
+        6
+      ],
+      "bf16_supported": true,
+      "transformer_engine_installed": true,
+      "transformer_engine_version": "2.17.1+4329ff84",
+      "transformer_engine_disabled": false,
+      "cuda_graph_enabled": false
+    },
+    "retained": [
+      "cuDNN FusedAttention",
+      "micro-batch 8",
+      "bias_dropout_fusion"
+    ],
+    "explicitly_disabled": [
+      "masked_softmax_fusion",
+      "cross_entropy_loss_fusion",
+      "CUDA Graph",
+      "optimizer fusion",
+      "dtype changes"
+    ]
+  },
+  "runtime_path_verification": {
+    "baseline": {
+      "verified": true,
+      "observed_bias_gelu_impl_calls": 0,
+      "expected_bias_gelu_impl_calls": 0,
+      "selected_path": "bias add followed by torch.nn.functional.gelu",
+      "source_branch_conditions": {
+        "bias_activation_fusion": false,
+        "activation_func_is_f_gelu": true,
+        "gated_linear_unit": false,
+        "add_bias_linear": true
+      }
+    },
+    "fused": {
+      "verified": true,
+      "observed_bias_gelu_impl_calls": 24,
+      "expected_bias_gelu_impl_calls": 24,
+      "selected_path": "megatron.core.fusions.fused_bias_gelu.bias_gelu_impl",
+      "source_branch_conditions": {
+        "bias_activation_fusion": true,
+        "activation_func_is_f_gelu": true,
+        "gated_linear_unit": false,
+        "add_bias_linear": true
+      }
+    }
+  },
+  "fast_screening": {
+    "warmup_iterations": 3,
+    "measured_iterations": 15,
+    "run_order": [
+      "A",
+      "B"
+    ],
+    "baseline": {
+      "variant": "A",
+      "bias_gelu_fusion": false,
+      "bias_activation_fusion": false,
+      "bias_dropout_fusion": true,
+      "average_step_time_ms": 1034.8792407972117,
+      "median_step_time_ms": 1034.5559348352253,
+      "step_time_standard_deviation_ms": 1.6184531556459743,
+      "step_times_ms": [
+        1036.2683609127998,
+        1038.8984330929816,
+        1033.3812907338142,
+        1033.212194684893,
+        1033.444597851485,
+        1033.3180450834334,
+        1033.4488758817315,
+        1034.1899855993688,
+        1034.9688497371972,
+        1034.049046691507,
+        1034.8171778023243,
+        1034.5559348352253,
+        1035.7839711941779,
+        1036.6903441026807,
+        1036.1615037545562
+      ],
+      "tokens_per_second": 15831.798874793069,
+      "mfu_percent": 25.6248504018521,
+      "peak_allocated_memory_mib": 31192.47314453125,
+      "peak_reserved_memory_mib": 31774.0,
+      "peak_nvidia_smi_memory_mib": 32572.0,
+      "average_gpu_utilization_percent": 99.74193548387096,
+      "final_loss": 9.973247528076172,
+      "losses_finite": true,
+      "run_label": "screen-a",
+      "runtime_gelu_path": {
+        "verified": true,
+        "observed_bias_gelu_impl_calls": 0,
+        "expected_bias_gelu_impl_calls": 0,
+        "selected_path": "bias add followed by torch.nn.functional.gelu",
+        "source_branch_conditions": {
+          "bias_activation_fusion": false,
+          "activation_func_is_f_gelu": true,
+          "gated_linear_unit": false,
+          "add_bias_linear": true
+        }
+      },
+      "environment": {
+        "timestamp_utc": "2026-08-24T07:00:53.384588+00:00",
+        "hostname": "55c03bd9d1cc",
+        "platform": "Linux-6.8.0-134-generic-x86_64-with-glibc2.39",
+        "python": "3.12.3",
+        "pytorch": "2.8.0+cu128",
+        "cuda_runtime": "12.8",
+        "nccl": "2.27.3",
+        "cudnn": 91002,
+        "megatron_core": "unavailable: Command '['python', '-c', \"import importlib.metadata as m; print(m.version('megatron-core'))\"]' returned non-zero exit status 1.",
+        "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+        "project_commit": "9c9b05acec9105dbeb7ac0593395907b60b98d29",
+        "gpu": "NVIDIA A40",
+        "driver": "580.159.03",
+        "gpu_memory_total_mib": 46068.0,
+        "compute_capability": [
+          8,
+          6
+        ],
+        "bf16_supported": true,
+        "transformer_engine_installed": true,
+        "transformer_engine_version": "2.17.1+4329ff84",
+        "transformer_engine_disabled": false,
+        "cuda_graph_enabled": false
+      }
+    },
+    "fused": {
+      "variant": "B",
+      "bias_gelu_fusion": true,
+      "bias_activation_fusion": true,
+      "bias_dropout_fusion": true,
+      "average_step_time_ms": 1009.3659977739056,
+      "median_step_time_ms": 1009.642583783716,
+      "step_time_standard_deviation_ms": 1.0777240602274663,
+      "step_times_ms": [
+        1007.3245312087238,
+        1007.6888692565262,
+        1008.4876981563866,
+        1007.8802960924804,
+        1008.9629269205034,
+        1009.2565529048443,
+        1009.642583783716,
+        1009.4815189950168,
+        1010.1103456690907,
+        1010.0964307785034,
+        1009.9845249205828,
+        1010.1062771864235,
+        1010.195208247751,
+        1010.4065341874957,
+        1010.8656683005393
+      ],
+      "tokens_per_second": 16231.97139207572,
+      "mfu_percent": 26.272557018857395,
+      "peak_allocated_memory_mib": 28120.47314453125,
+      "peak_reserved_memory_mib": 28702.0,
+      "peak_nvidia_smi_memory_mib": 29500.0,
+      "average_gpu_utilization_percent": 99.90728476821192,
+      "final_loss": 9.965052604675293,
+      "losses_finite": true,
+      "run_label": "screen-b",
+      "runtime_gelu_path": {
+        "verified": true,
+        "observed_bias_gelu_impl_calls": 24,
+        "expected_bias_gelu_impl_calls": 24,
+        "selected_path": "megatron.core.fusions.fused_bias_gelu.bias_gelu_impl",
+        "source_branch_conditions": {
+          "bias_activation_fusion": true,
+          "activation_func_is_f_gelu": true,
+          "gated_linear_unit": false,
+          "add_bias_linear": true
+        }
+      },
+      "environment": {
+        "timestamp_utc": "2026-08-24T07:01:34.239445+00:00",
+        "hostname": "55c03bd9d1cc",
+        "platform": "Linux-6.8.0-134-generic-x86_64-with-glibc2.39",
+        "python": "3.12.3",
+        "pytorch": "2.8.0+cu128",
+        "cuda_runtime": "12.8",
+        "nccl": "2.27.3",
+        "cudnn": 91002,
+        "megatron_core": "unavailable: Command '['python', '-c', \"import importlib.metadata as m; print(m.version('megatron-core'))\"]' returned non-zero exit status 1.",
+        "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+        "project_commit": "9c9b05acec9105dbeb7ac0593395907b60b98d29",
+        "gpu": "NVIDIA A40",
+        "driver": "580.159.03",
+        "gpu_memory_total_mib": 46068.0,
+        "compute_capability": [
+          8,
+          6
+        ],
+        "bf16_supported": true,
+        "transformer_engine_installed": true,
+        "transformer_engine_version": "2.17.1+4329ff84",
+        "transformer_engine_disabled": false,
+        "cuda_graph_enabled": false
+      }
+    },
+    "delta": {
+      "average_step_time_ms": -25.513243023306018,
+      "median_step_time_ms": -24.91335105150938,
+      "step_time_improvement_percent": 2.4653352794720353,
+      "speedup_ratio": 1.0252765033492053,
+      "tokens_per_second": 400.1725172826518,
+      "tokens_per_second_percent": 2.527650334920531,
+      "mfu_percentage_points": 0.6477066170052943,
+      "mfu_percent": 2.52765033492051,
+      "peak_allocated_memory_mib": -3072.0,
+      "peak_reserved_memory_mib": -3072.0,
+      "peak_nvidia_smi_memory_mib": -3072.0
+    }
+  },
+  "nsight_systems": {
+    "profile_run_warmup_iterations": 3,
+    "profiled_iterations": 5,
+    "baseline": {
+      "profile_window_ms": 5205.688853,
+      "profiled_iterations": 5,
+      "kernel_count": 21590,
+      "kernel_count_per_step": 4318.0,
+      "kernel_total_ms": 5163.074669,
+      "kernel_time_per_step_ms": 1032.6149338,
+      "kernels_under_50_us": {
+        "count": 11745,
+        "count_per_step": 2349.0,
+        "count_share_percent": 54.40018527095878,
+        "total_ms": 108.664146,
+        "time_per_step_ms": 21.732829199999998
+      },
+      "gpu_timeline": {
+        "active_union_ms": 5178.197093,
+        "idle_ms": 27.49176,
+        "idle_ms_per_step": 5.498352,
+        "idle_percent": 0.5281099346565191,
+        "idle_gap_count": 22311
+      },
+      "bias_gelu_forward": {
+        "attribution": "CUDA kernels launched inside Megatron MLP.forward.activation NVTX ranges; includes the separate bias add in A",
+        "range_count": 120,
+        "ranges_per_step": 24.0,
+        "expected_ranges_per_step": 24.0,
+        "range_counts": {
+          "megatron.core.transformer.mlp.forward.activation": 120
+        },
+        "kernel_count": 240,
+        "kernel_count_per_step": 48.0,
+        "gpu_time_ms": 202.174812,
+        "gpu_time_per_step_ms": 40.434962399999996,
+        "top_kernel_families": [
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase &, at::native::GeluType)::[lambda() (instance 2)]::operator ()() const::[lambda() (instance 2)]::operator ()() const::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>>(int, T2, T3)",
+            "count": 120,
+            "total_ms": 115.296416,
+            "average_us": 960.8034666666666,
+            "kernel_time_share_percent": 57.02808122309519
+          },
+          {
+            "name": "void at::native::elementwise_kernel<(int)128, (int)4, void at::native::gpu_kernel_impl<at::native::CUDAFunctor_add<float>>(at::TensorIteratorBase &, const T1 &)::[lambda(int) (instance 1)]>(int, T3)",
+            "count": 120,
+            "total_ms": 86.878396,
+            "average_us": 723.9866333333333,
+            "kernel_time_share_percent": 42.97191877690481
+          }
+        ]
+      },
+      "gelu_backward": {
+        "attribution": "CUDA kernel names containing GeluBackward",
+        "range_count": 0,
+        "ranges_per_step": 0.0,
+        "kernel_count": 120,
+        "kernel_count_per_step": 24.0,
+        "gpu_time_ms": 172.060081,
+        "gpu_time_per_step_ms": 34.412016200000004,
+        "top_kernel_families": [
+          {
+            "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::GeluBackwardCUDAKernelImpl(at::TensorIteratorBase &, at::native::GeluType)::[lambda() (instance 2)]::operator ()() const::[lambda() (instance 2)]::operator ()() const::[lambda(float, float) (instance 1)], std::array<char *, (unsigned long)3>>(int, T2, T3)",
+            "count": 120,
+            "total_ms": 172.060081,
+            "average_us": 1433.8340083333333,
+            "kernel_time_share_percent": 100.0
+          }
+        ]
+      },
+      "gelu_related": {
+        "definition": "Union of attributed bias-plus-GELU forward and GELU backward kernels",
+        "kernel_count": 360,
+        "kernel_count_per_step": 72.0,
+        "gpu_time_ms": 374.234893,
+        "gpu_time_per_step_ms": 74.8469786
+      },
+      "top_15_cuda_kernels_by_total_gpu_time": [
+        {
+          "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>>(int, T2, T3)",
+          "count": 2560,
+          "total_ms": 766.562428,
+          "average_us": 299.43844843749997,
+          "kernel_time_share_percent": 14.847014175537193
+        },
+        {
+          "name": "cudnn_generated_fort_native_sdpa_sm80_flash_bprop_wmma_f16_knob_28_64x128x64_1x4x1_kernel0_0",
+          "count": 120,
+          "total_ms": 508.137958,
+          "average_us": 4234.482983333333,
+          "kernel_time_share_percent": 9.841770467720501
+        },
+        {
+          "name": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda() (instance 3)]::operator ()() const::[lambda() (instance 7)]::operator ()() const::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>, (int)4, TrivialOffsetCalculator<(int)1, unsigned int>, TrivialOffsetCalculator<(int)1, unsigned int>, at::native::memory::LoadWithCast<(int)1>, at::native::memory::StoreWithCast<(int)1>>(int, T1, T2, T4, T5, T6, T7)",
+          "count": 1475,
+          "total_ms": 360.446755,
+          "average_us": 244.3706813559322,
+          "kernel_time_share_percent": 6.981242343136835
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_256x128_32x3_tn_align8>(T1::Params)",
+          "count": 245,
+          "total_ms": 335.567048,
+          "average_us": 1369.6614204081632,
+          "kernel_time_share_percent": 6.499364613392153
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nn",
+          "count": 240,
+          "total_ms": 290.933754,
+          "average_us": 1212.223975,
+          "kernel_time_share_percent": 5.634893404637685
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x256_32x3_nt_align8>(T1::Params)",
+          "count": 240,
+          "total_ms": 264.111658,
+          "average_us": 1100.4652416666668,
+          "kernel_time_share_percent": 5.115394894165921
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_tn",
+          "count": 240,
+          "total_ms": 178.843233,
+          "average_us": 745.1801375,
+          "kernel_time_share_percent": 3.4638901132653754
+        },
+        {
+          "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::GeluBackwardCUDAKernelImpl(at::TensorIteratorBase &, at::native::GeluType)::[lambda() (instance 2)]::operator ()() const::[lambda() (instance 2)]::operator ()() const::[lambda(float, float) (instance 1)], std::array<char *, (unsigned long)3>>(int, T2, T3)",
+          "count": 120,
+          "total_ms": 172.060081,
+          "average_us": 1433.8340083333333,
+          "kernel_time_share_percent": 3.332511962940972
+        },
+        {
+          "name": "void at::native::elementwise_kernel<(int)128, (int)4, void at::native::gpu_kernel_impl<at::native::CUDAFunctor_add<float>>(at::TensorIteratorBase &, const T1 &)::[lambda(int) (instance 1)]>(int, T3)",
+          "count": 240,
+          "total_ms": 152.243425,
+          "average_us": 634.3476041666667,
+          "kernel_time_share_percent": 2.948696944363328
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x256_ldg8_f2f_stages_32x1_nt",
+          "count": 120,
+          "total_ms": 143.289618,
+          "average_us": 1194.08015,
+          "kernel_time_share_percent": 2.77527688802054
+        },
+        {
+          "name": "cudnn_generated_fort_native_sdpa_sm80_flash_fprop_wmma_f16_knob_6_128x64x64_4x1x1_kernel0_0",
+          "count": 120,
+          "total_ms": 137.287296,
+          "average_us": 1144.0608,
+          "kernel_time_share_percent": 2.6590220905441644
+        },
+        {
+          "name": "void at::native::<unnamed>::layer_norm_grad_input_kernel_vectorized<float, float>(const T1 *, const T1 *, const T2 *, const T2 *, const T1 *, T1 *, int)",
+          "count": 240,
+          "total_ms": 131.396342,
+          "average_us": 547.4847583333333,
+          "kernel_time_share_percent": 2.544924302352754
+        },
+        {
+          "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase &, at::native::GeluType)::[lambda() (instance 2)]::operator ()() const::[lambda() (instance 2)]::operator ()() const::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>>(int, T2, T3)",
+          "count": 120,
+          "total_ms": 115.296416,
+          "average_us": 960.8034666666666,
+          "kernel_time_share_percent": 2.2330960404709965
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x256_32x3_nn_align8>(T1::Params)",
+          "count": 125,
+          "total_ms": 104.959013,
+          "average_us": 839.6721040000001,
+          "kernel_time_share_percent": 2.0328780761237524
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x128_32x4_nn_align8>(T1::Params)",
+          "count": 120,
+          "total_ms": 103.943648,
+          "average_us": 866.1970666666666,
+          "kernel_time_share_percent": 2.0132121780863597
+        }
+      ],
+      "trace": {
+        "path": "profiles/phase53_work/profile_a.nsys-rep",
+        "size_bytes": 1504109,
+        "sha256": "19e7ee2ef7bef5a5b1338916d85b0b73add0b52a71887f79be30b7ab890956fd",
+        "sqlite_path": "profiles/phase53_work/profile_a.sqlite",
+        "sqlite_size_bytes": 4755456,
+        "sqlite_sha256": "10f2996a924d2abb571262edc412328c6b9891142ec1525abe588e9d5a51f0e8",
+        "preserved_on_pod": true
+      },
+      "measurement_note": "Forward attribution uses identical Megatron activation NVTX ranges in both variants. The baseline backward kernel has an explicit GeluBackward name; the compiled fused backward is manually ranged."
+    },
+    "fused": {
+      "profile_window_ms": 5058.672822,
+      "profiled_iterations": 5,
+      "kernel_count": 21470,
+      "kernel_count_per_step": 4294.0,
+      "kernel_total_ms": 5016.181551,
+      "kernel_time_per_step_ms": 1003.2363102,
+      "kernels_under_50_us": {
+        "count": 11745,
+        "count_per_step": 2349.0,
+        "count_share_percent": 54.70423847228692,
+        "total_ms": 108.653439,
+        "time_per_step_ms": 21.730687800000002
+      },
+      "gpu_timeline": {
+        "active_union_ms": 5031.224517,
+        "idle_ms": 27.448305,
+        "idle_ms_per_step": 5.489661,
+        "idle_percent": 0.5425989378207705,
+        "idle_gap_count": 22191
+      },
+      "bias_gelu_forward": {
+        "attribution": "CUDA kernels launched inside Megatron MLP.forward.activation NVTX ranges; includes the separate bias add in A",
+        "range_count": 120,
+        "ranges_per_step": 24.0,
+        "expected_ranges_per_step": 24.0,
+        "range_counts": {
+          "megatron.core.transformer.mlp.forward.activation": 120
+        },
+        "kernel_count": 120,
+        "kernel_count_per_step": 24.0,
+        "gpu_time_ms": 85.197542,
+        "gpu_time_per_step_ms": 17.0395084,
+        "top_kernel_families": [
+          {
+            "name": "triton_poi_fused_add_mul_tanh_0",
+            "count": 120,
+            "total_ms": 85.197542,
+            "average_us": 709.9795166666668,
+            "kernel_time_share_percent": 100.0
+          }
+        ]
+      },
+      "gelu_backward": {
+        "attribution": "gelu::backward_fused NVTX correlation",
+        "range_count": 120,
+        "ranges_per_step": 24.0,
+        "kernel_count": 120,
+        "kernel_count_per_step": 24.0,
+        "gpu_time_ms": 140.98341,
+        "gpu_time_per_step_ms": 28.196682,
+        "top_kernel_families": [
+          {
+            "name": "triton_poi_fused_add_mul_rsub_tanh_0",
+            "count": 120,
+            "total_ms": 140.98341,
+            "average_us": 1174.86175,
+            "kernel_time_share_percent": 100.0
+          }
+        ]
+      },
+      "gelu_related": {
+        "definition": "Union of attributed bias-plus-GELU forward and GELU backward kernels",
+        "kernel_count": 240,
+        "kernel_count_per_step": 48.0,
+        "gpu_time_ms": 226.180952,
+        "gpu_time_per_step_ms": 45.2361904
+      },
+      "top_15_cuda_kernels_by_total_gpu_time": [
+        {
+          "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>>(int, T2, T3)",
+          "count": 2560,
+          "total_ms": 766.571674,
+          "average_us": 299.44206015625,
+          "kernel_time_share_percent": 15.281976264339562
+        },
+        {
+          "name": "cudnn_generated_fort_native_sdpa_sm80_flash_bprop_wmma_f16_knob_28_64x128x64_1x4x1_kernel0_0",
+          "count": 120,
+          "total_ms": 507.832961,
+          "average_us": 4231.941341666667,
+          "kernel_time_share_percent": 10.12389515484664
+        },
+        {
+          "name": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase &)::[lambda() (instance 3)]::operator ()() const::[lambda() (instance 7)]::operator ()() const::[lambda(float) (instance 1)], std::array<char *, (unsigned long)2>, (int)4, TrivialOffsetCalculator<(int)1, unsigned int>, TrivialOffsetCalculator<(int)1, unsigned int>, at::native::memory::LoadWithCast<(int)1>, at::native::memory::StoreWithCast<(int)1>>(int, T1, T2, T4, T5, T6, T7)",
+          "count": 1475,
+          "total_ms": 360.454023,
+          "average_us": 244.37560881355932,
+          "kernel_time_share_percent": 7.185824901575617
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_256x128_32x3_tn_align8>(T1::Params)",
+          "count": 245,
+          "total_ms": 337.000688,
+          "average_us": 1375.513012244898,
+          "kernel_time_share_percent": 6.718271349903938
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nn",
+          "count": 240,
+          "total_ms": 291.138298,
+          "average_us": 1213.0762416666666,
+          "kernel_time_share_percent": 5.803982472324196
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x256_32x3_nt_align8>(T1::Params)",
+          "count": 240,
+          "total_ms": 263.407743,
+          "average_us": 1097.5322625,
+          "kernel_time_share_percent": 5.251160475790362
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_tn",
+          "count": 240,
+          "total_ms": 178.833049,
+          "average_us": 745.1377041666667,
+          "kernel_time_share_percent": 3.565123135631899
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x256_ldg8_f2f_stages_32x1_nt",
+          "count": 120,
+          "total_ms": 142.796629,
+          "average_us": 1189.9719083333334,
+          "kernel_time_share_percent": 2.846719711959644
+        },
+        {
+          "name": "triton_poi_fused_add_mul_rsub_tanh_0",
+          "count": 120,
+          "total_ms": 140.98341,
+          "average_us": 1174.86175,
+          "kernel_time_share_percent": 2.810572316145421
+        },
+        {
+          "name": "cudnn_generated_fort_native_sdpa_sm80_flash_fprop_wmma_f16_knob_6_128x64x64_4x1x1_kernel0_0",
+          "count": 120,
+          "total_ms": 137.987517,
+          "average_us": 1149.8959750000001,
+          "kernel_time_share_percent": 2.750847743389422
+        },
+        {
+          "name": "void at::native::<unnamed>::layer_norm_grad_input_kernel_vectorized<float, float>(const T1 *, const T1 *, const T2 *, const T2 *, const T1 *, T1 *, int)",
+          "count": 240,
+          "total_ms": 131.43843,
+          "average_us": 547.660125,
+          "kernel_time_share_percent": 2.6202885334921167
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x256_32x3_nn_align8>(T1::Params)",
+          "count": 125,
+          "total_ms": 104.950827,
+          "average_us": 839.606616,
+          "kernel_time_share_percent": 2.092245384919881
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x128_32x4_nn_align8>(T1::Params)",
+          "count": 120,
+          "total_ms": 103.866388,
+          "average_us": 865.5532333333333,
+          "kernel_time_share_percent": 2.07062657011076
+        },
+        {
+          "name": "void at::native::reduce_kernel<(int)128, (int)4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator ()(at::TensorIterator &)::[lambda(float, float) (instance 1)]>, unsigned int, float, (int)4, (int)4>>(T3)",
+          "count": 240,
+          "total_ms": 98.853103,
+          "average_us": 411.88792916666665,
+          "kernel_time_share_percent": 1.9706843142528037
+        },
+        {
+          "name": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::CUDAFunctor_add<float>, std::array<char *, (unsigned long)3>>(int, T2, T3)",
+          "count": 260,
+          "total_ms": 92.539567,
+          "average_us": 355.92141153846154,
+          "kernel_time_share_percent": 1.8448209272160774
+        }
+      ],
+      "trace": {
+        "path": "profiles/phase53_work/profile_b.nsys-rep",
+        "size_bytes": 1497916,
+        "sha256": "40a5f512afa3ce401e5e99dcb7a559e7a69e67c047754b762db8e7cda1520919",
+        "sqlite_path": "profiles/phase53_work/profile_b.sqlite",
+        "sqlite_size_bytes": 4763648,
+        "sqlite_sha256": "bb21e5bac771624d33e09adbaf70603f27c6fab79cd3f1fddc0dcc7afec5373a",
+        "preserved_on_pod": true
+      },
+      "measurement_note": "Forward attribution uses identical Megatron activation NVTX ranges in both variants. The baseline backward kernel has an explicit GeluBackward name; the compiled fused backward is manually ranged."
+    },
+    "delta": {
+      "kernel_count_per_step": -24.0,
+      "kernel_launches_removed_per_step": 24.0,
+      "kernel_count_improvement_percent": 0.555812876331635,
+      "bias_gelu_forward_launches_removed_per_step": 24.0,
+      "bias_gelu_forward_gpu_time_reduction_per_step_ms": 23.395453999999997,
+      "bias_gelu_forward_gpu_time_improvement_percent": 57.85946767691318,
+      "gelu_backward_launches_removed_per_step": 0.0,
+      "gelu_backward_gpu_time_reduction_per_step_ms": 6.2153342000000045,
+      "gelu_backward_gpu_time_improvement_percent": 18.06152293976894,
+      "gelu_related_launches_removed_per_step": 24.0,
+      "gelu_related_gpu_time_reduction_per_step_ms": 29.610788200000002,
+      "kernels_under_50_us_count_per_step": 0.0,
+      "kernels_under_50_us_removed_per_step": 0.0,
+      "kernels_under_50_us_percentage_points": 0.30405320132813785,
+      "expected_removed_forward_launches_per_step": 24.0,
+      "activation_ranges_valid": true,
+      "runtime_path_verified": true,
+      "fusion_evidence_confirmed": true,
+      "evidence_criterion": "Both traces contain exactly 24 MLP activation ranges/step, the fused trace contains 24 fused-backward ranges/step, at least 18 forward and total kernels/step are removed, forward activation time falls, and runtime probing observes bias_gelu_impl only in B."
+    },
+    "scope_note": "Bias-plus-GELU forward attribution includes the separate bias-add kernel in A. Backward attribution covers the GELU derivative kernel. Overall kernel deltas cover the full training step."
+  },
+  "stability_repeat": null,
+  "decision": {
+    "formal_validation_required": false,
+    "stability_repeat_required": false,
+    "reason": "Correctness did not satisfy the strict A/B tolerance; formal performance validation is skipped."
+  },
+  "formal_validation": {
+    "run": false,
+    "reason": "Correctness did not satisfy the strict A/B tolerance; formal performance validation is skipped."
+  },
+  "numerical_note": "The pinned Megatron fused path uses tanh-approximate GELU, whereas A uses torch.nn.functional.gelu's exact/erf path. This formula difference is an inherent consequence of the requested fusion flag."
+}
