@@ -1,3 +1,322 @@
+# Phase 5.1 Activation/Elementwise Kernel-Fusion Design
+
+## Decision
+
+This is a source-and-results-only design phase. No Pod was started, no GPU
+experiment was run, and no model or environment code was changed.
+
+The single Phase 5.2 experiment should enable Megatron's existing compiled
+**bias + dropout + residual-add (BDA) fusion**:
+
+```python
+config = TransformerConfig(
+    ...,
+    bias_dropout_fusion=True,
+)
+```
+
+The local GPT layer spec already sends both `self_attn_bda` and `mlp_bda`
+through `get_bias_dropout_add`, so no module replacement or custom CUDA kernel
+is required. This changes only the implementation of the existing BDA
+expression. It retains the current FP32 residual stream, BF16 autocast, FP32
+parameters, FP32 AdamW state, cuDNN FusedAttention, model architecture, and
+micro-batch size.
+
+Expected Phase 5.2 outcome: remove about **96 forward kernel launches/step**
+(two eliminated launches for each of 48 BDA calls) and save an estimated
+**20-40 ms/step**, corresponding to roughly **1.9-3.8% throughput** at the
+Phase 3.4 `1085.41 ms` endpoint. This is an estimate, not a measured result.
+
+## Evidence and baseline
+
+The baseline is the Phase 3.4 fused-attention MB=8 configuration:
+
+- 24 layers, hidden size 1024, FFN size 4096, sequence length 2048,
+  micro-batch 8, vocabulary 50,304, TP/PP/DP 1/1/1.
+- BF16 forward/backward autocast; FP32 parameter storage and FP32 AdamW state.
+- Local Megatron GPT layer spec with only `core_attention` replaced by
+  `TEDotProductAttention`, forced to cuDNN FusedAttention.
+- Megatron-LM `09fde85ea25fb67e9b32019089fae163a3233bd3`;
+  Transformer Engine `4329ff84bfbdaa778a33cba02a15fb0807c64689`.
+- Phase 3.4: `1085.41 ms/step`, `15,094.76 tokens/s`, `24.43%` MFU,
+  `1076.82 ms/step` total CUDA-kernel time, and 4,414 kernels/step.
+
+Evidence comes from:
+
+1. Phase 3.4's 15-step Nsight Systems result
+   (`ae19800:results/phase3_reprofile.json`);
+2. Phase 4.1's unchanged-configuration five-step PyTorch Profiler capture,
+   used only for category event counts and the copy/category overlap check;
+3. the pinned Megatron-LM and Transformer Engine source.
+
+The Phase 3.4 trace itself is on the stopped Pod rather than in Git. The
+committed result retains only the top 15 kernel families and broad category
+totals. Consequently, this document reports exact values where those artifacts
+support them, bounds where the top-15 cutoff permits them, and leaves the
+remaining time unresolved rather than inventing attribution.
+
+## Correction to the 27.5% category
+
+The reported `activation_elementwise` total is **295.819 ms/step**, or
+**27.471% of CUDA kernel time**. It is not an exclusive or complete
+activation total.
+
+The Phase 3.4 matcher is:
+
+```text
+gelu, dropout, lerp, addcmul, mul_functor, binaryfunctor,
+unaryfunctor, silu, relu
+```
+
+It has three important consequences:
+
+1. It falsely includes GEMMs whose CUTLASS symbol contains `gemm_relu`.
+   The top-15 list alone proves at least **119.459 ms/step and 97
+   calls/step** of GEMM overlap. The configured model uses GELU, not ReLU.
+2. It includes AdamW `mul`, `lerp`, and `addcmul` kernels. The unchanged
+   optimizer's MB=1 profile gives an approximately fixed **32.227 ms/step
+   and 1,460 calls/step** lower-bound proxy for this overlap; total AdamW
+   time stays essentially constant from MB=1 to MB=8.
+3. It does **not** match generic `CUDAFunctor_add`, subtraction, division,
+   reduction, `masked_scale`, or most cross-entropy symbols. Three generic
+   add families in the Phase 3.4 top 15 therefore contribute another exact
+   **89.483 ms/step and 198 calls/step outside** the 27.5% bucket.
+
+Phase 4.1 applied the same matcher to the unchanged workload and observed
+2,661 activation-matched kernel events/step. It also proved zero overlap with
+the separate copy/cast matcher. Thus copy/cast is not double-counted, but GEMM
+and optimizer work are.
+
+### What can be separated exactly
+
+| Component | ms/step | Kernel calls/step | Accounting status |
+| --- | ---: | ---: | --- |
+| CUTLASS `gemm_relu` name collision | **at least 119.459** | **at least 97** | Inside 295.819; also GEMM; not a standalone activation |
+| AdamW matched functors | **about 32.227** | **about 1,460** | Inside 295.819; also optimizer; MB=1 proxy |
+| GELU backward | **34.369** | **24** | Inside 295.819; exact Phase 3.4 top-15 value |
+| Remaining matched pool | **at most 109.764** | **at most 1,080** | Forward GELU, forward dropout, loss/model functors, and additional false positives |
+| Top three generic add families | **89.483** | **198** | Outside 295.819 because the matcher omits plain add |
+| Generic reduction family | **26.391** | **96** | Outside 295.819; mixed loss and gradient-reduction sources |
+
+The remaining-pool bound subtracts the two measured/proxied overlaps and
+GELU backward from 295.819 ms/step. Additional non-top-15 `gemm_relu`
+families would make the true pool smaller.
+
+## Operation-level breakdown and available fusions
+
+### GELU and bias + GELU
+
+1. **Time:** GELU backward is exactly `34.369 ms/step`. The forward GELU
+   family is not in the committed top 15, so any one omitted kernel family is
+   at most `23.287 ms/step`. The separate FC1 bias-add time is mixed into the
+   generic add families and cannot be isolated.
+2. **Calls:** 24 forward GELUs and 24 backward GELUs per step; one MLP per
+   layer. FC1 also performs 24 separate forward bias additions.
+3. **Source:** `megatron/core/transformer/mlp.py::MLP.forward`; with the
+   current flag it executes `intermediate_parallel + bias_parallel` followed
+   by `F.gelu`.
+4. **Current fusion:** not fused. `TransformerConfig.bias_activation_fusion`
+   defaults to `False`, and the lab does not override it.
+5. **Available fusion:** pinned Megatron provides
+   `fusions/fused_bias_gelu.py::bias_gelu_impl`, selected by
+   `bias_activation_fusion=True`.
+6. **Exact change:** add only `bias_activation_fusion=True` to
+   `TransformerConfig`.
+7. **Expected launch removal:** at least 24 forward launches/step by merging
+   FC1 bias add with GELU. Backward may also compile the GELU derivative and
+   bias gradient expression more efficiently, but no backward launch saving
+   is credited without a profile.
+8. **Expected benefit:** approximately `15-30 ms/step` (`1.4-2.8%` of the
+   endpoint), with medium confidence.
+9. **Risk:** medium. Megatron's fused function uses tanh-approximate GELU,
+   whereas the current default `F.gelu` path is exact GELU. It therefore needs
+   an explicit forward/loss/gradient comparison and is not the first
+   recommendation despite the easy configuration change.
+
+### Dropout, bias + dropout + add, and residual add
+
+1. **Time:** the committed result does not separately retain dropout time.
+   A standalone dropout kernel family omitted from the top 15 is bounded by
+   `23.287 ms/step`; multiple symbol variants could sum above that. The two
+   adds in BDA contribute to the exact `89.483 ms/step`/198-call generic-add
+   aggregate, but that aggregate also contains non-BDA adds.
+2. **Calls:** 48 BDA calls/step (attention and MLP BDA in each of 24 layers).
+   There is also one embedding dropout. Source structure therefore predicts
+   49 standalone dropout forward calls and 49 dropout backward calls. The 24
+   attention-dropout operations are internal to cuDNN FusedAttention.
+3. **Source:** `TransformerLayer._apply_self_attn_bda_step`,
+   `TransformerLayer._apply_mlp_bda_step`, and
+   `fusions/fused_bias_dropout.py::_bias_dropout_add_func`.
+4. **Current fusion:** BDA is unfused. Each training call executes bias add,
+   `torch.nn.functional.dropout`, and residual add separately because
+   `bias_dropout_fusion=False`.
+5. **Available fusion:** pinned Megatron already provides
+   `bias_dropout_add_fused_train` and `bias_dropout_add_fused_inference`.
+   On PyTorch 2.8, Megatron's `jit_fuser` resolves to `torch.compile`.
+6. **Exact change:** set `bias_dropout_fusion=True`. The current local layer
+   spec already uses `get_bias_dropout_add` at both BDA sites.
+7. **Expected launch removal:** 48 calls × (3 current forward kernels - 1
+   compiled fused kernel) = **about 96 forward launches/step**. No backward
+   saving is assumed in the estimate.
+8. **Expected benefit:** **20-40 ms/step**, or about **1.9-3.8% throughput**.
+   The estimate is anchored by the measured 89.483 ms generic-add aggregate
+   and discounts both non-BDA adds and work that remains inside the fused
+   kernel.
+9. **Risk:** low. The fused and unfused entry points call the same
+   `_bias_dropout_add_func`; parameter dtypes, residual dtype, dropout
+   probability, and mathematical expression do not change. The screen must
+   exclude first-use compilation and verify dropout behavior because compiled
+   RNG need not reproduce eager masks bit-for-bit.
+
+There is no separate higher-value residual-add switch in the pinned local
+layer. BDA fusion is the supported way to combine residual addition with its
+producer-side bias and dropout.
+
+### Elementwise multiply/add
+
+1. **Time/calls:** approximately `32.227 ms/step` and 1,460 calls/step of the
+   reported category are fixed AdamW `mul`/`lerp`/`addcmul` kernels. Generic
+   adds contribute `89.483 ms/step` and 198 calls/step outside the category.
+2. **Source:** `torch.optim.AdamW` for the fixed optimizer functors; BDA,
+   MLP bias, loss, and gradient paths for the mixed generic adds.
+3. **Fusion state:** AdamW is intentionally `foreach=False, fused=False`.
+   BDA and FC1 bias add are unfused as described above.
+4. **Available implementation:** PyTorch has fused optimizer variants, but
+   optimizer work is only `53.062 ms/step`, optimizer implementation is not
+   the Phase 5 activation target, and changing it would confound this study.
+5. **Change/launch/benefit/risk:** no optimizer change is proposed. The
+   actionable model-side add launches are covered by BDA and bias+GELU.
+
+### Masking and attention elementwise work
+
+1. **Time/calls:** no standalone attention `masked_fill`, attention softmax,
+   or attention-dropout kernel is visible in the Phase 3.4 top 15. Their work
+   is inside the cuDNN SDPA kernels counted as attention.
+2. **Source:** `TEDotProductAttention` with `AttnBackend.fused`; the causal
+   mask is passed into cuDNN FusedAttention.
+3. **Fusion state:** already fused.
+4. **More-fused option:** `masked_softmax_fusion=True` applies to Megatron's
+   local attention path, not the active TE cuDNN path. Enabling it would not
+   further fuse the active attention implementation.
+5. **Change/launch/benefit/risk:** no change; expected endpoint gain is zero.
+
+Loss target masking remains part of the cross-entropy implementation discussed
+next. The all-ones lab `loss_mask` is applied afterward by the lab script.
+
+### Loss-related elementwise kernels
+
+1. **Time:** not separately retained. It is part of the at-most
+   `109.764 ms/step` matched remainder, while several loss `sub`, `exp`,
+   `div`, mask, and reduction kernels are outside the original matcher.
+   The `26.391 ms/step` reduction family is mixed and is only an upper bound
+   for loss reductions.
+2. **Calls:** one cross-entropy call/step. Source inspection predicts roughly
+   18-22 eager tensor/reduction launches across forward and backward, but this
+   launch count is source-derived rather than measured.
+3. **Source:** `LanguageModule.compute_language_model_loss` currently falls
+   through to `tensor_parallel.vocab_parallel_cross_entropy`; the lab then
+   applies `scripts/phase1_baseline.py::masked_language_model_loss`.
+4. **Current fusion:** not fused because
+   `cross_entropy_loss_fusion=False`.
+5. **Available fusion:** pinned Megatron provides
+   `fused_vocab_parallel_cross_entropy`; pinned TE also provides
+   `parallel_cross_entropy`.
+6. **Exact safe candidate change:** set
+   `cross_entropy_loss_fusion=True` and explicitly retain
+   `cross_entropy_fusion_impl="native"`.
+7. **Expected launch removal:** about 8-12 launches/step by compiling the
+   max/predicted-logit/loss/gradient groups and batching two collectives.
+   At TP=1, collective batching has little value; reduced full-logit memory
+   passes matter more than launch count.
+8. **Expected benefit:** plausibly `20-50 ms/step` (`1.9-4.8%` throughput),
+   but confidence is lower than for BDA because the committed trace did not
+   retain a loss-only subtotal. The logits contain 824,180,736 values
+   (`[2048, 8, 50304]`), so each avoided full FP32 read/write pass moves about
+   6.59 GB less data.
+9. **Risk:** medium for the native path and high for the TE path. The native
+   implementation is the pinned Megatron-recommended option but explicitly
+   returns a BF16 logits gradient and therefore requires a gradient-equivalence
+   screen. The pinned TE 2.17.1 Triton kernel writes FP32-computed gradients
+   back into the input buffer's dtype; that is the numerical issue fixed only
+   after this pin. TE cross-entropy fusion is therefore rejected for Phase
+   5.2.
+
+The outer lab loss mask still performs a multiply and reductions after either
+cross-entropy implementation. No pinned Megatron/TE switch fuses that lab-local
+reduction, and a custom kernel is not justified before profiling the native
+cross-entropy option.
+
+### Other activation kernels
+
+The unresolved matched pool is an upper bound, not an extra additive category.
+It contains forward GELU, forward dropout, loss/model unary/binary functors,
+and any additional `relu`-named GEMM false positives below the top-15 cutoff.
+The existing artifacts cannot split it further without reopening the stopped
+Phase 3.4 trace or collecting a new profile, both outside this design-only
+phase.
+
+## Existing fused versus bypassed paths
+
+| Path | Current state | Finding |
+| --- | --- | --- |
+| cuDNN attention + causal masking + attention dropout | Fused | Active and confirmed; no accidental bypass |
+| Bias-dropout-add | **Bypassed** | Local spec is wired correctly, but the default `bias_dropout_fusion=False` selects eager operations |
+| Bias-GELU | **Bypassed** | `bias_activation_fusion=False` selects separate bias add and exact GELU |
+| Native fused cross entropy | **Bypassed** | `cross_entropy_loss_fusion=False` selects eager vocab-parallel CE |
+| TE fused cross entropy | Bypassed, intentionally reject | Available but unsafe at pinned TE 2.17.1 for this BF16 training path |
+| TE activation op | Bypassed | `use_te_activation_func=False`; setting it alone does not alter the local spec |
+| Full TE lower-level layer spec / op-fused MLP | Bypassed intentionally | Phase 3 replaced only core attention; full TE would also replace linears and norms |
+| Local masked-softmax fusion | Inapplicable | Active core attention is already cuDNN fused |
+
+The lab is therefore accidentally leaving three existing fusion switches off,
+but it is not accidentally bypassing attention fusion. The full TE layer spec
+was deliberately excluded in Phase 3 to isolate attention and remains a
+larger, confounded change.
+
+## Candidate ranking
+
+Ranking uses expected endpoint gain divided by implementation complexity, with
+confidence and correctness risk used as tie-breakers.
+
+| Rank | Candidate | Exact change | Expected endpoint gain | Complexity / risk | Reason |
+| ---: | --- | --- | --- | --- | --- |
+| **1** | Megatron compiled BDA | `bias_dropout_fusion=True` | `20-40 ms`, about `1.9-3.8%` throughput | One config field / low | 48 repeated sites, about 96 removable forward launches, direct measured add evidence, same expression |
+| 2 | Megatron native fused CE | `cross_entropy_loss_fusion=True`, impl `native` | `20-50 ms`, about `1.9-4.8%` throughput, low confidence | Two fields / medium | Very large logits and fewer memory passes, but loss-only time was not retained and gradient equivalence needs care |
+| 3 | Megatron bias+GELU | `bias_activation_fusion=True` | `15-30 ms`, about `1.4-2.8%` | One field / medium | At least 24 launches removed, but changes exact GELU to tanh approximation |
+| 4 | Full TE layer spec with op-fused MLP | replace local layer spec; request `use_te_op_fuser=True` | Potentially `30-70 ms`, unmeasured | Broad module replacement / high | Could fuse LayerNorm-linear and GEMM/GELU paths, but changes linears and norms and is not an isolated fusion screen |
+
+Optimizer fusion, precision conversion, BF16 residual changes, parameter dtype,
+and optimizer-state dtype are intentionally excluded.
+
+## Exactly one Phase 5.2 experiment
+
+Run **current baseline versus `bias_dropout_fusion=True` only**.
+
+The implementation should add the flag at model construction and assert that:
+
+- the local layer spec and cuDNN FusedAttention backend are unchanged;
+- FP32 parameters, FP32 residual stream, FP32 AdamW state, and BF16 autocast
+  are unchanged;
+- both 24 self-attention BDA and 24 MLP BDA sites select
+  `bias_dropout_add_fused_train`;
+- no BF16-residual helper or Phase 4 dtype patch is enabled.
+
+Before timing, compare A/B with identical weights and dropout disabled:
+
+- aggregate and per-token loss;
+- final hidden/logit error;
+- representative attention, MLP, and embedding/output gradients;
+- gradient cosine similarity and NaN/Inf.
+
+Then use a short same-Pod screen and profile after compile warmup. The mechanism
+check is a reduction of approximately 96 forward BDA launches, accompanied by
+lower `CUDAFunctor_add` and standalone dropout traffic. Do not require identical
+dropout masks between eager and compiled implementations; with dropout enabled,
+verify finite behavior and reproducibility within each variant instead.
+
+This is the only recommended Phase 5.2 change. Native fused cross entropy should
+remain the next design candidate only if BDA fusion does not deliver the
+expected launch and endpoint reduction.
 # Phase 5.1 Kernel Fusion Design (Existing Components Only)
 
 ## Decision
