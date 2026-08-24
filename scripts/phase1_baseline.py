@@ -188,6 +188,8 @@ def bda_nvtx_factory(name: str, factory: Any) -> Any:
 def get_transformer_layer_spec(
     attention_implementation: str,
     instrument_bda: bool = False,
+    use_te_layernorm: bool = False,
+    num_layers: int | None = None,
 ) -> Any:
     layer_spec = get_gpt_layer_local_spec()
     if instrument_bda:
@@ -200,9 +202,15 @@ def get_transformer_layer_spec(
             layer_spec.submodules.mlp_bda,
         )
     if attention_implementation == LOCAL_UNFUSED_ATTENTION:
+        if use_te_layernorm:
+            raise ValueError("TE LayerNorm requires fused TE attention")
         return layer_spec
     if attention_implementation == TE_FUSED_ATTENTION:
-        from megatron.core.extensions.transformer_engine import TEDotProductAttention
+        from megatron.core.extensions.transformer_engine import (
+            TEDotProductAttention,
+            TENorm,
+        )
+        from megatron.core.transformer.transformer_block import TransformerBlockSubmodules
 
         class AutocastTEDotProductAttention(TEDotProductAttention):
             """Adapt FP32 local QKV projections to the active BF16 autocast dtype."""
@@ -225,7 +233,18 @@ def get_transformer_layer_spec(
         layer_spec.submodules.self_attention.submodules.core_attention = (
             AutocastTEDotProductAttention
         )
-        return layer_spec
+        if not use_te_layernorm:
+            return layer_spec
+        if num_layers is None:
+            raise ValueError("num_layers is required when use_te_layernorm is True")
+        # Torch LayerNorm rejects sequence_parallel. TENorm is the pinned-stack
+        # SP-capable norm; it is required to activate Sequence Parallel.
+        layer_spec.submodules.input_layernorm = TENorm
+        layer_spec.submodules.pre_mlp_layernorm = TENorm
+        return TransformerBlockSubmodules(
+            layer_specs=[layer_spec] * num_layers,
+            layer_norm=TENorm,
+        )
     raise ValueError(f"Unsupported attention implementation: {attention_implementation}")
 
 
@@ -239,6 +258,8 @@ def build_model(
     cuda_graph_impl: str = "none",
     cuda_graph_warmup_steps: int = 3,
     tensor_model_parallel_size: int = 1,
+    sequence_parallel: bool = False,
+    use_te_layernorm: bool = False,
 ) -> GPTModel:
     if attention_implementation is None:
         attention_implementation = getattr(
@@ -270,6 +291,7 @@ def build_model(
         fp16=False,
         attention_backend=attention_backend,
         tensor_model_parallel_size=tensor_model_parallel_size,
+        sequence_parallel=sequence_parallel,
         cuda_graph_impl=cuda_graph_impl,
         cuda_graph_modules=[],
         cuda_graph_warmup_steps=cuda_graph_warmup_steps,
@@ -279,6 +301,8 @@ def build_model(
         transformer_layer_spec=get_transformer_layer_spec(
             attention_implementation,
             instrument_bda=instrument_bda,
+            use_te_layernorm=use_te_layernorm,
+            num_layers=args.num_layers,
         ),
         vocab_size=args.vocab_size,
         max_sequence_length=args.sequence_length,

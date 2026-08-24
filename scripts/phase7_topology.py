@@ -44,7 +44,11 @@ def main() -> None:
     args = parse_args()
     local_rank = int(os.environ["LOCAL_RANK"])
     torch.cuda.set_device(local_rank)
-    dist.init_process_group(backend="nccl", init_method="env://")
+    dist.init_process_group(
+        backend="nccl",
+        init_method="env://",
+        device_id=torch.device(f"cuda:{local_rank}"),
+    )
     try:
         if dist.get_world_size() != 2:
             raise RuntimeError("Topology test requires exactly two ranks")

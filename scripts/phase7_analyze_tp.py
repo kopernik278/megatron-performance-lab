@@ -122,18 +122,36 @@ def is_nccl_kernel(name: str) -> bool:
     return "nccl" in name.lower()
 
 
-def collective_type(name: str) -> str:
-    normalized = name.lower().replace("_", "")
-    if "allreduce" in normalized:
-        return "All-Reduce"
-    if "allgather" in normalized:
+def nvtx_collective_kind(name: str) -> str | None:
+    compact = name.lower().replace("-", "").replace("_", "")
+    if "allgather" in compact:
         return "All-Gather"
-    if "reducescatter" in normalized:
+    if "reducescatter" in compact:
         return "Reduce-Scatter"
-    if "broadcast" in normalized:
+    if "allreduce" in compact:
+        return "All-Reduce"
+    if "broadcast" in compact:
         return "Broadcast"
-    if "reduce" in normalized:
+    if "nccl" in compact and "reduce" in compact:
         return "Reduce"
+    return None
+
+
+def parse_nvtx_shape(name: str) -> tuple[int, ...] | None:
+    shape_match = re.search(r"sizes = \[\[([0-9, ]*)\]\]", name)
+    if not shape_match:
+        return None
+    return tuple(
+        int(value.strip())
+        for value in shape_match.group(1).split(",")
+        if value.strip()
+    )
+
+
+def collective_type(name: str) -> str:
+    kind = nvtx_collective_kind(name)
+    if kind is not None:
+        return kind
     return "Unresolved NCCL kernel"
 
 
@@ -330,7 +348,11 @@ def analyze_trace(
         name_times_ns[row["name"]] += row["duration_ns"]
 
     nvtx_collectives = Counter()
-    all_reduce_shapes = Counter()
+    nvtx_shapes: dict[str, Counter] = {
+        "All-Reduce": Counter(),
+        "All-Gather": Counter(),
+        "Reduce-Scatter": Counter(),
+    }
     for row in connection.execute(
         """
         SELECT text, textId
@@ -340,42 +362,38 @@ def analyze_trace(
         (window_start, window_end),
     ):
         name = nvtx_name(row, strings)
-        if any(
-            token in name.lower().replace("_", "")
-            for token in ("allreduce", "allgather", "reducescatter", "nccl")
-        ):
+        kind = nvtx_collective_kind(name)
+        if kind is not None or "nccl" in name.lower():
             nvtx_collectives[name] += 1
-        if name.startswith("nccl:all_reduce"):
-            shape_match = re.search(r"sizes = \[\[([0-9, ]*)\]\]", name)
-            if shape_match:
-                shape = tuple(
-                    int(value.strip())
-                    for value in shape_match.group(1).split(",")
-                    if value.strip()
-                )
-                all_reduce_shapes[shape] += 1
+        if kind in nvtx_shapes:
+            shape = parse_nvtx_shape(name)
+            if shape is not None:
+                nvtx_shapes[kind][shape] += 1
 
     tp = int(run["parallelism"]["tensor_parallel"])
+    sequence_parallel = bool(run.get("parallelism", {}).get("sequence_parallel", False))
     average_nccl_kernel_time_ms_per_step_per_gpu = (
         sum(row["duration_ns"] for row in nccl_rows)
         / NS_PER_MS
         / iterations
         / tp
     )
-    logical_all_reduce_calls_per_step = (
-        sum(all_reduce_shapes.values()) / iterations / tp
-    )
+    logical_counts = {
+        kind: sum(counter.values()) / iterations / tp
+        for kind, counter in nvtx_shapes.items()
+    }
+    logical_all_reduce_calls_per_step = logical_counts["All-Reduce"]
     result = {
         "profile_window_ms": (window_end - window_start) / NS_PER_MS,
         "profiled_iterations": iterations,
         "profile_window_rank_count": len(windows),
         "nccl_kernel_launches": len(nccl_rows),
         "nccl_kernel_launches_per_step_all_gpus": len(nccl_rows) / iterations,
-        "estimated_logical_collectives_per_step": logical_all_reduce_calls_per_step,
+        "estimated_logical_collectives_per_step": sum(logical_counts.values()),
         "logical_count_estimation": (
-            "NCCL NVTX all-reduce input-shape events divided by profiled "
-            "iterations and TP world size; this avoids profile-window boundary "
-            "spill in raw kernel counts"
+            "NCCL NVTX input-shape events divided by profiled iterations and TP "
+            "world size; this avoids profile-window boundary spill in raw kernel "
+            "counts"
         ),
         "average_nccl_kernel_time_ms_per_step_per_gpu": (
             average_nccl_kernel_time_ms_per_step_per_gpu
@@ -384,8 +402,8 @@ def analyze_trace(
             kind: {
                 "kernel_launch_count": type_counts.get(kind, 0),
                 "estimated_logical_count_per_step": (
-                    logical_all_reduce_calls_per_step
-                    if kind == "All-Reduce"
+                    logical_counts[kind]
+                    if kind in logical_counts
                     else type_counts.get(kind, 0) / iterations / tp
                 ),
                 "average_kernel_time_ms_per_step_per_gpu": (
@@ -403,11 +421,28 @@ def analyze_trace(
         },
         "nvtx_collective_events": [
             {"name": name, "count": count}
-            for name, count in nvtx_collectives.most_common(30)
+            for name, count in nvtx_collectives.most_common(40)
         ],
-        "nvtx_all_reduce_api_calls_per_step_per_rank": (
-            sum(all_reduce_shapes.values()) / iterations / tp
+        "nvtx_all_reduce_api_calls_per_step_per_rank": logical_counts["All-Reduce"],
+        "nvtx_all_gather_api_calls_per_step_per_rank": logical_counts["All-Gather"],
+        "nvtx_reduce_scatter_api_calls_per_step_per_rank": (
+            logical_counts["Reduce-Scatter"]
         ),
+        "nvtx_collective_shapes": {
+            kind: [
+                {
+                    "shape": list(shape),
+                    "elements": math.prod(shape) if shape else 0,
+                    "event_count_all_ranks": count,
+                    "calls_per_step_per_rank": count / iterations / tp,
+                }
+                for shape, count in sorted(
+                    nvtx_shapes[kind].items(),
+                    key=lambda item: (-item[1], item[0]),
+                )
+            ]
+            for kind in ("All-Reduce", "All-Gather", "Reduce-Scatter")
+        },
         "nvtx_all_reduce_shapes": [
             {
                 "shape": list(shape),
@@ -421,7 +456,7 @@ def analyze_trace(
                 ),
             }
             for shape, count in sorted(
-                all_reduce_shapes.items(),
+                nvtx_shapes["All-Reduce"].items(),
                 key=lambda item: (-item[1], item[0]),
             )
         ],
@@ -470,21 +505,46 @@ def analyze_trace(
                 * 4
             ),
             "expected_large_all_reduces_per_step": {
-                "attention_projection_forward": run["model_config"]["num_layers"],
-                "mlp_fc2_forward": run["model_config"]["num_layers"],
-                "qkv_dgrad_backward": run["model_config"]["num_layers"],
-                "fc1_dgrad_backward": run["model_config"]["num_layers"],
-                "output_layer_dgrad_backward": 1,
-                "total": run["model_config"]["num_layers"] * 4 + 1,
+                "attention_projection_forward": 0 if sequence_parallel else run["model_config"]["num_layers"],
+                "mlp_fc2_forward": 0 if sequence_parallel else run["model_config"]["num_layers"],
+                "qkv_dgrad_backward": 0 if sequence_parallel else run["model_config"]["num_layers"],
+                "fc1_dgrad_backward": 0 if sequence_parallel else run["model_config"]["num_layers"],
+                "output_layer_dgrad_backward": 0 if sequence_parallel else 1,
+                "total": 0 if sequence_parallel else run["model_config"]["num_layers"] * 4 + 1,
             },
             "expected_other_all_reduces": {
                 "embedding_forward": 1,
                 "vocab_parallel_cross_entropy": 3,
+                "sequence_parallel_layernorm_weight_grads": (
+                    1 if sequence_parallel else 0
+                ),
             },
-            "all_gather_expected": False,
-            "reduce_scatter_expected": False,
+            "expected_sequence_parallel_collectives_per_step": {
+                "column_parallel_forward_all_gather": (
+                    run["model_config"]["num_layers"] * 2 + 1
+                    if sequence_parallel
+                    else 0
+                ),
+                "column_parallel_backward_reduce_scatter": (
+                    run["model_config"]["num_layers"] * 2 + 1
+                    if sequence_parallel
+                    else 0
+                ),
+                "row_parallel_forward_reduce_scatter": (
+                    run["model_config"]["num_layers"] * 2 if sequence_parallel else 0
+                ),
+                "row_parallel_backward_all_gather": (
+                    run["model_config"]["num_layers"] * 2 if sequence_parallel else 0
+                ),
+                "embedding_backward_all_gather": 1 if sequence_parallel else 0,
+            },
+            "all_gather_expected": sequence_parallel,
+            "reduce_scatter_expected": sequence_parallel,
             "reason": (
-                "sequence parallelism and distributed optimizer are disabled"
+                "sequence parallelism replaces per-layer activation All-Reduce "
+                "with All-Gather and Reduce-Scatter"
+                if sequence_parallel
+                else "sequence parallelism and distributed optimizer are disabled"
             ),
         },
         "trace": {
@@ -524,6 +584,7 @@ def compare_controls(tp1: dict[str, Any], tp2: dict[str, Any]) -> None:
 def timing_summary(run: dict[str, Any]) -> dict[str, Any]:
     return {
         "tensor_parallel": run["parallelism"]["tensor_parallel"],
+        "sequence_parallel": bool(run["parallelism"].get("sequence_parallel", False)),
         "average_step_time_ms": run["average_step_time_ms"],
         "median_step_time_ms": run["median_step_time_ms"],
         "tokens_per_second": run["tokens_per_second"],
