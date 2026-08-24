@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one Phase 7.1 MCore DDP tensor-parallel training variant."""
+"""Run one Phase 7 MCore DDP tensor-parallel training variant."""
 
 from __future__ import annotations
 
@@ -61,6 +61,7 @@ MICRO_BATCH_SIZE = 8
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tensor-parallel-size", type=int, choices=(1, 2), required=True)
+    parser.add_argument("--sequence-parallel", action="store_true")
     parser.add_argument("--smoke-iterations", type=int, default=3)
     parser.add_argument("--warmup-iterations", type=int, default=5)
     parser.add_argument("--measured-iterations", type=int, default=20)
@@ -240,7 +241,180 @@ def sharding_metadata(model: torch.nn.Module, tensor_parallel_size: int) -> dict
     metadata["transformer_config_tensor_parallel_size"] = (
         raw_model.config.tensor_model_parallel_size
     )
+    metadata["transformer_config_sequence_parallel"] = bool(
+        raw_model.config.sequence_parallel
+    )
+    for name, module in modules.items():
+        metadata[name]["sequence_parallel"] = bool(
+            getattr(module, "sequence_parallel", False)
+        )
+        metadata[name]["allreduce_dgrad"] = getattr(module, "allreduce_dgrad", None)
+        metadata[name]["input_is_parallel"] = getattr(module, "input_is_parallel", None)
+        metadata[name]["reduce_scatter_embeddings"] = getattr(
+            module, "reduce_scatter_embeddings", None
+        )
     return metadata
+
+
+def sequence_parallel_runtime_checks(
+    model: torch.nn.Module,
+    tensor_parallel_size: int,
+    sequence_parallel: bool,
+    sequence_length: int,
+) -> dict[str, Any]:
+    raw_model = unwrap_model(model)
+    layer = raw_model.decoder.layers[0]
+    qkv = layer.self_attention.linear_qkv
+    proj = layer.self_attention.linear_proj
+    fc1 = layer.mlp.linear_fc1
+    fc2 = layer.mlp.linear_fc2
+    if raw_model.config.sequence_parallel != sequence_parallel:
+        raise RuntimeError(
+            "TransformerConfig.sequence_parallel does not match the requested flag: "
+            f"{raw_model.config.sequence_parallel} != {sequence_parallel}"
+        )
+    if sequence_parallel and sequence_length % tensor_parallel_size != 0:
+        raise RuntimeError(
+            "Sequence length must be divisible by TP size when sequence "
+            f"parallel is enabled: {sequence_length} % {tensor_parallel_size} != 0"
+        )
+    module_flags = {
+        "attention_qkv": {
+            "sequence_parallel": bool(qkv.sequence_parallel),
+            "allreduce_dgrad": bool(qkv.allreduce_dgrad),
+        },
+        "attention_projection": {
+            "sequence_parallel": bool(proj.sequence_parallel),
+            "input_is_parallel": bool(proj.input_is_parallel),
+        },
+        "mlp_fc1": {
+            "sequence_parallel": bool(fc1.sequence_parallel),
+            "allreduce_dgrad": bool(fc1.allreduce_dgrad),
+        },
+        "mlp_fc2": {
+            "sequence_parallel": bool(fc2.sequence_parallel),
+            "input_is_parallel": bool(fc2.input_is_parallel),
+        },
+        "output_layer": {
+            "sequence_parallel": bool(raw_model.output_layer.sequence_parallel),
+            "allreduce_dgrad": getattr(raw_model.output_layer, "allreduce_dgrad", None),
+        },
+    }
+    if sequence_parallel:
+        if tensor_parallel_size <= 1:
+            raise RuntimeError("Sequence parallel requires tensor parallel size > 1")
+        if not all(
+            module_flags[name]["sequence_parallel"]
+            for name in (
+                "attention_qkv",
+                "attention_projection",
+                "mlp_fc1",
+                "mlp_fc2",
+            )
+        ):
+            raise RuntimeError(
+                "Sequence parallel was requested but TP linear modules did not "
+                f"activate it: {module_flags}"
+            )
+        if module_flags["attention_qkv"]["allreduce_dgrad"] or module_flags["mlp_fc1"][
+            "allreduce_dgrad"
+        ]:
+            raise RuntimeError(
+                "Column-parallel dgrad All-Reduce must be disabled when sequence "
+                f"parallel is active: {module_flags}"
+            )
+        if not (
+            module_flags["attention_projection"]["input_is_parallel"]
+            and module_flags["mlp_fc2"]["input_is_parallel"]
+        ):
+            raise RuntimeError(
+                "Row-parallel sequence parallel requires input_is_parallel=True: "
+                f"{module_flags}"
+            )
+    elif tensor_parallel_size > 1:
+        if any(
+            module_flags[name]["sequence_parallel"]
+            for name in (
+                "attention_qkv",
+                "attention_projection",
+                "mlp_fc1",
+                "mlp_fc2",
+            )
+        ):
+            raise RuntimeError(
+                "Sequence parallel leaked into the SP=False baseline: "
+                f"{module_flags}"
+            )
+        if not (
+            module_flags["attention_qkv"]["allreduce_dgrad"]
+            and module_flags["mlp_fc1"]["allreduce_dgrad"]
+        ):
+            raise RuntimeError(
+                "TP=2 SP=False must keep column-parallel dgrad All-Reduce: "
+                f"{module_flags}"
+            )
+    return {
+        "requested": sequence_parallel,
+        "transformer_config_sequence_parallel": bool(
+            raw_model.config.sequence_parallel
+        ),
+        "active": bool(raw_model.config.sequence_parallel) and tensor_parallel_size > 1,
+        "module_flags": module_flags,
+        "sequence_length_divisible_by_tp": (
+            sequence_length % tensor_parallel_size == 0
+        ),
+    }
+
+
+def capture_linear_input_shapes(model: torch.nn.Module) -> tuple[dict[str, list[int]], list[Any]]:
+    raw_model = unwrap_model(model)
+    layer = raw_model.decoder.layers[0]
+    captured: dict[str, list[int]] = {}
+    handles = []
+    targets = {
+        "attention_qkv": layer.self_attention.linear_qkv,
+        "attention_projection": layer.self_attention.linear_proj,
+        "mlp_fc1": layer.mlp.linear_fc1,
+        "mlp_fc2": layer.mlp.linear_fc2,
+    }
+
+    def make_hook(key: str):
+        def hook(_module: torch.nn.Module, inputs: tuple[Any, ...], _output: Any = None) -> None:
+            if key in captured or not inputs:
+                return
+            tensor = inputs[0]
+            if isinstance(tensor, torch.Tensor):
+                captured[key] = [int(dim) for dim in tensor.shape]
+
+        return hook
+
+    for name, module in targets.items():
+        handles.append(module.register_forward_hook(make_hook(name)))
+    return captured, handles
+
+
+def assert_sequence_parallel_activation_shapes(
+    shapes: dict[str, list[int]],
+    sequence_parallel: bool,
+    sequence_length: int,
+) -> None:
+    qkv_shape = shapes.get("attention_qkv")
+    fc1_shape = shapes.get("mlp_fc1")
+    if qkv_shape is None or fc1_shape is None:
+        raise RuntimeError(f"Failed to capture QKV/FC1 input shapes: {shapes}")
+    qkv_has_full_sequence = sequence_length in qkv_shape
+    fc1_has_full_sequence = sequence_length in fc1_shape
+    if sequence_parallel:
+        if qkv_has_full_sequence or fc1_has_full_sequence:
+            raise RuntimeError(
+                "Sequence parallel is not sharding activations before column-parallel "
+                f"GEMMs; captured shapes={shapes}"
+            )
+    elif not qkv_has_full_sequence or not fc1_has_full_sequence:
+        raise RuntimeError(
+            "TP baseline unexpectedly sharded the sequence dimension on QKV/FC1 "
+            f"inputs; captured shapes={shapes}"
+        )
 
 
 def instrument_tp_modules(model: torch.nn.Module) -> None:
@@ -404,7 +578,11 @@ def main() -> None:
         if os.environ.get("TRANSFORMER_ENGINE_DISABLE") == "1":
             raise RuntimeError("Transformer Engine must remain enabled")
         if os.environ.get("CUDA_DEVICE_MAX_CONNECTIONS") != "1":
-            raise RuntimeError("CUDA_DEVICE_MAX_CONNECTIONS=1 is required for TP")
+            raise RuntimeError(
+                "CUDA_DEVICE_MAX_CONNECTIONS=1 is required for TP and sequence parallel"
+            )
+        if args.sequence_parallel and args.tensor_parallel_size <= 1:
+            raise RuntimeError("Sequence parallel requires tensor_model_parallel_size > 1")
         if not torch.cuda.is_bf16_supported():
             raise RuntimeError("BF16 is required")
 
@@ -416,15 +594,28 @@ def main() -> None:
             bias_dropout_fusion=True,
             cuda_graph_impl="none",
             tensor_model_parallel_size=args.tensor_parallel_size,
+            sequence_parallel=args.sequence_parallel,
         )
         if model.config.cuda_graph_impl != "none":
             raise RuntimeError("CUDA Graph must remain disabled")
+        if bool(model.config.sequence_parallel) != args.sequence_parallel:
+            raise RuntimeError(
+                "build_model did not honor sequence_parallel="
+                f"{args.sequence_parallel}"
+            )
         bundle = build_ddp_optimizer_bundle(model, model_args.learning_rate)
         if args.profile_mode:
             instrument_tp_modules(bundle.model)
         batch = synthetic_batch(model_args, MICRO_BATCH_SIZE, device)
         pointers = main_grad_pointers(bundle.model)
         shards = sharding_metadata(bundle.model, args.tensor_parallel_size)
+        sp_runtime = sequence_parallel_runtime_checks(
+            bundle.model,
+            args.tensor_parallel_size,
+            args.sequence_parallel,
+            model_args.sequence_length,
+        )
+        captured_shapes, shape_handles = capture_linear_input_shapes(bundle.model)
         rank_shards = gather_objects({"rank": rank, **shards})
 
         tracked_name, tracked_parameter = next(
@@ -463,6 +654,15 @@ def main() -> None:
                     "main_grad_addresses_stable": True,
                 }
             )
+        for handle in shape_handles:
+            handle.remove()
+        assert_sequence_parallel_activation_shapes(
+            captured_shapes,
+            args.sequence_parallel,
+            model_args.sequence_length,
+        )
+        sp_runtime["captured_linear_input_shapes"] = captured_shapes
+        rank_sp_runtime = gather_objects({"rank": rank, **sp_runtime})
         changed = parameters_changed(parameters_before, bundle)
         if not changed:
             raise RuntimeError("No model parameter changed during smoke steps")
@@ -570,7 +770,9 @@ def main() -> None:
 
         result = {
             "status": "success",
-            "experiment": "Phase 7.1 tensor-parallel baseline",
+            "experiment": "Phase 7.2 sequence-parallel A/B"
+            if args.sequence_parallel or args.tensor_parallel_size > 1
+            else "Phase 7.1 tensor-parallel baseline",
             "run_label": args.run_label,
             "run_mode": "nsight_profile" if args.profile_mode else "benchmark",
             "model_config": {
@@ -587,14 +789,17 @@ def main() -> None:
                 "bias_dropout_fusion": True,
                 "bias_activation_fusion": False,
                 "cuda_graph_impl": "none",
+                "sequence_parallel": args.sequence_parallel,
             },
             "parallelism": {
                 "tensor_parallel": args.tensor_parallel_size,
+                "sequence_parallel": args.sequence_parallel,
                 "pipeline_parallel": 1,
                 "data_parallel": 1,
                 "world_size": args.tensor_parallel_size,
             },
             "sharding_verification": rank_shards,
+            "sequence_parallel_runtime": rank_sp_runtime,
             "lifecycle": lifecycle_metadata(bundle),
             "correctness_smoke": {
                 "steps": args.smoke_iterations,
@@ -604,6 +809,9 @@ def main() -> None:
                 "all_ranks_initialized": len(rank_shards) == args.tensor_parallel_size,
                 "forward_succeeded": True,
                 "backward_succeeded": True,
+                "sequence_parallel_active": bool(
+                    args.sequence_parallel and sp_runtime["active"]
+                ),
                 "max_measured_loss_difference_between_ranks": (
                     max_rank_loss_difference
                 ),

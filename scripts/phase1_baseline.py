@@ -239,6 +239,7 @@ def build_model(
     cuda_graph_impl: str = "none",
     cuda_graph_warmup_steps: int = 3,
     tensor_model_parallel_size: int = 1,
+    sequence_parallel: bool = False,
 ) -> GPTModel:
     if attention_implementation is None:
         attention_implementation = getattr(
@@ -270,6 +271,7 @@ def build_model(
         fp16=False,
         attention_backend=attention_backend,
         tensor_model_parallel_size=tensor_model_parallel_size,
+        sequence_parallel=sequence_parallel,
         cuda_graph_impl=cuda_graph_impl,
         cuda_graph_modules=[],
         cuda_graph_warmup_steps=cuda_graph_warmup_steps,
