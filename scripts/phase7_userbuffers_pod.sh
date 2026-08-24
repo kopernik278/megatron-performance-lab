@@ -124,9 +124,9 @@ PYTHON="${ROOT}/.venv/bin/python"
 
 driver="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -n1 | tr -d ' ')"
 case "${driver}" in
-  570.*) ;;
+  570.*|580.*) ;;
   *)
-    abort "Rejecting driver ${driver}; Phase 7 requires 570.x with the cu128 image"
+    abort "Rejecting driver ${driver}; Phase 7.4 requires 570.x or 580.x with the cu128 image"
     ;;
 esac
 if [[ "$(nvidia-smi -L | wc -l)" -ne 2 ]]; then
