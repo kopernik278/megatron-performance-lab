@@ -195,6 +195,11 @@ def module_metadata(name: str, module: torch.nn.Module) -> dict[str, Any]:
 
 def sharding_metadata(model: torch.nn.Module, tensor_parallel_size: int) -> dict[str, Any]:
     raw_model = unwrap_model(model)
+    if raw_model.config.tensor_model_parallel_size != tensor_parallel_size:
+        raise RuntimeError(
+            "TransformerConfig TP size does not match the initialized TP group: "
+            f"{raw_model.config.tensor_model_parallel_size} != {tensor_parallel_size}"
+        )
     layer = raw_model.decoder.layers[0]
     modules = {
         "embedding": raw_model.embedding.word_embeddings,
@@ -232,6 +237,9 @@ def sharding_metadata(model: torch.nn.Module, tensor_parallel_size: int) -> dict
     )
     metadata["type_checks"] = type_checks
     metadata["tensor_parallel_size"] = tensor_parallel_size
+    metadata["transformer_config_tensor_parallel_size"] = (
+        raw_model.config.tensor_model_parallel_size
+    )
     return metadata
 
 
@@ -407,6 +415,7 @@ def main() -> None:
             hidden_dropout=0.1,
             bias_dropout_fusion=True,
             cuda_graph_impl="none",
+            tensor_model_parallel_size=args.tensor_parallel_size,
         )
         if model.config.cuda_graph_impl != "none":
             raise RuntimeError("CUDA Graph must remain disabled")
