@@ -40,6 +40,32 @@ def run(command: list[str]) -> dict[str, Any]:
     }
 
 
+def gpu0_gpu1_path(topology_output: str) -> str | None:
+    for line in topology_output.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("GPU0"):
+            fields = stripped.split()
+            if len(fields) >= 3:
+                return fields[2]
+    return None
+
+
+def numa_affinity_by_gpu(topology_output: str) -> dict[str, str]:
+    """Parse NUMA Affinity from `nvidia-smi topo -m` GPU rows."""
+
+    affinities: dict[str, str] = {}
+    for line in topology_output.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("GPU") or stripped.startswith("GPU "):
+            continue
+        fields = stripped.split()
+        if len(fields) < 5 or not fields[0][:3] == "GPU" or not fields[0][3:].isdigit():
+            continue
+        # Two-GPU rows look like: GPU0 X PIX 0-31 0 N/A
+        affinities[fields[0]] = fields[4]
+    return affinities
+
+
 def main() -> None:
     args = parse_args()
     local_rank = int(os.environ["LOCAL_RANK"])
@@ -104,9 +130,25 @@ def main() -> None:
                 ]
             ),
         }
+        topology_output = commands["nvidia_smi_topology"]["output"]
+        interconnect = gpu0_gpu1_path(topology_output)
+        numa = numa_affinity_by_gpu(topology_output)
+        same_numa_ok = interconnect in {"NODE", "PIX", "PHB", "PXB"}
+        numa_values = {value for value in numa.values() if value not in {"N/A", "NA"}}
+        abort_reason = None
+        if interconnect == "SYS":
+            abort_reason = "cross-NUMA SYS topology"
+        elif not same_numa_ok:
+            abort_reason = f"unsupported GPU0-GPU1 path {interconnect}"
+        elif len(numa_values) > 1:
+            abort_reason = f"cross-NUMA GPU affinities {numa}"
+        elif not (p2p_matrix[0][1] and p2p_matrix[1][0]):
+            abort_reason = "CUDA peer access is not bidirectional"
+        elif not all(item["passed"] for item in sanity_by_rank):
+            abort_reason = "NCCL All-Reduce sanity failed"
         result = {
-            "status": "success",
-            "experiment": "Phase 7.1 two-A40 topology and NCCL sanity",
+            "status": "success" if abort_reason is None else "abort",
+            "experiment": "Phase 7.4 two-A40 topology and NCCL P2P sanity",
             "infrastructure": {
                 "pod_id": args.pod_id,
                 "pod_count": 1,
@@ -118,6 +160,10 @@ def main() -> None:
                 "price_target_met": args.price_per_hour_usd <= 0.90,
             },
             "commands": commands,
+            "gpu0_gpu1_path": interconnect,
+            "numa_affinity_by_gpu": numa,
+            "same_numa_acceptable": same_numa_ok and len(numa_values) <= 1,
+            "abort_reason": abort_reason,
             "p2p_accessibility": {
                 "matrix": p2p_matrix,
                 "consistent_across_ranks": all(
@@ -140,6 +186,8 @@ def main() -> None:
             encoding="utf-8",
         )
         print("PHASE7_TOPOLOGY_JSON=" + json.dumps(result, sort_keys=True))
+        if abort_reason is not None:
+            raise RuntimeError(f"PHASE74_ABORT:{abort_reason}")
     finally:
         if dist.is_initialized():
             dist.destroy_process_group()

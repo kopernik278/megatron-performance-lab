@@ -185,12 +185,67 @@ def bda_nvtx_factory(name: str, factory: Any) -> Any:
     return instrumented_factory
 
 
+def _autocast_te_dot_product_attention():
+    from megatron.core.extensions.transformer_engine import TEDotProductAttention
+
+    class AutocastTEDotProductAttention(TEDotProductAttention):
+        """Adapt FP32 QKV projections to the active BF16 autocast dtype."""
+
+        def forward(
+            self,
+            query: torch.Tensor,
+            key: torch.Tensor,
+            value: torch.Tensor,
+            *args: Any,
+            **kwargs: Any,
+        ) -> torch.Tensor:
+            if torch.is_autocast_enabled("cuda"):
+                autocast_dtype = torch.get_autocast_dtype("cuda")
+                query = query.to(autocast_dtype)
+                key = key.to(autocast_dtype)
+                value = value.to(autocast_dtype)
+            return super().forward(query, key, value, *args, **kwargs)
+
+    return AutocastTEDotProductAttention
+
+
 def get_transformer_layer_spec(
     attention_implementation: str,
     instrument_bda: bool = False,
     use_te_layernorm: bool = False,
     num_layers: int | None = None,
+    use_te_linear: bool = False,
 ) -> Any:
+    from megatron.core.extensions.transformer_engine import TENorm
+    from megatron.core.transformer.transformer_block import TransformerBlockSubmodules
+
+    if use_te_linear:
+        if attention_implementation != TE_FUSED_ATTENTION:
+            raise ValueError("TE Linear requires fused TE attention")
+        if num_layers is None:
+            raise ValueError("num_layers is required when use_te_linear is True")
+        from megatron.core.models.gpt.gpt_layer_specs import (
+            get_gpt_layer_with_transformer_engine_spec,
+        )
+
+        layer_spec = get_gpt_layer_with_transformer_engine_spec()
+        layer_spec.submodules.self_attention.submodules.core_attention = (
+            _autocast_te_dot_product_attention()
+        )
+        if instrument_bda:
+            layer_spec.submodules.self_attn_bda = bda_nvtx_factory(
+                "self_attention",
+                layer_spec.submodules.self_attn_bda,
+            )
+            layer_spec.submodules.mlp_bda = bda_nvtx_factory(
+                "mlp",
+                layer_spec.submodules.mlp_bda,
+            )
+        return TransformerBlockSubmodules(
+            layer_specs=[layer_spec] * num_layers,
+            layer_norm=TENorm,
+        )
+
     layer_spec = get_gpt_layer_local_spec()
     if instrument_bda:
         layer_spec.submodules.self_attn_bda = bda_nvtx_factory(
@@ -206,32 +261,8 @@ def get_transformer_layer_spec(
             raise ValueError("TE LayerNorm requires fused TE attention")
         return layer_spec
     if attention_implementation == TE_FUSED_ATTENTION:
-        from megatron.core.extensions.transformer_engine import (
-            TEDotProductAttention,
-            TENorm,
-        )
-        from megatron.core.transformer.transformer_block import TransformerBlockSubmodules
-
-        class AutocastTEDotProductAttention(TEDotProductAttention):
-            """Adapt FP32 local QKV projections to the active BF16 autocast dtype."""
-
-            def forward(
-                self,
-                query: torch.Tensor,
-                key: torch.Tensor,
-                value: torch.Tensor,
-                *args: Any,
-                **kwargs: Any,
-            ) -> torch.Tensor:
-                if torch.is_autocast_enabled("cuda"):
-                    autocast_dtype = torch.get_autocast_dtype("cuda")
-                    query = query.to(autocast_dtype)
-                    key = key.to(autocast_dtype)
-                    value = value.to(autocast_dtype)
-                return super().forward(query, key, value, *args, **kwargs)
-
         layer_spec.submodules.self_attention.submodules.core_attention = (
-            AutocastTEDotProductAttention
+            _autocast_te_dot_product_attention()
         )
         if not use_te_layernorm:
             return layer_spec
@@ -260,6 +291,8 @@ def build_model(
     tensor_model_parallel_size: int = 1,
     sequence_parallel: bool = False,
     use_te_layernorm: bool = False,
+    use_te_linear: bool = False,
+    tp_comm_overlap: bool = False,
 ) -> GPTModel:
     if attention_implementation is None:
         attention_implementation = getattr(
@@ -292,6 +325,13 @@ def build_model(
         attention_backend=attention_backend,
         tensor_model_parallel_size=tensor_model_parallel_size,
         sequence_parallel=sequence_parallel,
+        tp_comm_overlap=tp_comm_overlap,
+        tp_comm_overlap_ag=True,
+        tp_comm_overlap_rs=True,
+        tp_comm_bulk_dgrad=True,
+        tp_comm_bulk_wgrad=True,
+        tp_comm_overlap_rs_dgrad=False,
+        tp_comm_bootstrap_backend="nccl",
         cuda_graph_impl=cuda_graph_impl,
         cuda_graph_modules=[],
         cuda_graph_warmup_steps=cuda_graph_warmup_steps,
@@ -303,6 +343,7 @@ def build_model(
             instrument_bda=instrument_bda,
             use_te_layernorm=use_te_layernorm,
             num_layers=args.num_layers,
+            use_te_linear=use_te_linear,
         ),
         vocab_size=args.vocab_size,
         max_sequence_length=args.sequence_length,
