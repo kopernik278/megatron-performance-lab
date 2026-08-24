@@ -14,7 +14,8 @@ NSYS=/opt/nvidia/nsight-compute/2025.1.1/host/target-linux-x64/nsys
 CUDNN_LIB=/usr/local/lib/python3.12/dist-packages/nvidia/cudnn/lib
 
 export PYTHONPATH="${MEGATRON}"
-export CUDA_DEVICE_MAX_CONNECTIONS=1
+export TORCH_COMPILE_DISABLE=1
+export TORCHINDUCTOR_COMPILE_THREADS=1
 export NVTE_FRAMEWORK=pytorch
 export NVTE_FLASH_ATTN=0
 export NVTE_FUSED_ATTN=1

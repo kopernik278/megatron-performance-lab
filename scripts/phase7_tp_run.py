@@ -93,7 +93,11 @@ def initialize_distributed(seed: int, tensor_parallel_size: int) -> int:
         raise RuntimeError("CUDA is required")
     local_rank = int(os.environ["LOCAL_RANK"])
     torch.cuda.set_device(local_rank)
-    dist.init_process_group(backend="nccl", init_method="env://")
+    dist.init_process_group(
+        backend="nccl",
+        init_method="env://",
+        device_id=torch.device(f"cuda:{local_rank}"),
+    )
     if dist.get_world_size() != tensor_parallel_size:
         raise RuntimeError(
             f"world size {dist.get_world_size()} != TP size {tensor_parallel_size}"
