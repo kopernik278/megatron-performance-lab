@@ -16,7 +16,6 @@ import torch
 import torch.distributed as dist
 
 from megatron.core import parallel_state
-from megatron.core.transformer.cuda_graphs import create_cudagraphs
 
 from phase1_baseline import (
     TE_FUSED_ATTENTION,
@@ -36,6 +35,7 @@ from phase6_megatron_ddp_lifecycle import (
     assert_zeroed_lifecycle,
     build_ddp_optimizer_bundle,
     collect_main_gradients,
+    create_local_cudagraphs_preserving_gradients,
     finalize_gradients,
     main_grad_pointers,
     named_trainable_parameters,
@@ -198,15 +198,9 @@ def run_ddp_step(
             enabled=True,
             cache_enabled=False,
         ):
-            raw_stats = create_cudagraphs()
-        torch.cuda.synchronize()
-        if raw_stats is None:
-            raise RuntimeError("MCore did not create local CUDA Graphs")
-        capture_stats = {
-            "time_seconds": float(raw_stats["time"]),
-            "allocated_bytes": float(raw_stats["allocated_bytes"]),
-            "reserved_bytes": float(raw_stats["reserved_bytes"]),
-        }
+            capture_stats = create_local_cudagraphs_preserving_gradients(
+                bundle.model
+            )
 
     assert_main_grad_pointers(bundle.model, expected_pointers)
     gradients = collect_main_gradients(bundle.model)
