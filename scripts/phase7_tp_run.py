@@ -599,6 +599,7 @@ def main() -> None:
             cuda_graph_impl="none",
             tensor_model_parallel_size=args.tensor_parallel_size,
             sequence_parallel=args.sequence_parallel,
+            use_te_layernorm=True,
         )
         if model.config.cuda_graph_impl != "none":
             raise RuntimeError("CUDA Graph must remain disabled")
@@ -794,6 +795,7 @@ def main() -> None:
                 "bias_activation_fusion": False,
                 "cuda_graph_impl": "none",
                 "sequence_parallel": args.sequence_parallel,
+                "layernorm_implementation": "TENorm",
             },
             "parallelism": {
                 "tensor_parallel": args.tensor_parallel_size,
