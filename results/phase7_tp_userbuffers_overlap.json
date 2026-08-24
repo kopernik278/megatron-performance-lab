@@ -1,0 +1,477 @@
+{
+  "status": "aborted",
+  "experiment": "Phase 7.4 TE Userbuffers TP communication overlap",
+  "iteration_mode": "FAST ITERATION MODE",
+  "abort_reason": "Variant C Userbuffers livelocked in userbuffers_fp16_sum_inplace_gpu_rr_rs_oop after communicator create (Reduce-scatter SM flags expecting 1 got 0). Process was killed after ~6 minutes of 100% GPU util at 6684 MiB/GPU with no step completion. NCCL P2P was never disabled. UB_SKIPMC=1. Formal 20+100 did not run.",
+  "completed_variants": [
+    "A",
+    "B"
+  ],
+  "failed_variant": "C",
+  "valid_tp2_baseline_reference": {
+    "commit": "709437d",
+    "pod_id": "7rpwv95a5j6axg",
+    "phase72_p2p_disabled_pod_id": "wtd9cxr3q8obuh",
+    "note": "Use the corrected same-NUMA Phase 7.1 TP=2 result as the normal TP baseline. Phase 7.2 is a memory experiment on a P2P-disabled host."
+  },
+  "infrastructure": {
+    "pod_id": "lzsg0odj8y3kyw",
+    "pod_count": 1,
+    "gpu_count": 2,
+    "gpu_type": "NVIDIA A40 48GB",
+    "same_physical_host": true,
+    "price_per_hour_usd": 0.88,
+    "price_target_usd": 0.9,
+    "price_target_met": true,
+    "data_center_id": "CA-MTL-1",
+    "public_ip": "69.30.85.51",
+    "ssh_port": 22120,
+    "cuda_host_version": "13.0",
+    "image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404"
+  },
+  "topology": {
+    "gpu0_gpu1_path": "NODE",
+    "same_numa_acceptable": true,
+    "p2p_bidirectional": true,
+    "nccl_sanity_passed": true,
+    "nccl_all_reduce_sanity": {
+      "backend": "nccl",
+      "per_rank": [
+        {
+          "rank": 0,
+          "result": 3.0,
+          "expected": 3.0,
+          "passed": true,
+          "latency_ms": 0.4752110689878464
+        },
+        {
+          "rank": 1,
+          "result": 3.0,
+          "expected": 3.0,
+          "passed": true,
+          "latency_ms": 0.48238784074783325
+        }
+      ],
+      "passed": true
+    },
+    "p2p_accessibility": {
+      "matrix": [
+        [
+          true,
+          true
+        ],
+        [
+          true,
+          true
+        ]
+      ],
+      "consistent_across_ranks": true,
+      "bidirectional_gpu0_gpu1": true
+    },
+    "gpu_pci": [
+      {
+        "index": 0,
+        "pci_bus_id": "00000000:98:00.0",
+        "uuid": "GPU-5a2301c0-941c-a946-0ea2-f90016d4750f",
+        "numa": 1
+      },
+      {
+        "index": 1,
+        "pci_bus_id": "00000000:D2:00.0",
+        "uuid": "GPU-4ced1179-afa1-a92d-082d-d8b1bc6b7b6c",
+        "numa": 1
+      }
+    ],
+    "nvlink": "inactive",
+    "nic": [
+      "mlx5_0",
+      "mlx5_1"
+    ],
+    "note": "Harness numa_affinity_by_gpu parser mapped NIC columns to NODE; nvidia-smi NUMA Affinity column is 1 for both GPUs."
+  },
+  "environment": {
+    "timestamp_utc": "2026-08-24T20:38:33.573791+00:00",
+    "hostname": "5ca434e33992",
+    "platform": "Linux-6.8.0-65-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "pytorch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "nccl": "2.27.3",
+    "cudnn": 91002,
+    "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+    "project_commit": "e0d08d67320a51291f5bfe6d98d6718428aa7d75",
+    "transformer_engine_installed": true,
+    "transformer_engine_version": "2.17.1+4329ff84",
+    "gpus": [
+      {
+        "index": 0,
+        "name": "NVIDIA A40",
+        "driver": "580.126.09",
+        "memory_total_mib": 46068.0,
+        "pci_bus_id": "00000000:98:00.0"
+      },
+      {
+        "index": 1,
+        "name": "NVIDIA A40",
+        "driver": "580.126.09",
+        "memory_total_mib": 46068.0,
+        "pci_bus_id": "00000000:D2:00.0"
+      }
+    ],
+    "cuda_graph_enabled": false,
+    "ub_skipmc": "1",
+    "cuda_device_max_connections": "1",
+    "nccl_p2p_disable": "0"
+  },
+  "correctness": {
+    "A": {
+      "steps": 3,
+      "rank0_losses": [
+        11.034037590026855,
+        10.85204029083252,
+        10.718995094299316
+      ],
+      "per_step_checks": [
+        {
+          "step": 0,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        },
+        {
+          "step": 1,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        },
+        {
+          "step": 2,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        }
+      ],
+      "parameters_updated": true,
+      "all_ranks_initialized": true,
+      "forward_succeeded": true,
+      "backward_succeeded": true,
+      "sequence_parallel_active": false,
+      "te_linear_active": false,
+      "userbuffers_active": false,
+      "userbuffers_silent_fallback": false,
+      "max_measured_loss_difference_between_ranks": 0.0,
+      "nccl_errors": false,
+      "deadlock": false
+    },
+    "B": {
+      "steps": 3,
+      "rank0_losses": [
+        11.035116195678711,
+        10.854608535766602,
+        10.677815437316895
+      ],
+      "per_step_checks": [
+        {
+          "step": 0,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        },
+        {
+          "step": 1,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        },
+        {
+          "step": 2,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        }
+      ],
+      "parameters_updated": true,
+      "all_ranks_initialized": true,
+      "forward_succeeded": true,
+      "backward_succeeded": true,
+      "sequence_parallel_active": true,
+      "te_linear_active": true,
+      "userbuffers_active": false,
+      "userbuffers_silent_fallback": false,
+      "max_measured_loss_difference_between_ranks": 0.0,
+      "nccl_errors": false,
+      "deadlock": false
+    },
+    "C": null
+  },
+  "fast_screen": {
+    "A": {
+      "tensor_parallel": 2,
+      "sequence_parallel": false,
+      "average_step_time_ms": 789.5283190533519,
+      "median_step_time_ms": 789.3608845770359,
+      "tokens_per_second": 20751.630568039018,
+      "aggregate_mfu_percent": 16.79396741665124,
+      "rank_timing_and_memory": [
+        {
+          "rank": 0,
+          "step_times_ms": [
+            788.4787693619728,
+            789.2225347459316,
+            789.4045766443014,
+            788.6073086410761,
+            789.264626801014,
+            788.6496931314468,
+            789.1133204102516,
+            788.4406317025423,
+            789.2432082444429,
+            789.148360490799,
+            789.5135041326284,
+            789.7720206528902,
+            789.7614315152168,
+            789.6135877817869,
+            788.943262770772,
+            789.4750293344259,
+            790.6422484666109,
+            790.7285057008266,
+            791.1491487175226,
+            790.3382610529661
+          ],
+          "peak_allocated_memory_mib": 16795.630859375,
+          "peak_reserved_memory_mib": 17326.0
+        },
+        {
+          "rank": 1,
+          "step_times_ms": [
+            788.6412832885981,
+            789.1237773001194,
+            788.9503967016935,
+            789.0277467668056,
+            789.3171925097704,
+            788.5466832667589,
+            789.1741394996643,
+            788.4198520332575,
+            789.1025431454182,
+            789.2753034830093,
+            789.5165048539639,
+            789.6815799176693,
+            789.8199167102575,
+            789.6825820207596,
+            788.9791559427977,
+            789.4272338598967,
+            790.6981203705072,
+            790.7062843441963,
+            791.15997441113,
+            790.3103828430176
+          ],
+          "peak_allocated_memory_mib": 16795.630859375,
+          "peak_reserved_memory_mib": 17326.0
+        }
+      ],
+      "gpu_monitoring": {
+        "0": {
+          "sample_count": 157,
+          "average_utilization_percent": 99.7452229299363,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 21828.0
+        },
+        "1": {
+          "sample_count": 157,
+          "average_utilization_percent": 99.85987261146497,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 21828.0
+        }
+      }
+    },
+    "B": {
+      "tensor_parallel": 2,
+      "sequence_parallel": true,
+      "average_step_time_ms": 699.0232839249074,
+      "median_step_time_ms": 699.0006705746055,
+      "tokens_per_second": 23438.41811392373,
+      "aggregate_mfu_percent": 18.968342213518874,
+      "rank_timing_and_memory": [
+        {
+          "rank": 0,
+          "step_times_ms": [
+            699.0943718701601,
+            699.7007522732019,
+            698.6189782619476,
+            698.993444442749,
+            698.8420560956001,
+            699.0293804556131,
+            699.3872802704573,
+            699.362562969327,
+            699.0215238183737,
+            698.7577453255653,
+            698.2762143015862,
+            698.9594884216785,
+            698.820024728775,
+            698.9906542003155,
+            698.9282723516226,
+            699.0862488746643,
+            699.0003623068333,
+            698.9704705774784,
+            698.6786127090454,
+            698.6332889646292
+          ],
+          "peak_allocated_memory_mib": 12073.982421875,
+          "peak_reserved_memory_mib": 12436.0
+        },
+        {
+          "rank": 1,
+          "step_times_ms": [
+            699.2409750819206,
+            699.1568468511105,
+            699.2558483034372,
+            698.6587233841419,
+            698.8268867135048,
+            699.1218570619822,
+            699.4064468890429,
+            699.4353178888559,
+            698.9280357956886,
+            698.6912321299314,
+            698.4430681914091,
+            698.6857894808054,
+            698.8496035337448,
+            699.0078967064619,
+            698.96081648767,
+            698.9920660853386,
+            699.0476436913013,
+            698.9378873258829,
+            698.6850518733263,
+            698.6794229596853
+          ],
+          "peak_allocated_memory_mib": 12073.982421875,
+          "peak_reserved_memory_mib": 12436.0
+        }
+      ],
+      "gpu_monitoring": {
+        "0": {
+          "sample_count": 139,
+          "average_utilization_percent": 99.85611510791367,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 16938.0
+        },
+        "1": {
+          "sample_count": 139,
+          "average_utilization_percent": 99.85611510791367,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 16938.0
+        }
+      }
+    },
+    "C": null,
+    "B_over_A": {
+      "speedup": 1.1294735629123436,
+      "throughput_gain_percent": 12.947356291234357
+    },
+    "C_over_B": null,
+    "C_over_A": null
+  },
+  "memory": {
+    "A": {
+      "per_rank_torch": [
+        {
+          "rank": 0,
+          "peak_allocated_memory_mib": 16795.630859375,
+          "peak_reserved_memory_mib": 17326.0
+        },
+        {
+          "rank": 1,
+          "peak_allocated_memory_mib": 16795.630859375,
+          "peak_reserved_memory_mib": 17326.0
+        }
+      ],
+      "per_gpu_nvidia_smi_mib": {
+        "0": 21828.0,
+        "1": 21828.0
+      },
+      "max_allocated_mib": 16795.630859375,
+      "max_nvidia_smi_mib": 21828.0
+    },
+    "B": {
+      "per_rank_torch": [
+        {
+          "rank": 0,
+          "peak_allocated_memory_mib": 12073.982421875,
+          "peak_reserved_memory_mib": 12436.0
+        },
+        {
+          "rank": 1,
+          "peak_allocated_memory_mib": 12073.982421875,
+          "peak_reserved_memory_mib": 12436.0
+        }
+      ],
+      "per_gpu_nvidia_smi_mib": {
+        "0": 16938.0,
+        "1": 16938.0
+      },
+      "max_allocated_mib": 12073.982421875,
+      "max_nvidia_smi_mib": 16938.0
+    },
+    "C_hung_nvidia_smi_mib": {
+      "0": 6684,
+      "1": 6684
+    }
+  },
+  "variant_c_hang": {
+    "requested": {
+      "sequence_parallel": true,
+      "te_linear": true,
+      "tp_comm_overlap": true,
+      "initialize_ub_shape": [
+        16384,
+        1024
+      ],
+      "bootstrap_backend": "nccl",
+      "ub_skipmc": "1",
+      "cuda_device_max_connections": "1",
+      "nccl_p2p_disable": "0"
+    },
+    "observed": {
+      "userbuffers_communicator_create_logged": true,
+      "kernel": "userbuffers_fp16_sum_inplace_gpu_rr_rs_oop",
+      "source_line": "userbuffers.cu:352",
+      "flag_mismatch": "expecting 1 got 0",
+      "gpu_utilization_percent": {
+        "0": 100,
+        "1": 100
+      },
+      "gpu_memory_mib_stuck": {
+        "0": 6684,
+        "1": 6684
+      },
+      "wall_time_before_kill_s": 360,
+      "step_json_written": false,
+      "nsys_collected": false
+    },
+    "log_excerpt": [
+      "!!! [UB] Create Userbuffers Communicator",
+      "[userbuffers.cu:userbuffers_fp16_sum_inplace_gpu_rr_rs_oop:352] [1] Reduce-scatter: SM 0 [0]: expecting 1 got 0",
+      "[userbuffers.cu:userbuffers_fp16_sum_inplace_gpu_rr_rs_oop:352] [0] Reduce-scatter: SM 0 [1]: expecting 1 got 0"
+    ]
+  },
+  "decision": {
+    "cuda_graph_enabled": false,
+    "other_optimization_added": false,
+    "formal_20_plus_100_required": false,
+    "formal_20_plus_100_ran": false,
+    "keep_fast_screen": true,
+    "userbuffers_overlap_usable_on_this_a40_node_host": false,
+    "dominant_remaining_bottleneck": "TE Userbuffers reduce-scatter handshake livelock on A40 NODE/PCIe; cannot measure B\u2192C overlap until C completes",
+    "p2p_disabled": false
+  },
+  "raw_result_paths": {
+    "A": "results/phase74_work/A_tp2_baseline.json",
+    "B": "results/phase74_work/B_te_linear_sp.json",
+    "topology": "results/phase74_work/topology.json",
+    "C": null
+  }
+}
