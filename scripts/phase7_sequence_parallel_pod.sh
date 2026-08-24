@@ -47,7 +47,7 @@ if [[ ! -x "${ROOT}/.venv/bin/python" ]]; then
 fi
 # shellcheck disable=SC1091
 source "${ROOT}/.venv/bin/activate"
-python -m pip install -U pip setuptools wheel ninja
+python -m pip install -U pip setuptools wheel ninja cmake "pybind11[global]"
 if ! python -c "import transformer_engine" >/dev/null 2>&1; then
   NVTE_FRAMEWORK=pytorch NVTE_CUDA_ARCHS=86 NVTE_WITH_NCCL_EP=0 MAX_JOBS=8 \
     python -m pip install --no-build-isolation --no-deps "${TE}"
