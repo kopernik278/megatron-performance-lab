@@ -1,0 +1,155 @@
+{
+  "status": "blocked",
+  "experiment": "Phase 6.3 MCore DDP gradient lifecycle and local CUDA Graph A/B",
+  "outcome": "cuda_graph_correctness_failed_before_fast_ab",
+  "pinned_configuration": {
+    "gpu": "NVIDIA A40",
+    "driver": "570.195.03",
+    "pytorch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "nccl": "2.27.3",
+    "cudnn": 91002,
+    "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+    "transformer_engine": "2.17.1+4329ff84",
+    "tensor_parallel": 1,
+    "pipeline_parallel": 1,
+    "data_parallel": 1,
+    "distributed_optimizer": false
+  },
+  "lifecycle": {
+    "model_wrapper": "megatron.core.distributed.DistributedDataParallel",
+    "gradient_storage": "DDP-owned contiguous grad_data with per-parameter main_grad views",
+    "optimizer_wrapper": "megatron.core.optimizer.optimizer.FP32Optimizer",
+    "base_optimizer": {
+      "name": "torch.optim.AdamW",
+      "foreach": false,
+      "fused": false,
+      "weight_decay": 0.01,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "eps": 1e-08
+    },
+    "zero_order": [
+      "DistributedDataParallel.zero_grad_buffer",
+      "FP32Optimizer.zero_grad(set_to_none=True)"
+    ],
+    "gradient_finalization": "finalize_model_grads",
+    "gradient_overlap": false,
+    "parameter_overlap": false
+  },
+  "phase_a_ddp_lifecycle_correctness": {
+    "passed": true,
+    "comparison": "raw PyTorch lifecycle versus eager MCore DDP lifecycle",
+    "model": {
+      "layers": 2,
+      "hidden_size": 128,
+      "sequence_length": 128,
+      "micro_batch_size": 1,
+      "dropout": 0.0
+    },
+    "steps_compared": 3,
+    "main_grad_parameter_count": 28,
+    "main_grad_addresses_stable": true,
+    "optimizer_consumed_main_grad": true,
+    "zero_grad_reset_verified_each_step": true,
+    "parameters_updated": true,
+    "loss_max_absolute_error": 0.0,
+    "output_max_absolute_error": 0.0,
+    "gradient_global_cosine_similarity": 1.0,
+    "gradient_max_absolute_error": 0.0,
+    "parameter_update_max_absolute_error": 0.0,
+    "optimizer_state_max_absolute_error": 0.0,
+    "all_finite": true
+  },
+  "phase_b_cuda_graph_correctness": {
+    "passed": false,
+    "mechanism": "MCore cuda_graph_impl=local with cuda_graph_modules=[]",
+    "capture_succeeded": true,
+    "forward_replay_succeeded": true,
+    "backward_replay_succeeded": true,
+    "graph_reused_across_iterations": true,
+    "forward_graph_count": 2,
+    "backward_graph_count": 2,
+    "capture": {
+      "time_seconds": 0.38947534561157227,
+      "allocated_bytes": 17043456,
+      "reserved_bytes": 25165824
+    },
+    "step_0_recording_iteration": {
+      "loss_absolute_error": 0.0,
+      "output_max_absolute_error": 0.0,
+      "gradient_global_cosine_similarity": 1.0,
+      "gradient_max_absolute_error": 0.0,
+      "parameter_update_max_absolute_error": 0.0,
+      "passed": true
+    },
+    "step_1_first_replay": {
+      "loss_absolute_error": 0.0,
+      "output_max_absolute_error": 0.0,
+      "gradient_global_cosine_similarity": 0.9998457250343726,
+      "gradient_max_absolute_error": 0.005186201073229313,
+      "worst_gradient_parameter": "embedding.word_embeddings.weight",
+      "parameter_update_max_absolute_error": 0.00016417913138866425,
+      "parameters_after_max_absolute_error": 0.00016417913138866425,
+      "passed": false
+    },
+    "step_2_second_replay": {
+      "loss_absolute_error": 3.6716461181640625e-05,
+      "output_max_absolute_error": 0.003898143768310547,
+      "gradient_global_cosine_similarity": 0.9997978663080235,
+      "gradient_max_absolute_error": 0.004828164353966713,
+      "worst_gradient_parameter": "embedding.word_embeddings.weight",
+      "parameter_update_max_absolute_error": 0.0001770532689988613,
+      "parameters_after_max_absolute_error": 0.00033670663833618164,
+      "passed": false
+    },
+    "all_finite": true,
+    "main_grad_addresses_stable": true,
+    "optimizer_consumed_main_grad": true,
+    "temporary_capture_flag_diagnostic": {
+      "performed": true,
+      "result": "identical replay errors",
+      "retained_in_final_code": false
+    },
+    "original_phase61_gradient_mismatch_fixed": false
+  },
+  "phase_c_fast_ab": {
+    "run": false,
+    "reason": "Phase B strict gradient and parameter-update correctness gate failed",
+    "baseline_step_time_ms": null,
+    "graphed_step_time_ms": null,
+    "baseline_tokens_per_second": null,
+    "graphed_tokens_per_second": null,
+    "baseline_mfu_percent": null,
+    "graphed_mfu_percent": null,
+    "baseline_peak_vram_mib": null,
+    "graphed_peak_vram_mib": null,
+    "cpu_time_reduction_percent": null,
+    "cuda_api_launch_reduction_percent": null,
+    "gpu_idle_change_ms_per_step": null,
+    "speedup_percent": null
+  },
+  "formal_validation": {
+    "run": false,
+    "reason": "Fast A/B was blocked by correctness"
+  },
+  "decision": {
+    "adopt_local_cuda_graph": false,
+    "ddp_lifecycle_validated": true,
+    "original_gradient_mismatch_fixed": false,
+    "next_investigation": "Isolate the pinned local CUDA Graph backward replay numerical divergence from eager DDP before any performance measurement"
+  },
+  "infrastructure": {
+    "pod_id": "9ibu90ocv6eulw",
+    "data_center": "EU-SE-1",
+    "same_pod_for_all_executed_checks": true,
+    "final_status": "EXITED"
+  },
+  "runtime_project_commit": "8b169a1",
+  "correctness_tolerances": {
+    "absolute": 1e-05,
+    "relative": 1e-05
+  }
+}
