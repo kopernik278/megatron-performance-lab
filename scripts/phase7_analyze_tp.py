@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
+import re
 import sqlite3
 import statistics
 from collections import Counter, defaultdict
@@ -328,6 +330,7 @@ def analyze_trace(
         name_times_ns[row["name"]] += row["duration_ns"]
 
     nvtx_collectives = Counter()
+    all_reduce_shapes = Counter()
     for row in connection.execute(
         """
         SELECT text, textId
@@ -342,6 +345,15 @@ def analyze_trace(
             for token in ("allreduce", "allgather", "reducescatter", "nccl")
         ):
             nvtx_collectives[name] += 1
+        if name.startswith("nccl:all_reduce"):
+            shape_match = re.search(r"sizes = \[\[([0-9, ]*)\]\]", name)
+            if shape_match:
+                shape = tuple(
+                    int(value.strip())
+                    for value in shape_match.group(1).split(",")
+                    if value.strip()
+                )
+                all_reduce_shapes[shape] += 1
 
     tp = int(run["parallelism"]["tensor_parallel"])
     average_nccl_kernel_time_ms_per_step_per_gpu = (
@@ -389,6 +401,26 @@ def analyze_trace(
             {"name": name, "count": count}
             for name, count in nvtx_collectives.most_common(30)
         ],
+        "nvtx_all_reduce_api_calls_per_step_per_rank": (
+            sum(all_reduce_shapes.values()) / iterations / tp
+        ),
+        "nvtx_all_reduce_shapes": [
+            {
+                "shape": list(shape),
+                "elements": math.prod(shape),
+                "event_count_all_ranks": count,
+                "calls_per_step_per_rank": count / iterations / tp,
+                "scope": (
+                    "DP=1 singleton buffer operation; no inter-GPU NCCL kernel"
+                    if shape == (179083264,)
+                    else "tensor-parallel"
+                ),
+            }
+            for shape, count in sorted(
+                all_reduce_shapes.items(),
+                key=lambda item: (-item[1], item[0]),
+            )
+        ],
         "attribution": {
             name: {
                 "kernel_launch_count": attribution_counts[name],
@@ -413,8 +445,8 @@ def analyze_trace(
         ],
         "tensor_sizes": {
             "source": (
-                "derived from fixed tensor shapes and MCore TP semantics because "
-                "Nsight Systems SQLite does not export NCCL API payload sizes"
+                "NVTX all-reduce input shapes plus fixed tensor dtypes and MCore "
+                "TP semantics; sizes are cross-checked against NCCL INFO counts"
             ),
             "transformer_activation_elements": (
                 run["model_config"]["micro_batch_size"]
