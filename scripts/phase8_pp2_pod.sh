@@ -193,7 +193,8 @@ if payload.get("abort_reason"):
 path = payload.get("gpu0_gpu1_path")
 if path == "SYS":
     raise SystemExit("cross-NUMA SYS topology")
-if path not in {"NODE", "PIX", "PHB", "PXB"}:
+nvlink = isinstance(path, str) and path.startswith("NV") and str(path)[2:].isdigit()
+if path not in {"NODE", "PIX", "PHB", "PXB"} and not nvlink:
     raise SystemExit(f"unsupported GPU0-GPU1 path {path}")
 if not payload["p2p_accessibility"]["bidirectional_gpu0_gpu1"]:
     raise SystemExit("CUDA peer access is not bidirectional")

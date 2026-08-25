@@ -50,6 +50,16 @@ def gpu0_gpu1_path(topology_output: str) -> str | None:
     return None
 
 
+def is_acceptable_gpu0_gpu1_path(path: str | None) -> bool:
+    """Accept PCIe same-NUMA paths and NVLink. Reject SYS and unknown labels."""
+
+    if path is None:
+        return False
+    if path in {"NODE", "PIX", "PHB", "PXB"}:
+        return True
+    return path.startswith("NV") and path[2:].isdigit()
+
+
 def numa_affinity_by_gpu(topology_output: str) -> dict[str, str]:
     """Parse NUMA Affinity from `nvidia-smi topo -m` GPU rows."""
 
@@ -133,7 +143,7 @@ def main() -> None:
         topology_output = commands["nvidia_smi_topology"]["output"]
         interconnect = gpu0_gpu1_path(topology_output)
         numa = numa_affinity_by_gpu(topology_output)
-        same_numa_ok = interconnect in {"NODE", "PIX", "PHB", "PXB"}
+        same_numa_ok = is_acceptable_gpu0_gpu1_path(interconnect)
         numa_values = {value for value in numa.values() if value not in {"N/A", "NA"}}
         abort_reason = None
         if interconnect == "SYS":
