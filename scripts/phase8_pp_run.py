@@ -246,16 +246,17 @@ def pipeline_train_step(
                 f"mb={args.num_microbatches} step={step_index}",
                 flush=True,
             )
-            losses_reduced = forward_backward(
-                forward_step_func=forward_step_func,
-                data_iterator=iter(batches),
-                model=bundle.model,
-                num_microbatches=args.num_microbatches,
-                seq_length=model_args.sequence_length,
-                micro_batch_size=args.micro_batch_size,
-                decoder_seq_length=model_args.sequence_length,
-                forward_only=False,
-            )
+            with bundle.model.no_sync():
+                losses_reduced = forward_backward(
+                    forward_step_func=forward_step_func,
+                    data_iterator=iter(batches),
+                    model=bundle.model,
+                    num_microbatches=args.num_microbatches,
+                    seq_length=model_args.sequence_length,
+                    micro_batch_size=args.micro_batch_size,
+                    decoder_seq_length=model_args.sequence_length,
+                    forward_only=False,
+                )
         with torch.cuda.nvtx.range("finalize_model_grads"):
             finalize_gradients(bundle.model)
         with torch.cuda.nvtx.range("optimizer_step"):
@@ -535,6 +536,7 @@ def main() -> None:
         rank_partitions = gather_objects(partition)
         if rank == 0:
             print("PHASE81_PARTITIONS_GATHERED", flush=True)
+        unwrap_model(bundle.model).config.no_sync_func = bundle.model.no_sync
 
         tracked_name, tracked_parameter = next(iter(named_trainable_parameters(bundle.model)))
         parameters_before = {tracked_name: tracked_parameter.detach().cpu().clone()}
