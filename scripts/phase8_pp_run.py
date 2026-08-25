@@ -193,8 +193,11 @@ def forward_step_func(data_iterator: Any, model: torch.nn.Module, *args: Any, **
                 batch["attention_mask"],
                 labels=batch["labels"],
             )
+    finite = torch.isfinite(output)
     print(
-        f"PHASE81_RANK{rank}_FORWARD_MICROBATCH_DONE",
+        f"PHASE81_RANK{rank}_FORWARD_MICROBATCH_DONE shape={tuple(output.shape)} "
+        f"dtype={output.dtype} nan={int(torch.isnan(output).sum())} "
+        f"finite={int(finite.sum())}/{output.numel()}",
         flush=True,
     )
 
@@ -496,7 +499,7 @@ def main() -> None:
             use_te_layernorm=False,
             use_te_linear=False,
             pipeline_model_parallel_size=args.pipeline_parallel_size,
-            pipeline_dtype=torch.bfloat16 if args.pipeline_parallel_size > 1 else torch.float32,
+            pipeline_dtype=torch.float32 if args.pipeline_parallel_size > 1 else torch.float32,
             overlap_p2p_comm=False,
             batch_p2p_comm=False,
             share_embeddings_and_output_weights=args.pipeline_parallel_size == 1,
