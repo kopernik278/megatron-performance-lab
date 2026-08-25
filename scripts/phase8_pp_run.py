@@ -200,7 +200,16 @@ def forward_step_func(data_iterator: Any, model: torch.nn.Module, *args: Any, **
 
     def loss_func(output_tensor: torch.Tensor, non_loss_data: bool = False) -> Any:
         with torch.cuda.nvtx.range("pp_loss"):
+            print(
+                f"PHASE81_RANK{rank}_LOSS_FUNC shape={tuple(output_tensor.shape)} "
+                f"req_grad={output_tensor.requires_grad} dtype={output_tensor.dtype}",
+                flush=True,
+            )
             loss = masked_language_model_loss(output_tensor, batch["loss_mask"])
+            print(
+                f"PHASE81_RANK{rank}_LOSS_FUNC_DONE loss={float(loss.detach())}",
+                flush=True,
+            )
         return loss, {"lm loss": loss.detach()}
 
     return output, loss_func
@@ -257,6 +266,10 @@ def pipeline_train_step(
                     decoder_seq_length=model_args.sequence_length,
                     forward_only=False,
                 )
+            print(
+                f"PHASE81_RANK{dist.get_rank()}_EXIT_FORWARD_BACKWARD step={step_index}",
+                flush=True,
+            )
         with torch.cuda.nvtx.range("finalize_model_grads"):
             finalize_gradients(bundle.model)
         with torch.cuda.nvtx.range("optimizer_step"):
