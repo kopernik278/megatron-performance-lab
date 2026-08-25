@@ -193,6 +193,10 @@ def forward_step_func(data_iterator: Any, model: torch.nn.Module, *args: Any, **
                 batch["attention_mask"],
                 labels=batch["labels"],
             )
+    print(
+        f"PHASE81_RANK{rank}_FORWARD_MICROBATCH_DONE",
+        flush=True,
+    )
 
     def loss_func(output_tensor: torch.Tensor, non_loss_data: bool = False) -> Any:
         with torch.cuda.nvtx.range("pp_loss"):
@@ -478,6 +482,7 @@ def main() -> None:
             pipeline_dtype=torch.bfloat16 if args.pipeline_parallel_size > 1 else torch.float32,
             overlap_p2p_comm=False,
             batch_p2p_comm=False,
+            share_embeddings_and_output_weights=args.pipeline_parallel_size == 1,
         )
         if model.config.cuda_graph_impl != "none":
             raise RuntimeError("CUDA Graph must remain disabled")

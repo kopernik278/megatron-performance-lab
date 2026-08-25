@@ -302,6 +302,7 @@ def build_model(
     pipeline_dtype: torch.dtype | None = None,
     overlap_p2p_comm: bool = False,
     batch_p2p_comm: bool = True,
+    share_embeddings_and_output_weights: bool = True,
 ) -> GPTModel:
     if attention_implementation is None:
         attention_implementation = getattr(
@@ -377,7 +378,7 @@ def build_model(
         pre_process=parallel_state.is_pipeline_first_stage(),
         post_process=parallel_state.is_pipeline_last_stage(),
         parallel_output=True,
-        share_embeddings_and_output_weights=True,
+        share_embeddings_and_output_weights=share_embeddings_and_output_weights,
         position_embedding_type="learned_absolute",
     )
     return model.cuda()
