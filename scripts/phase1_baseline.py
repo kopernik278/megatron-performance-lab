@@ -298,6 +298,11 @@ def build_model(
     tp_comm_bulk_dgrad: bool = True,
     tp_comm_bulk_wgrad: bool = True,
     tp_comm_overlap_rs_dgrad: bool = False,
+    pipeline_model_parallel_size: int = 1,
+    pipeline_dtype: torch.dtype | None = None,
+    overlap_p2p_comm: bool = False,
+    batch_p2p_comm: bool = True,
+    share_embeddings_and_output_weights: bool = True,
 ) -> GPTModel:
     if attention_implementation is None:
         attention_implementation = getattr(
@@ -308,6 +313,8 @@ def build_model(
         if attention_implementation == TE_FUSED_ATTENTION
         else AttnBackend.unfused
     )
+    if pipeline_dtype is None:
+        pipeline_dtype = torch.bfloat16 if pipeline_model_parallel_size > 1 else torch.float32
     config = TransformerConfig(
         num_layers=args.num_layers,
         hidden_size=args.hidden_size,
@@ -324,7 +331,10 @@ def build_model(
         cross_entropy_loss_fusion=False,
         use_cpu_initialization=True,
         params_dtype=torch.float32,
-        pipeline_dtype=torch.float32,
+        pipeline_dtype=pipeline_dtype,
+        pipeline_model_parallel_size=pipeline_model_parallel_size,
+        overlap_p2p_comm=overlap_p2p_comm,
+        batch_p2p_comm=batch_p2p_comm,
         bf16=False,
         fp16=False,
         attention_backend=attention_backend,
@@ -341,19 +351,34 @@ def build_model(
         cuda_graph_modules=[],
         cuda_graph_warmup_steps=cuda_graph_warmup_steps,
     )
+    from megatron.core.transformer.transformer_block import (
+        TransformerBlockSubmodules,
+        get_num_layers_to_build,
+    )
+
+    layer_spec = get_transformer_layer_spec(
+        attention_implementation,
+        instrument_bda=instrument_bda,
+        use_te_layernorm=use_te_layernorm,
+        num_layers=args.num_layers,
+        use_te_linear=use_te_linear,
+    )
+    if isinstance(layer_spec, TransformerBlockSubmodules):
+        layers_this_rank = get_num_layers_to_build(config)
+        if len(layer_spec.layer_specs or []) != layers_this_rank:
+            layer_spec = TransformerBlockSubmodules(
+                layer_specs=[layer_spec.layer_specs[0]] * layers_this_rank,
+                layer_norm=layer_spec.layer_norm,
+            )
     model = GPTModel(
         config=config,
-        transformer_layer_spec=get_transformer_layer_spec(
-            attention_implementation,
-            instrument_bda=instrument_bda,
-            use_te_layernorm=use_te_layernorm,
-            num_layers=args.num_layers,
-            use_te_linear=use_te_linear,
-        ),
+        transformer_layer_spec=layer_spec,
         vocab_size=args.vocab_size,
         max_sequence_length=args.sequence_length,
+        pre_process=parallel_state.is_pipeline_first_stage(),
+        post_process=parallel_state.is_pipeline_last_stage(),
         parallel_output=True,
-        share_embeddings_and_output_weights=True,
+        share_embeddings_and_output_weights=share_embeddings_and_output_weights,
         position_embedding_type="learned_absolute",
     )
     return model.cuda()
