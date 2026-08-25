@@ -180,11 +180,6 @@ def make_microbatches(
 
 def forward_step_func(data_iterator: Any, model: torch.nn.Module, *args: Any, **kwargs: Any):
     batch = next(data_iterator)
-    rank = dist.get_rank() if dist.is_initialized() else -1
-    print(
-        f"PHASE81_RANK{rank}_FORWARD_MICROBATCH",
-        flush=True,
-    )
     with torch.cuda.nvtx.range("pp_forward_microbatch"):
         with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=True):
             output = model(
@@ -193,29 +188,10 @@ def forward_step_func(data_iterator: Any, model: torch.nn.Module, *args: Any, **
                 batch["attention_mask"],
                 labels=batch["labels"],
             )
-    finite = torch.isfinite(output)
-    print(
-        f"PHASE81_RANK{rank}_FORWARD_MICROBATCH_DONE shape={tuple(output.shape)} "
-        f"dtype={output.dtype} nan={int(torch.isnan(output).sum())} "
-        f"finite={int(finite.sum())}/{output.numel()}",
-        flush=True,
-    )
 
     def loss_func(output_tensor: torch.Tensor, non_loss_data: bool = False) -> Any:
         with torch.cuda.nvtx.range("pp_loss"):
-            print(
-                f"PHASE81_RANK{rank}_LOSS_FUNC shape={tuple(output_tensor.shape)} "
-                f"req_grad={output_tensor.requires_grad} dtype={output_tensor.dtype} "
-                f"nan={int(torch.isnan(output_tensor).sum())} "
-                f"inf={int(torch.isinf(output_tensor).sum())} "
-                f"min={float(output_tensor.detach().min())} max={float(output_tensor.detach().max())}",
-                flush=True,
-            )
             loss = masked_language_model_loss(output_tensor, batch["loss_mask"])
-            print(
-                f"PHASE81_RANK{rank}_LOSS_FUNC_DONE loss={float(loss.detach())}",
-                flush=True,
-            )
         return loss, {"lm loss": loss.detach()}
 
     return output, loss_func
@@ -256,11 +232,6 @@ def pipeline_train_step(
     forward_backward = get_forward_backward_func()
     with torch.cuda.nvtx.range(f"train_step_{step_index:03d}"):
         with torch.cuda.nvtx.range("pipeline_forward_backward"):
-            print(
-                f"PHASE81_RANK{dist.get_rank()}_ENTER_FORWARD_BACKWARD "
-                f"mb={args.num_microbatches} step={step_index}",
-                flush=True,
-            )
             with bundle.model.no_sync():
                 losses_reduced = forward_backward(
                     forward_step_func=forward_step_func,
@@ -272,10 +243,6 @@ def pipeline_train_step(
                     decoder_seq_length=model_args.sequence_length,
                     forward_only=False,
                 )
-            print(
-                f"PHASE81_RANK{dist.get_rank()}_EXIT_FORWARD_BACKWARD step={step_index}",
-                flush=True,
-            )
         with torch.cuda.nvtx.range("finalize_model_grads"):
             finalize_gradients(bundle.model)
         with torch.cuda.nvtx.range("optimizer_step"):
