@@ -293,6 +293,11 @@ def build_model(
     use_te_layernorm: bool = False,
     use_te_linear: bool = False,
     tp_comm_overlap: bool = False,
+    tp_comm_overlap_ag: bool = True,
+    tp_comm_overlap_rs: bool = True,
+    tp_comm_bulk_dgrad: bool = True,
+    tp_comm_bulk_wgrad: bool = True,
+    tp_comm_overlap_rs_dgrad: bool = False,
 ) -> GPTModel:
     if attention_implementation is None:
         attention_implementation = getattr(
@@ -326,11 +331,11 @@ def build_model(
         tensor_model_parallel_size=tensor_model_parallel_size,
         sequence_parallel=sequence_parallel,
         tp_comm_overlap=tp_comm_overlap,
-        tp_comm_overlap_ag=True,
-        tp_comm_overlap_rs=True,
-        tp_comm_bulk_dgrad=True,
-        tp_comm_bulk_wgrad=True,
-        tp_comm_overlap_rs_dgrad=False,
+        tp_comm_overlap_ag=tp_comm_overlap_ag,
+        tp_comm_overlap_rs=tp_comm_overlap_rs,
+        tp_comm_bulk_dgrad=tp_comm_bulk_dgrad,
+        tp_comm_bulk_wgrad=tp_comm_bulk_wgrad,
+        tp_comm_overlap_rs_dgrad=tp_comm_overlap_rs_dgrad,
         tp_comm_bootstrap_backend="nccl",
         cuda_graph_impl=cuda_graph_impl,
         cuda_graph_modules=[],
