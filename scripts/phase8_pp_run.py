@@ -202,7 +202,10 @@ def forward_step_func(data_iterator: Any, model: torch.nn.Module, *args: Any, **
         with torch.cuda.nvtx.range("pp_loss"):
             print(
                 f"PHASE81_RANK{rank}_LOSS_FUNC shape={tuple(output_tensor.shape)} "
-                f"req_grad={output_tensor.requires_grad} dtype={output_tensor.dtype}",
+                f"req_grad={output_tensor.requires_grad} dtype={output_tensor.dtype} "
+                f"nan={int(torch.isnan(output_tensor).sum())} "
+                f"inf={int(torch.isinf(output_tensor).sum())} "
+                f"min={float(output_tensor.detach().min())} max={float(output_tensor.detach().max())}",
                 flush=True,
             )
             loss = masked_language_model_loss(output_tensor, batch["loss_mask"])
