@@ -180,6 +180,11 @@ def make_microbatches(
 
 def forward_step_func(data_iterator: Any, model: torch.nn.Module, *args: Any, **kwargs: Any):
     batch = next(data_iterator)
+    rank = dist.get_rank() if dist.is_initialized() else -1
+    print(
+        f"PHASE81_RANK{rank}_FORWARD_MICROBATCH",
+        flush=True,
+    )
     with torch.cuda.nvtx.range("pp_forward_microbatch"):
         with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=True):
             output = model(
@@ -232,6 +237,11 @@ def pipeline_train_step(
     forward_backward = get_forward_backward_func()
     with torch.cuda.nvtx.range(f"train_step_{step_index:03d}"):
         with torch.cuda.nvtx.range("pipeline_forward_backward"):
+            print(
+                f"PHASE81_RANK{dist.get_rank()}_ENTER_FORWARD_BACKWARD "
+                f"mb={args.num_microbatches} step={step_index}",
+                flush=True,
+            )
             losses_reduced = forward_backward(
                 forward_step_func=forward_step_func,
                 data_iterator=iter(batches),
