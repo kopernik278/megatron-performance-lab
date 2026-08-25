@@ -1,0 +1,2628 @@
+{
+  "status": "success",
+  "experiment": "Phase 7.4b targeted TP communication overlap",
+  "iteration_mode": "FAST ITERATION MODE",
+  "phase74_hang_kernel": "userbuffers_fp16_sum_inplace_gpu_rr_rs_oop",
+  "overlap_flags_c1": {
+    "tp_comm_overlap": true,
+    "tp_comm_overlap_ag": true,
+    "tp_comm_overlap_rs": false,
+    "tp_comm_bulk_dgrad": false,
+    "tp_comm_bulk_wgrad": false,
+    "tp_comm_overlap_rs_dgrad": false
+  },
+  "overlap_flags_c2": {
+    "tp_comm_overlap": true,
+    "tp_comm_overlap_ag": true,
+    "tp_comm_overlap_rs": false,
+    "tp_comm_bulk_dgrad": true,
+    "tp_comm_bulk_wgrad": false,
+    "tp_comm_overlap_rs_dgrad": false
+  },
+  "collectives_overlapped": [
+    "All-Gather"
+  ],
+  "collectives_not_overlapped": [
+    "Reduce-Scatter fprop",
+    "RS dgrad",
+    "bulk wgrad RS"
+  ],
+  "valid_tp2_baseline_reference": {
+    "commit": "709437d",
+    "pod_id": "7rpwv95a5j6axg",
+    "phase72_p2p_disabled_pod_id": "wtd9cxr3q8obuh",
+    "note": "Reference B is TP=2 + Sequence Parallel + TE Linear + Userbuffers OFF on this host. Do not mix with the Phase 7.2 P2P-disabled host."
+  },
+  "infrastructure": {
+    "pod_id": "8akpdrt2brqwwm",
+    "pod_count": 1,
+    "gpu_count": 2,
+    "gpu_type": "NVIDIA A40 48GB",
+    "same_physical_host": true,
+    "price_per_hour_usd": 0.88,
+    "price_target_usd": 0.9,
+    "price_target_met": true
+  },
+  "topology": {
+    "gpu0_gpu1_path": "PXB",
+    "same_numa_acceptable": true,
+    "p2p_bidirectional": true,
+    "nccl_sanity_passed": true,
+    "commands": {
+      "nvidia_smi": {
+        "command": [
+          "nvidia-smi"
+        ],
+        "exit_code": 0,
+        "output": "Tue Aug 25 09:06:18 2026       \n+-----------------------------------------------------------------------------------------+\n| NVIDIA-SMI 570.211.01             Driver Version: 570.211.01     CUDA Version: 12.8     |\n|-----------------------------------------+------------------------+----------------------+\n| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |\n| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |\n|                                         |                        |               MIG M. |\n|=========================================+========================+======================|\n|   0  NVIDIA A40                     On  |   00000000:D1:00.0 Off |                    0 |\n|  0%   30C    P0             56W /  300W |     482MiB /  46068MiB |      6%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n|   1  NVIDIA A40                     On  |   00000000:D6:00.0 Off |                    0 |\n|  0%   32C    P0             50W /  300W |     482MiB /  46068MiB |     14%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n                                                                                         \n+-----------------------------------------------------------------------------------------+\n| Processes:                                                                              |\n|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |\n|        ID   ID                                                               Usage      |\n|=========================================================================================|\n|    0   N/A  N/A            3097      C   ...formance-lab/.venv/bin/python        476MiB |\n|    1   N/A  N/A            3098      C   ...formance-lab/.venv/bin/python        476MiB |\n+-----------------------------------------------------------------------------------------+"
+      },
+      "nvidia_smi_query": {
+        "command": [
+          "nvidia-smi",
+          "--query-gpu=index,name,uuid,pci.bus_id,driver_version,memory.total",
+          "--format=csv,noheader"
+        ],
+        "exit_code": 0,
+        "output": "0, NVIDIA A40, GPU-7c2bff72-3f8c-8f56-aa63-07a00bea7044, 00000000:D1:00.0, 570.211.01, 46068 MiB\n1, NVIDIA A40, GPU-177e9c54-6560-a698-cdde-ae66fbd4e394, 00000000:D6:00.0, 570.211.01, 46068 MiB"
+      },
+      "nvidia_smi_topology": {
+        "command": [
+          "nvidia-smi",
+          "topo",
+          "-m"
+        ],
+        "exit_code": 0,
+        "output": "\u001b[4mGPU0\tGPU1\tNIC0\tNIC1\tCPU Affinity\tNUMA Affinity\tGPU NUMA ID\u001b[0m\nGPU0\t X \tPXB\tNODE\tNODE\t24-47,72-95\t1\t\tN/A\nGPU1\tPXB\t X \tNODE\tNODE\t24-47,72-95\t1\t\tN/A\nNIC0\tNODE\tNODE\t X \tPIX\t\t\t\t\nNIC1\tNODE\tNODE\tPIX\t X \t\t\t\t\n\nLegend:\n\n  X    = Self\n  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)\n  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node\n  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)\n  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)\n  PIX  = Connection traversing at most a single PCIe bridge\n  NV#  = Connection traversing a bonded set of # NVLinks\n\nNIC Legend:\n\n  NIC0: rocep177s0f0\n  NIC1: rocep177s0f1"
+      },
+      "nvidia_smi_nvlink": {
+        "command": [
+          "nvidia-smi",
+          "nvlink",
+          "--status"
+        ],
+        "exit_code": 0,
+        "output": "GPU 0: NVIDIA A40 (UUID: GPU-7c2bff72-3f8c-8f56-aa63-07a00bea7044)\nNVML: Unable to retrieve NVLink information as all links are inActive\nGPU 1: NVIDIA A40 (UUID: GPU-177e9c54-6560-a698-cdde-ae66fbd4e394)\nNVML: Unable to retrieve NVLink information as all links are inActive"
+      },
+      "lspci_nvidia": {
+        "command": [
+          "bash",
+          "-lc",
+          "lspci -D | awk 'tolower($0) ~ /nvidia|vga|3d controller/'"
+        ],
+        "exit_code": 0,
+        "output": "bash: line 1: lspci: command not found"
+      }
+    },
+    "p2p_accessibility": {
+      "matrix": [
+        [
+          true,
+          true
+        ],
+        [
+          true,
+          true
+        ]
+      ],
+      "consistent_across_ranks": true,
+      "bidirectional_gpu0_gpu1": true
+    }
+  },
+  "correctness": {
+    "B": {
+      "steps": 3,
+      "rank0_losses": [
+        11.035116195678711,
+        10.854598045349121,
+        10.677751541137695
+      ],
+      "per_step_checks": [
+        {
+          "step": 0,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        },
+        {
+          "step": 1,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        },
+        {
+          "step": 2,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        }
+      ],
+      "parameters_updated": true,
+      "all_ranks_initialized": true,
+      "forward_succeeded": true,
+      "backward_succeeded": true,
+      "sequence_parallel_active": true,
+      "te_linear_active": true,
+      "userbuffers_active": false,
+      "userbuffers_silent_fallback": false,
+      "max_measured_loss_difference_between_ranks": 0.0,
+      "nccl_errors": false,
+      "deadlock": false
+    },
+    "C1": {
+      "steps": 3,
+      "rank0_losses": [
+        11.035116195678711,
+        10.854659080505371,
+        10.676365852355957
+      ],
+      "per_step_checks": [
+        {
+          "step": 0,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        },
+        {
+          "step": 1,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        },
+        {
+          "step": 2,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        }
+      ],
+      "parameters_updated": true,
+      "all_ranks_initialized": true,
+      "forward_succeeded": true,
+      "backward_succeeded": true,
+      "sequence_parallel_active": true,
+      "te_linear_active": true,
+      "userbuffers_active": true,
+      "userbuffers_silent_fallback": false,
+      "max_measured_loss_difference_between_ranks": 0.0,
+      "nccl_errors": false,
+      "deadlock": false
+    },
+    "C2": {
+      "steps": 3,
+      "rank0_losses": [
+        11.035116195678711,
+        10.854631423950195,
+        10.676811218261719
+      ],
+      "per_step_checks": [
+        {
+          "step": 0,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        },
+        {
+          "step": 1,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        },
+        {
+          "step": 2,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true
+        }
+      ],
+      "parameters_updated": true,
+      "all_ranks_initialized": true,
+      "forward_succeeded": true,
+      "backward_succeeded": true,
+      "sequence_parallel_active": true,
+      "te_linear_active": true,
+      "userbuffers_active": true,
+      "userbuffers_silent_fallback": false,
+      "max_measured_loss_difference_between_ranks": 0.0,
+      "nccl_errors": false,
+      "deadlock": false
+    }
+  },
+  "userbuffers_runtime": {
+    "B": [
+      {
+        "rank": 0,
+        "requested": false,
+        "active": false,
+        "mode": "off",
+        "silent_fallback": false,
+        "config_tp_comm_overlap": false,
+        "config_flags": {
+          "tp_comm_overlap_ag": true,
+          "tp_comm_overlap_rs": true,
+          "tp_comm_bulk_dgrad": true,
+          "tp_comm_bulk_wgrad": true,
+          "tp_comm_overlap_rs_dgrad": false
+        },
+        "observed_paths": {
+          "column_ag_fprop": false,
+          "row_rs_fprop": false,
+          "row_ag_dgrad": false,
+          "column_rs_dgrad": false,
+          "column_bulk_dgrad": false,
+          "column_bulk_wgrad": false
+        },
+        "communicator_names": [],
+        "communicator_count": 0,
+        "linear_userbuffers": {
+          "attention_qkv": {
+            "type": "TELayerNormColumnParallelLinear",
+            "ub_name": null,
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          },
+          "attention_projection": {
+            "type": "TERowParallelLinear",
+            "ub_name": null,
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          },
+          "mlp_fc1": {
+            "type": "TELayerNormColumnParallelLinear",
+            "ub_name": null,
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          },
+          "mlp_fc2": {
+            "type": "TERowParallelLinear",
+            "ub_name": null,
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          }
+        },
+        "initialization": {
+          "requested": false,
+          "ub_skipmc": "1",
+          "cuda_device_max_connections": "1",
+          "nccl_p2p_disable": "0",
+          "initialized": false,
+          "communicator_names": [],
+          "shape": [
+            16384,
+            1024
+          ],
+          "bootstrap_backend": "nccl"
+        }
+      },
+      {
+        "rank": 1,
+        "requested": false,
+        "active": false,
+        "mode": "off",
+        "silent_fallback": false,
+        "config_tp_comm_overlap": false,
+        "config_flags": {
+          "tp_comm_overlap_ag": true,
+          "tp_comm_overlap_rs": true,
+          "tp_comm_bulk_dgrad": true,
+          "tp_comm_bulk_wgrad": true,
+          "tp_comm_overlap_rs_dgrad": false
+        },
+        "observed_paths": {
+          "column_ag_fprop": false,
+          "row_rs_fprop": false,
+          "row_ag_dgrad": false,
+          "column_rs_dgrad": false,
+          "column_bulk_dgrad": false,
+          "column_bulk_wgrad": false
+        },
+        "communicator_names": [],
+        "communicator_count": 0,
+        "linear_userbuffers": {
+          "attention_qkv": {
+            "type": "TELayerNormColumnParallelLinear",
+            "ub_name": null,
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          },
+          "attention_projection": {
+            "type": "TERowParallelLinear",
+            "ub_name": null,
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          },
+          "mlp_fc1": {
+            "type": "TELayerNormColumnParallelLinear",
+            "ub_name": null,
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          },
+          "mlp_fc2": {
+            "type": "TERowParallelLinear",
+            "ub_name": null,
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          }
+        },
+        "initialization": {
+          "requested": false,
+          "ub_skipmc": "1",
+          "cuda_device_max_connections": "1",
+          "nccl_p2p_disable": "0",
+          "initialized": false,
+          "communicator_names": [],
+          "shape": [
+            16384,
+            1024
+          ],
+          "bootstrap_backend": "nccl"
+        }
+      }
+    ],
+    "C1": [
+      {
+        "rank": 0,
+        "requested": true,
+        "active": true,
+        "mode": "ag_only",
+        "silent_fallback": false,
+        "config_tp_comm_overlap": true,
+        "config_flags": {
+          "tp_comm_overlap_ag": true,
+          "tp_comm_overlap_rs": false,
+          "tp_comm_bulk_dgrad": false,
+          "tp_comm_bulk_wgrad": false,
+          "tp_comm_overlap_rs_dgrad": false
+        },
+        "observed_paths": {
+          "column_ag_fprop": true,
+          "row_rs_fprop": false,
+          "row_ag_dgrad": true,
+          "column_rs_dgrad": false,
+          "column_bulk_dgrad": false,
+          "column_bulk_wgrad": false
+        },
+        "communicator_names": [
+          "fc1_dgrad",
+          "fc1_fprop",
+          "fc1_wgrad",
+          "fc2_dgrad",
+          "fc2_fprop",
+          "fc2_wgrad",
+          "proj_dgrad",
+          "proj_fprop",
+          "proj_wgrad",
+          "qkv_dgrad",
+          "qkv_fprop",
+          "qkv_wgrad"
+        ],
+        "communicator_count": 12,
+        "linear_userbuffers": {
+          "attention_qkv": {
+            "type": "TELayerNormColumnParallelLinear",
+            "ub_name": "qkv",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": true,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          },
+          "attention_projection": {
+            "type": "TERowParallelLinear",
+            "ub_name": "proj",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": true,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          },
+          "mlp_fc1": {
+            "type": "TELayerNormColumnParallelLinear",
+            "ub_name": "fc1",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": true,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          },
+          "mlp_fc2": {
+            "type": "TERowParallelLinear",
+            "ub_name": "fc2",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": true,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          }
+        },
+        "initialization": {
+          "requested": true,
+          "ub_skipmc": "1",
+          "cuda_device_max_connections": "1",
+          "nccl_p2p_disable": "0",
+          "initialized": true,
+          "communicator_names": [
+            "fc1_dgrad",
+            "fc1_fprop",
+            "fc1_wgrad",
+            "fc2_dgrad",
+            "fc2_fprop",
+            "fc2_wgrad",
+            "proj_dgrad",
+            "proj_fprop",
+            "proj_wgrad",
+            "qkv_dgrad",
+            "qkv_fprop",
+            "qkv_wgrad"
+          ],
+          "shape": [
+            16384,
+            1024
+          ],
+          "bootstrap_backend": "nccl",
+          "with_cublasmp": false,
+          "communicator_count": 12
+        }
+      },
+      {
+        "rank": 1,
+        "requested": true,
+        "active": true,
+        "mode": "ag_only",
+        "silent_fallback": false,
+        "config_tp_comm_overlap": true,
+        "config_flags": {
+          "tp_comm_overlap_ag": true,
+          "tp_comm_overlap_rs": false,
+          "tp_comm_bulk_dgrad": false,
+          "tp_comm_bulk_wgrad": false,
+          "tp_comm_overlap_rs_dgrad": false
+        },
+        "observed_paths": {
+          "column_ag_fprop": true,
+          "row_rs_fprop": false,
+          "row_ag_dgrad": true,
+          "column_rs_dgrad": false,
+          "column_bulk_dgrad": false,
+          "column_bulk_wgrad": false
+        },
+        "communicator_names": [
+          "fc1_dgrad",
+          "fc1_fprop",
+          "fc1_wgrad",
+          "fc2_dgrad",
+          "fc2_fprop",
+          "fc2_wgrad",
+          "proj_dgrad",
+          "proj_fprop",
+          "proj_wgrad",
+          "qkv_dgrad",
+          "qkv_fprop",
+          "qkv_wgrad"
+        ],
+        "communicator_count": 12,
+        "linear_userbuffers": {
+          "attention_qkv": {
+            "type": "TELayerNormColumnParallelLinear",
+            "ub_name": "qkv",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": true,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          },
+          "attention_projection": {
+            "type": "TERowParallelLinear",
+            "ub_name": "proj",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": true,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          },
+          "mlp_fc1": {
+            "type": "TELayerNormColumnParallelLinear",
+            "ub_name": "fc1",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": true,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          },
+          "mlp_fc2": {
+            "type": "TERowParallelLinear",
+            "ub_name": "fc2",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": true,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          }
+        },
+        "initialization": {
+          "requested": true,
+          "ub_skipmc": "1",
+          "cuda_device_max_connections": "1",
+          "nccl_p2p_disable": "0",
+          "initialized": true,
+          "communicator_names": [
+            "fc1_dgrad",
+            "fc1_fprop",
+            "fc1_wgrad",
+            "fc2_dgrad",
+            "fc2_fprop",
+            "fc2_wgrad",
+            "proj_dgrad",
+            "proj_fprop",
+            "proj_wgrad",
+            "qkv_dgrad",
+            "qkv_fprop",
+            "qkv_wgrad"
+          ],
+          "shape": [
+            16384,
+            1024
+          ],
+          "bootstrap_backend": "nccl",
+          "with_cublasmp": false,
+          "communicator_count": 12
+        }
+      }
+    ],
+    "C2": [
+      {
+        "rank": 0,
+        "requested": true,
+        "active": true,
+        "mode": "ag_plus_bulk_dgrad",
+        "silent_fallback": false,
+        "config_tp_comm_overlap": true,
+        "config_flags": {
+          "tp_comm_overlap_ag": true,
+          "tp_comm_overlap_rs": false,
+          "tp_comm_bulk_dgrad": true,
+          "tp_comm_bulk_wgrad": false,
+          "tp_comm_overlap_rs_dgrad": false
+        },
+        "observed_paths": {
+          "column_ag_fprop": true,
+          "row_rs_fprop": false,
+          "row_ag_dgrad": true,
+          "column_rs_dgrad": false,
+          "column_bulk_dgrad": true,
+          "column_bulk_wgrad": false
+        },
+        "communicator_names": [
+          "fc1_dgrad",
+          "fc1_fprop",
+          "fc1_wgrad",
+          "fc2_dgrad",
+          "fc2_fprop",
+          "fc2_wgrad",
+          "proj_dgrad",
+          "proj_fprop",
+          "proj_wgrad",
+          "qkv_dgrad",
+          "qkv_fprop",
+          "qkv_wgrad"
+        ],
+        "communicator_count": 12,
+        "linear_userbuffers": {
+          "attention_qkv": {
+            "type": "TELayerNormColumnParallelLinear",
+            "ub_name": "qkv",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": true,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": true,
+            "ub_bulk_wgrad": false
+          },
+          "attention_projection": {
+            "type": "TERowParallelLinear",
+            "ub_name": "proj",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": true,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          },
+          "mlp_fc1": {
+            "type": "TELayerNormColumnParallelLinear",
+            "ub_name": "fc1",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": true,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": true,
+            "ub_bulk_wgrad": false
+          },
+          "mlp_fc2": {
+            "type": "TERowParallelLinear",
+            "ub_name": "fc2",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": true,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          }
+        },
+        "initialization": {
+          "requested": true,
+          "ub_skipmc": "1",
+          "cuda_device_max_connections": "1",
+          "nccl_p2p_disable": "0",
+          "initialized": true,
+          "communicator_names": [
+            "fc1_dgrad",
+            "fc1_fprop",
+            "fc1_wgrad",
+            "fc2_dgrad",
+            "fc2_fprop",
+            "fc2_wgrad",
+            "proj_dgrad",
+            "proj_fprop",
+            "proj_wgrad",
+            "qkv_dgrad",
+            "qkv_fprop",
+            "qkv_wgrad"
+          ],
+          "shape": [
+            16384,
+            1024
+          ],
+          "bootstrap_backend": "nccl",
+          "with_cublasmp": false,
+          "communicator_count": 12
+        }
+      },
+      {
+        "rank": 1,
+        "requested": true,
+        "active": true,
+        "mode": "ag_plus_bulk_dgrad",
+        "silent_fallback": false,
+        "config_tp_comm_overlap": true,
+        "config_flags": {
+          "tp_comm_overlap_ag": true,
+          "tp_comm_overlap_rs": false,
+          "tp_comm_bulk_dgrad": true,
+          "tp_comm_bulk_wgrad": false,
+          "tp_comm_overlap_rs_dgrad": false
+        },
+        "observed_paths": {
+          "column_ag_fprop": true,
+          "row_rs_fprop": false,
+          "row_ag_dgrad": true,
+          "column_rs_dgrad": false,
+          "column_bulk_dgrad": true,
+          "column_bulk_wgrad": false
+        },
+        "communicator_names": [
+          "fc1_dgrad",
+          "fc1_fprop",
+          "fc1_wgrad",
+          "fc2_dgrad",
+          "fc2_fprop",
+          "fc2_wgrad",
+          "proj_dgrad",
+          "proj_fprop",
+          "proj_wgrad",
+          "qkv_dgrad",
+          "qkv_fprop",
+          "qkv_wgrad"
+        ],
+        "communicator_count": 12,
+        "linear_userbuffers": {
+          "attention_qkv": {
+            "type": "TELayerNormColumnParallelLinear",
+            "ub_name": "qkv",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": true,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": true,
+            "ub_bulk_wgrad": false
+          },
+          "attention_projection": {
+            "type": "TERowParallelLinear",
+            "ub_name": "proj",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": true,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          },
+          "mlp_fc1": {
+            "type": "TELayerNormColumnParallelLinear",
+            "ub_name": "fc1",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": true,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": false,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": true,
+            "ub_bulk_wgrad": false
+          },
+          "mlp_fc2": {
+            "type": "TERowParallelLinear",
+            "ub_name": "fc2",
+            "ub_overlap_ag": false,
+            "ub_overlap_rs": false,
+            "ub_overlap_ag_fprop": false,
+            "ub_overlap_rs_fprop": false,
+            "ub_overlap_ag_dgrad": true,
+            "ub_overlap_rs_dgrad": false,
+            "ub_bulk_dgrad": false,
+            "ub_bulk_wgrad": false
+          }
+        },
+        "initialization": {
+          "requested": true,
+          "ub_skipmc": "1",
+          "cuda_device_max_connections": "1",
+          "nccl_p2p_disable": "0",
+          "initialized": true,
+          "communicator_names": [
+            "fc1_dgrad",
+            "fc1_fprop",
+            "fc1_wgrad",
+            "fc2_dgrad",
+            "fc2_fprop",
+            "fc2_wgrad",
+            "proj_dgrad",
+            "proj_fprop",
+            "proj_wgrad",
+            "qkv_dgrad",
+            "qkv_fprop",
+            "qkv_wgrad"
+          ],
+          "shape": [
+            16384,
+            1024
+          ],
+          "bootstrap_backend": "nccl",
+          "with_cublasmp": false,
+          "communicator_count": 12
+        }
+      }
+    ]
+  },
+  "fast_screen": {
+    "B": {
+      "tensor_parallel": 2,
+      "sequence_parallel": true,
+      "average_step_time_ms": 601.8019489012659,
+      "median_step_time_ms": 601.6718782484531,
+      "tokens_per_second": 27224.903525010068,
+      "aggregate_mfu_percent": 22.03268515316954,
+      "rank_timing_and_memory": [
+        {
+          "rank": 0,
+          "step_times_ms": [
+            600.9756233543158,
+            601.2086346745491,
+            601.1441992595792,
+            601.5014313161373,
+            601.6967566683888,
+            601.5605619177222,
+            601.3572970405221,
+            601.4856519177556,
+            601.727232336998,
+            601.9232170656323,
+            601.5535201877356,
+            601.3478422537446,
+            600.9646309539676,
+            601.5895549207926,
+            602.3647710680962,
+            602.2181371226907,
+            602.5889655575156,
+            602.2749990224838,
+            602.93735191226,
+            602.2820537909865
+          ],
+          "peak_allocated_memory_mib": 12073.982421875,
+          "peak_reserved_memory_mib": 12436.0
+        },
+        {
+          "rank": 1,
+          "step_times_ms": [
+            601.1494444683194,
+            601.3448908925056,
+            601.0764054954052,
+            601.2549865990877,
+            601.6084980219603,
+            601.6469998285174,
+            601.4636447653174,
+            601.5666835010052,
+            601.6646064817905,
+            602.0419970154762,
+            601.4797016978264,
+            601.1245045810938,
+            601.1624094098806,
+            601.8456136807799,
+            601.9459329545498,
+            602.1792162209749,
+            602.6976853609085,
+            602.3463131859899,
+            602.8640111908317,
+            602.0369464531541
+          ],
+          "peak_allocated_memory_mib": 12073.982421875,
+          "peak_reserved_memory_mib": 12436.0
+        }
+      ],
+      "gpu_monitoring": {
+        "0": {
+          "sample_count": 120,
+          "average_utilization_percent": 99.76666666666667,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 17162.0
+        },
+        "1": {
+          "sample_count": 120,
+          "average_utilization_percent": 99.83333333333333,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 17162.0
+        }
+      }
+    },
+    "C1": {
+      "tensor_parallel": 2,
+      "sequence_parallel": true,
+      "average_step_time_ms": 564.0536838211119,
+      "median_step_time_ms": 564.0741330571473,
+      "tokens_per_second": 29046.880589465563,
+      "aggregate_mfu_percent": 23.507182463346112,
+      "rank_timing_and_memory": [
+        {
+          "rank": 0,
+          "step_times_ms": [
+            563.8404712080956,
+            563.9941077679396,
+            564.2931209877133,
+            564.1911020502448,
+            564.1789091750979,
+            564.2839232459664,
+            564.3273601308465,
+            564.2921663820744,
+            564.3233889713883,
+            563.9745900407434,
+            564.3371948972344,
+            563.890028744936,
+            564.1533108428121,
+            564.2666965723038,
+            563.4730728343129,
+            563.6550271883607,
+            563.5335417464375,
+            563.6823009699583,
+            563.8371715322137,
+            563.584846444428
+          ],
+          "peak_allocated_memory_mib": 12085.982421875,
+          "peak_reserved_memory_mib": 12452.0
+        },
+        {
+          "rank": 1,
+          "step_times_ms": [
+            563.9949552714825,
+            563.896500505507,
+            564.2229970544577,
+            564.1894349828362,
+            564.446865580976,
+            563.8802740722895,
+            564.4559385254979,
+            564.2903940752149,
+            564.3547913059592,
+            563.9648549258709,
+            564.2947535961866,
+            563.9940546825528,
+            564.0514576807618,
+            564.3873084336519,
+            563.3288146927953,
+            563.707915134728,
+            563.5611014440656,
+            563.6515552178025,
+            563.8192053884268,
+            563.6586844921112
+          ],
+          "peak_allocated_memory_mib": 12085.982421875,
+          "peak_reserved_memory_mib": 12452.0
+        }
+      ],
+      "gpu_monitoring": {
+        "0": {
+          "sample_count": 113,
+          "average_utilization_percent": 99.76991150442478,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 17650.0
+        },
+        "1": {
+          "sample_count": 113,
+          "average_utilization_percent": 99.82300884955752,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 17650.0
+        }
+      }
+    },
+    "C2": {
+      "tensor_parallel": 2,
+      "sequence_parallel": true,
+      "average_step_time_ms": 578.6977967713028,
+      "median_step_time_ms": 578.5991325974464,
+      "tokens_per_second": 28311.840984034086,
+      "aggregate_mfu_percent": 22.91232650043317,
+      "rank_timing_and_memory": [
+        {
+          "rank": 0,
+          "step_times_ms": [
+            578.4490369260311,
+            578.4482983872294,
+            578.3906644210219,
+            578.7910940125585,
+            578.8566814735532,
+            579.2039064690471,
+            579.0559770539403,
+            579.0845332667232,
+            579.2071232572198,
+            579.1956074535847,
+            578.6754619330168,
+            578.6131285130978,
+            578.672799281776,
+            578.3982761204243,
+            578.5093447193503,
+            578.4740839153528,
+            578.421775251627,
+            578.0290849506855,
+            578.3159602433443,
+            578.1600195914507
+          ],
+          "peak_allocated_memory_mib": 12085.982421875,
+          "peak_reserved_memory_mib": 12452.0
+        },
+        {
+          "rank": 1,
+          "step_times_ms": [
+            578.4598272293806,
+            578.4324668347836,
+            578.3936735242605,
+            578.7623953074217,
+            579.0086863562465,
+            578.8167743012309,
+            579.3206011876464,
+            579.0682779625058,
+            579.4826811179519,
+            578.8834700360894,
+            578.665834851563,
+            578.6685990169644,
+            578.7045452743769,
+            578.5296661779284,
+            578.3411068841815,
+            578.4484073519707,
+            578.415828756988,
+            577.9863800853491,
+            578.3894350752234,
+            578.1650301069021
+          ],
+          "peak_allocated_memory_mib": 12085.982421875,
+          "peak_reserved_memory_mib": 12452.0
+        }
+      ],
+      "gpu_monitoring": {
+        "0": {
+          "sample_count": 115,
+          "average_utilization_percent": 99.77391304347826,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 17650.0
+        },
+        "1": {
+          "sample_count": 115,
+          "average_utilization_percent": 99.77391304347826,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 17650.0
+        }
+      }
+    },
+    "C1_over_B": {
+      "speedup": 1.0669231779933304,
+      "throughput_gain_percent": 6.692317799333036
+    },
+    "C2_over_B": {
+      "speedup": 1.0399243823959012,
+      "throughput_gain_percent": 3.9924382395901237
+    }
+  },
+  "memory": {
+    "B": {
+      "per_rank_torch": [
+        {
+          "rank": 0,
+          "peak_allocated_memory_mib": 12073.982421875,
+          "peak_reserved_memory_mib": 12436.0
+        },
+        {
+          "rank": 1,
+          "peak_allocated_memory_mib": 12073.982421875,
+          "peak_reserved_memory_mib": 12436.0
+        }
+      ],
+      "per_gpu_nvidia_smi_mib": {
+        "0": 17162.0,
+        "1": 17162.0
+      },
+      "max_allocated_mib": 12073.982421875,
+      "max_nvidia_smi_mib": 17162.0
+    },
+    "C1": {
+      "per_rank_torch": [
+        {
+          "rank": 0,
+          "peak_allocated_memory_mib": 12085.982421875,
+          "peak_reserved_memory_mib": 12452.0
+        },
+        {
+          "rank": 1,
+          "peak_allocated_memory_mib": 12085.982421875,
+          "peak_reserved_memory_mib": 12452.0
+        }
+      ],
+      "per_gpu_nvidia_smi_mib": {
+        "0": 17650.0,
+        "1": 17650.0
+      },
+      "max_allocated_mib": 12085.982421875,
+      "max_nvidia_smi_mib": 17650.0
+    },
+    "C2": {
+      "per_rank_torch": [
+        {
+          "rank": 0,
+          "peak_allocated_memory_mib": 12085.982421875,
+          "peak_reserved_memory_mib": 12452.0
+        },
+        {
+          "rank": 1,
+          "peak_allocated_memory_mib": 12085.982421875,
+          "peak_reserved_memory_mib": 12452.0
+        }
+      ],
+      "per_gpu_nvidia_smi_mib": {
+        "0": 17650.0,
+        "1": 17650.0
+      },
+      "max_allocated_mib": 12085.982421875,
+      "max_nvidia_smi_mib": 17650.0
+    }
+  },
+  "communication": {
+    "B": {
+      "all_reduce_count_per_step": 6.0,
+      "all_gather_count_per_step": 147.0,
+      "reduce_scatter_count_per_step": 97.0,
+      "all_reduce_ms_per_step": 3.6043659,
+      "all_gather_ms_per_step": 133.3547393,
+      "reduce_scatter_ms_per_step": 92.28071200000001,
+      "nccl_ms_per_step": 229.2398172,
+      "userbuffer_ms_per_step": 0.0,
+      "p2p_memcpy_ms_per_step": 0.0,
+      "communication_ms_per_step": 229.2398172,
+      "average_communication_compute_overlap_percent": 0.0,
+      "average_exposed_communication_ms_per_step": 229.2398172,
+      "average_idle_or_gap_ms_per_step": 11.430543700000001,
+      "per_device_overlap": {
+        "0": {
+          "communication_union_ms_per_step": 229.9276884,
+          "compute_union_ms_per_step": 402.7494486,
+          "communication_compute_overlap_ms_per_step": 0.0,
+          "communication_overlap_percent": 0.0,
+          "exposed_communication_ms_per_step": 229.9276884,
+          "idle_or_gap_ms_per_step": 11.5478684,
+          "ag_communication_union_ms_per_step": 134.029742,
+          "gemm_union_ms_per_step": 156.44787100000002,
+          "ag_gemm_overlap_ms_per_step": 0.0,
+          "ag_gemm_overlap_percent": 0.0,
+          "exposed_ag_communication_ms_per_step": 134.029742
+        },
+        "1": {
+          "communication_union_ms_per_step": 228.551946,
+          "compute_union_ms_per_step": 404.3598404,
+          "communication_compute_overlap_ms_per_step": 0.0,
+          "communication_overlap_percent": 0.0,
+          "exposed_communication_ms_per_step": 228.551946,
+          "idle_or_gap_ms_per_step": 11.313219,
+          "ag_communication_union_ms_per_step": 132.6797366,
+          "gemm_union_ms_per_step": 157.886216,
+          "ag_gemm_overlap_ms_per_step": 0.0,
+          "ag_gemm_overlap_percent": 0.0,
+          "exposed_ag_communication_ms_per_step": 132.6797366
+        }
+      }
+    },
+    "C1": {
+      "all_reduce_count_per_step": 5.9,
+      "all_gather_count_per_step": 51.0,
+      "reduce_scatter_count_per_step": 96.8,
+      "all_reduce_ms_per_step": 3.1996935,
+      "all_gather_ms_per_step": 46.5805869,
+      "reduce_scatter_ms_per_step": 92.2507978,
+      "nccl_ms_per_step": 142.0310782,
+      "userbuffer_ms_per_step": 1.4379625,
+      "p2p_memcpy_ms_per_step": 61.9027735,
+      "communication_ms_per_step": 205.37181420000002,
+      "average_communication_compute_overlap_percent": 11.58599326984974,
+      "average_exposed_communication_ms_per_step": 181.36382250000003,
+      "average_idle_or_gap_ms_per_step": 20.1471605,
+      "per_device_overlap": {
+        "0": {
+          "communication_union_ms_per_step": 206.1897458,
+          "compute_union_ms_per_step": 406.102034,
+          "communication_compute_overlap_ms_per_step": 23.7583532,
+          "communication_overlap_percent": 11.522567772621018,
+          "exposed_communication_ms_per_step": 182.4313926,
+          "idle_or_gap_ms_per_step": 18.9822918,
+          "ag_communication_union_ms_per_step": 46.4979012,
+          "gemm_union_ms_per_step": 159.520343,
+          "ag_gemm_overlap_ms_per_step": 0.0,
+          "ag_gemm_overlap_percent": 0.0,
+          "exposed_ag_communication_ms_per_step": 46.4979012
+        },
+        "1": {
+          "communication_union_ms_per_step": 204.0691186,
+          "compute_union_ms_per_step": 405.9074368,
+          "communication_compute_overlap_ms_per_step": 23.772866200000003,
+          "communication_overlap_percent": 11.64941876707846,
+          "exposed_communication_ms_per_step": 180.29625240000001,
+          "idle_or_gap_ms_per_step": 21.3120292,
+          "ag_communication_union_ms_per_step": 46.6632726,
+          "gemm_union_ms_per_step": 160.211097,
+          "ag_gemm_overlap_ms_per_step": 0.0,
+          "ag_gemm_overlap_percent": 0.0,
+          "exposed_ag_communication_ms_per_step": 46.6632726
+        }
+      }
+    },
+    "C2": {
+      "all_reduce_count_per_step": 6.0,
+      "all_gather_count_per_step": 3.0,
+      "reduce_scatter_count_per_step": 97.0,
+      "all_reduce_ms_per_step": 3.4354556,
+      "all_gather_ms_per_step": 3.5564349999999996,
+      "reduce_scatter_ms_per_step": 92.0342627,
+      "nccl_ms_per_step": 99.0261533,
+      "userbuffer_ms_per_step": 39.597546699999995,
+      "p2p_memcpy_ms_per_step": 61.9828697,
+      "communication_ms_per_step": 200.6065697,
+      "average_communication_compute_overlap_percent": 30.99962220656498,
+      "average_exposed_communication_ms_per_step": 138.2537673,
+      "average_idle_or_gap_ms_per_step": 21.4182045,
+      "per_device_overlap": {
+        "0": {
+          "communication_union_ms_per_step": 201.3560708,
+          "compute_union_ms_per_step": 441.4716426,
+          "communication_compute_overlap_ms_per_step": 62.2928428,
+          "communication_overlap_percent": 30.93665989433878,
+          "exposed_communication_ms_per_step": 139.063228,
+          "idle_or_gap_ms_per_step": 21.364224200000002,
+          "ag_communication_union_ms_per_step": 42.093808,
+          "gemm_union_ms_per_step": 194.9651282,
+          "ag_gemm_overlap_ms_per_step": 38.523651799999996,
+          "ag_gemm_overlap_percent": 91.51857156758068,
+          "exposed_ag_communication_ms_per_step": 3.5701562000000004
+        },
+        "1": {
+          "communication_union_ms_per_step": 199.3754852,
+          "compute_union_ms_per_step": 442.98260339999996,
+          "communication_compute_overlap_ms_per_step": 61.931178599999996,
+          "communication_overlap_percent": 31.06258451879118,
+          "exposed_communication_ms_per_step": 137.4443066,
+          "idle_or_gap_ms_per_step": 21.4721848,
+          "ag_communication_union_ms_per_step": 41.610450400000005,
+          "gemm_union_ms_per_step": 196.20165500000002,
+          "ag_gemm_overlap_ms_per_step": 38.0382132,
+          "ag_gemm_overlap_percent": 91.41504798515712,
+          "exposed_ag_communication_ms_per_step": 3.5722372
+        }
+      }
+    }
+  },
+  "ag_gemm_overlap": {
+    "B": {
+      "average_ag_gemm_overlap_percent": 0.0,
+      "average_ag_communication_ms_per_step": 133.3547393,
+      "average_ag_gemm_overlap_ms_per_step": 0.0,
+      "average_exposed_ag_ms_per_step": 133.3547393,
+      "ag_communication_kernel_launches": 1470,
+      "rs_communication_kernel_launches": 970,
+      "hang_rs_kernel_launches": 0,
+      "gemm_kernel_launches": 3150,
+      "top_ag_communication_kernels": [
+        {
+          "name": "ncclDevKernel_AllGather_RING_LL(ncclDevKernelArgsStorage<(unsigned long)4096>)",
+          "count": 1470,
+          "total_ms_all_gpus": 1333.547393
+        }
+      ],
+      "top_userbuffer_kernels": [],
+      "top_gemm_kernels": [
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x128_32x4_nn_align8>(T1::Params)",
+          "count": 480,
+          "total_ms_all_gpus": 247.449474
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x256_32x3_nn_align8>(T1::Params)",
+          "count": 250,
+          "total_ms_all_gpus": 213.417874
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nt",
+          "count": 250,
+          "total_ms_all_gpus": 170.315288
+        },
+        {
+          "name": "ampere_bf16_s16816gemm_bf16_256x128_ldg8_relu_f2f_stages_32x3_tn",
+          "count": 240,
+          "total_ms_all_gpus": 113.540298
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_tn",
+          "count": 240,
+          "total_ms_all_gpus": 44.258829
+        },
+        {
+          "name": "ampere_bf16_s16816gemm_bf16_256x128_ldg8_f2f_stages_32x3_tn",
+          "count": 240,
+          "total_ms_all_gpus": 144.884053
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_tn",
+          "count": 240,
+          "total_ms_all_gpus": 139.967785
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x128_32x5_nt_align8>(T1::Params)",
+          "count": 240,
+          "total_ms_all_gpus": 155.236945
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x256_32x3_nt_align8>(T1::Params)",
+          "count": 240,
+          "total_ms_all_gpus": 157.204892
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nn",
+          "count": 240,
+          "total_ms_all_gpus": 40.717743
+        }
+      ],
+      "per_device": {
+        "0": {
+          "ag_gemm_overlap_percent": 0.0,
+          "ag_communication_union_ms_per_step": 134.029742,
+          "ag_gemm_overlap_ms_per_step": 0.0,
+          "exposed_ag_communication_ms_per_step": 134.029742
+        },
+        "1": {
+          "ag_gemm_overlap_percent": 0.0,
+          "ag_communication_union_ms_per_step": 132.6797366,
+          "ag_gemm_overlap_ms_per_step": 0.0,
+          "exposed_ag_communication_ms_per_step": 132.6797366
+        }
+      }
+    },
+    "C1": {
+      "average_ag_gemm_overlap_percent": 0.0,
+      "average_ag_communication_ms_per_step": 46.5805869,
+      "average_ag_gemm_overlap_ms_per_step": 0.0,
+      "average_exposed_ag_ms_per_step": 46.5805869,
+      "ag_communication_kernel_launches": 510,
+      "rs_communication_kernel_launches": 968,
+      "hang_rs_kernel_launches": 0,
+      "gemm_kernel_launches": 4104,
+      "top_ag_communication_kernels": [
+        {
+          "name": "ncclDevKernel_AllGather_RING_LL(ncclDevKernelArgsStorage<(unsigned long)4096>)",
+          "count": 510,
+          "total_ms_all_gpus": 465.805869
+        }
+      ],
+      "top_userbuffer_kernels": [
+        {
+          "name": "kuserbuffers_pushsend(int *, int *, int4 *, int4 *, int)",
+          "count": 958,
+          "total_ms_all_gpus": 3.207123
+        },
+        {
+          "name": "kuserbuffers_pushrecv(int, int, int, int, int *, int *, int, unsigned long, int *, int *)",
+          "count": 958,
+          "total_ms_all_gpus": 11.172502
+        }
+      ],
+      "top_gemm_kernels": [
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_tn",
+          "count": 717,
+          "total_ms_all_gpus": 286.702731
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x256_32x3_nn_align8>(T1::Params)",
+          "count": 490,
+          "total_ms_all_gpus": 227.206904
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x128_32x4_nn_align8>(T1::Params)",
+          "count": 480,
+          "total_ms_all_gpus": 248.059406
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x256_ldg8_f2f_stages_32x1_nn",
+          "count": 480,
+          "total_ms_all_gpus": 48.786117
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_relu_f2f_tn",
+          "count": 478,
+          "total_ms_all_gpus": 115.448534
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nt",
+          "count": 250,
+          "total_ms_all_gpus": 170.604095
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x128_32x5_nt_align8>(T1::Params)",
+          "count": 240,
+          "total_ms_all_gpus": 155.549296
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x256_32x3_nt_align8>(T1::Params)",
+          "count": 240,
+          "total_ms_all_gpus": 157.643236
+        },
+        {
+          "name": "ampere_bf16_s16816gemm_bf16_128x128_ldg8_f2f_stages_32x5_nt",
+          "count": 240,
+          "total_ms_all_gpus": 39.80518
+        },
+        {
+          "name": "void cublasLt::epilogue::impl::globalKernelBgradAB_v2<(int)8, (int)128, __nv_bfloat16, __nv_bfloat16, float>(int, int, int, const T3 *, int, T4 *, long, long)",
+          "count": 240,
+          "total_ms_all_gpus": 31.257369
+        }
+      ],
+      "per_device": {
+        "0": {
+          "ag_gemm_overlap_percent": 0.0,
+          "ag_communication_union_ms_per_step": 46.4979012,
+          "ag_gemm_overlap_ms_per_step": 0.0,
+          "exposed_ag_communication_ms_per_step": 46.4979012
+        },
+        "1": {
+          "ag_gemm_overlap_percent": 0.0,
+          "ag_communication_union_ms_per_step": 46.6632726,
+          "ag_gemm_overlap_ms_per_step": 0.0,
+          "exposed_ag_communication_ms_per_step": 46.6632726
+        }
+      }
+    },
+    "C2": {
+      "average_ag_gemm_overlap_percent": 91.4668097763689,
+      "average_ag_communication_ms_per_step": 41.85212920000001,
+      "average_ag_gemm_overlap_ms_per_step": 38.2809325,
+      "average_exposed_ag_ms_per_step": 3.5711967000000002,
+      "ag_communication_kernel_launches": 510,
+      "rs_communication_kernel_launches": 970,
+      "hang_rs_kernel_launches": 0,
+      "gemm_kernel_launches": 4110,
+      "top_ag_communication_kernels": [
+        {
+          "name": "void userbuffers_fp16_sum_inplace_gpu_rw_ag<(int)2>(int, int, int, int, int, int, int, void **, int, unsigned long)",
+          "count": 480,
+          "total_ms_all_gpus": 382.956942
+        },
+        {
+          "name": "ncclDevKernel_AllGather_RING_LL(ncclDevKernelArgsStorage<(unsigned long)4096>)",
+          "count": 30,
+          "total_ms_all_gpus": 35.56435
+        }
+      ],
+      "top_userbuffer_kernels": [
+        {
+          "name": "kuserbuffers_pushsend(int *, int *, int4 *, int4 *, int)",
+          "count": 960,
+          "total_ms_all_gpus": 3.187411
+        },
+        {
+          "name": "kuserbuffers_pushrecv(int, int, int, int, int *, int *, int, unsigned long, int *, int *)",
+          "count": 960,
+          "total_ms_all_gpus": 9.831114
+        },
+        {
+          "name": "void userbuffers_fp16_sum_inplace_gpu_rw_ag<(int)2>(int, int, int, int, int, int, int, void **, int, unsigned long)",
+          "count": 480,
+          "total_ms_all_gpus": 382.956942
+        }
+      ],
+      "top_gemm_kernels": [
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_tn",
+          "count": 720,
+          "total_ms_all_gpus": 287.915912
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x256_32x3_nn_align8>(T1::Params)",
+          "count": 490,
+          "total_ms_all_gpus": 227.162044
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_relu_f2f_tn",
+          "count": 480,
+          "total_ms_all_gpus": 115.912641
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x128_32x4_nn_align8>(T1::Params)",
+          "count": 480,
+          "total_ms_all_gpus": 603.614901
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x256_ldg8_f2f_stages_32x1_nn",
+          "count": 480,
+          "total_ms_all_gpus": 48.720816
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nt",
+          "count": 250,
+          "total_ms_all_gpus": 170.665798
+        },
+        {
+          "name": "ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_tn",
+          "count": 240,
+          "total_ms_all_gpus": 44.242885
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x128_32x5_nt_align8>(T1::Params)",
+          "count": 240,
+          "total_ms_all_gpus": 155.437855
+        },
+        {
+          "name": "void cutlass::Kernel2<cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x256_32x3_nt_align8>(T1::Params)",
+          "count": 240,
+          "total_ms_all_gpus": 157.61305
+        },
+        {
+          "name": "ampere_bf16_s16816gemm_bf16_128x128_ldg8_f2f_stages_32x5_nt",
+          "count": 240,
+          "total_ms_all_gpus": 39.755349
+        }
+      ],
+      "per_device": {
+        "0": {
+          "ag_gemm_overlap_percent": 91.51857156758068,
+          "ag_communication_union_ms_per_step": 42.093808,
+          "ag_gemm_overlap_ms_per_step": 38.523651799999996,
+          "exposed_ag_communication_ms_per_step": 3.5701562000000004
+        },
+        "1": {
+          "ag_gemm_overlap_percent": 91.41504798515712,
+          "ag_communication_union_ms_per_step": 41.610450400000005,
+          "ag_gemm_overlap_ms_per_step": 38.0382132,
+          "exposed_ag_communication_ms_per_step": 3.5722372
+        }
+      }
+    }
+  },
+  "exposed_communication_B_to_C1": {
+    "B_exposed_ms": 229.2398172,
+    "C1_exposed_ms": 181.36382250000003,
+    "delta_ms": -47.87599469999998
+  },
+  "formal_benchmark": {
+    "B": {
+      "tensor_parallel": 2,
+      "sequence_parallel": true,
+      "average_step_time_ms": 602.1499312669039,
+      "median_step_time_ms": 602.1368624642491,
+      "tokens_per_second": 27209.170256863763,
+      "aggregate_mfu_percent": 22.019952467333592,
+      "rank_timing_and_memory": [
+        {
+          "rank": 0,
+          "step_times_ms": [
+            601.6898127272725,
+            601.4887737110257,
+            601.160547696054,
+            601.3701166957617,
+            601.9005421549082,
+            601.7156122252345,
+            601.3875985518098,
+            601.6282802447677,
+            601.9977126270533,
+            601.4831336215138,
+            601.5582475811243,
+            601.9105231389403,
+            602.2985195741057,
+            601.4861417934299,
+            601.7911490052938,
+            602.0146422088146,
+            601.9040327519178,
+            601.6154838725924,
+            601.5585968270898,
+            601.5603691339493,
+            601.5120120719075,
+            601.4251783490181,
+            601.757432334125,
+            601.6503591090441,
+            602.1582614630461,
+            602.0496552810073,
+            601.8893765285611,
+            601.4714110642672,
+            601.7719572409987,
+            601.7176313325763,
+            601.3376777991652,
+            601.3609822839499,
+            602.147588506341,
+            601.9642148166895,
+            601.8566498532891,
+            602.411893196404,
+            602.081224322319,
+            601.6394551843405,
+            601.893113926053,
+            601.5668893232942,
+            602.0561009645462,
+            602.1350771188736,
+            601.9817152991891,
+            602.3283097893,
+            602.1233350038528,
+            602.2375412285328,
+            601.94325260818,
+            601.989047601819,
+            601.649540476501,
+            601.884488016367,
+            602.4469286203384,
+            602.2247234359384,
+            602.039972320199,
+            602.6300992816687,
+            602.4887897074223,
+            601.956213824451,
+            602.1830271929502,
+            602.1938510239124,
+            602.1890752017498,
+            602.5636717677116,
+            602.4337848648429,
+            602.9785610735416,
+            602.2117910906672,
+            602.3286329582334,
+            601.9607046619058,
+            602.1289834752679,
+            602.4557249620557,
+            602.5346266105771,
+            602.5039991363883,
+            602.7892716228962,
+            602.4455009028316,
+            602.3686761036515,
+            602.0982032641768,
+            602.1383590996265,
+            602.4235459044576,
+            602.1881187334657,
+            602.7507036924362,
+            602.82351821661,
+            601.9882131367922,
+            602.0095152780414,
+            601.9782079383731,
+            602.024064399302,
+            602.6506256312132,
+            602.4098908528686,
+            602.8367290273309,
+            602.5712247937918,
+            602.2104555740952,
+            602.6373049244285,
+            602.1214574575424,
+            602.8769612312317,
+            602.6510251685977,
+            602.4508103728294,
+            602.5252379477024,
+            602.674825116992,
+            602.4018926545978,
+            602.0299475640059,
+            602.1416485309601,
+            602.5832733139396,
+            602.2853627800941,
+            602.8934828937054
+          ],
+          "peak_allocated_memory_mib": 12073.982421875,
+          "peak_reserved_memory_mib": 12436.0
+        },
+        {
+          "rank": 1,
+          "step_times_ms": [
+            601.6799537464976,
+            601.4072382822633,
+            601.507811807096,
+            601.2389753013849,
+            601.7307518050075,
+            601.7881305888295,
+            601.3941476121545,
+            602.0500836893916,
+            601.6914946958423,
+            601.5112083405256,
+            601.5727343037724,
+            602.1323092281818,
+            602.0332789048553,
+            601.4985833317041,
+            601.5838012099266,
+            602.2394709289074,
+            601.8923418596387,
+            601.3739304617047,
+            601.684371009469,
+            601.5243073925376,
+            601.5029735863209,
+            601.3555321842432,
+            601.9045915454626,
+            601.6398258507252,
+            602.0573461428285,
+            602.0252639427781,
+            601.9966974854469,
+            601.4831401407719,
+            601.8032785505056,
+            601.5882836654782,
+            601.3257941231132,
+            601.4006370678544,
+            602.1051192656159,
+            602.0233212038875,
+            602.1414157003164,
+            602.125926874578,
+            601.9893055781722,
+            601.7318870872259,
+            601.6862113028765,
+            601.7811102792621,
+            601.9569793716073,
+            602.3456323891878,
+            601.8995977938175,
+            601.9923277199268,
+            602.4347227066755,
+            602.2206582129002,
+            601.8817620351911,
+            601.8556738272309,
+            601.9571032375097,
+            601.8473654985428,
+            602.2826032713056,
+            602.2934773936868,
+            602.0443709567189,
+            602.9039779677987,
+            602.1811496466398,
+            601.9655829295516,
+            602.1665995940566,
+            602.234123274684,
+            602.3534797132015,
+            602.5765165686607,
+            602.3535411804914,
+            602.7132887393236,
+            602.3120358586311,
+            602.3611724376678,
+            602.0410303026438,
+            601.940831169486,
+            602.5880854576826,
+            602.5459989905357,
+            602.5400180369616,
+            602.6634825393558,
+            602.5732420384884,
+            602.3074574768543,
+            602.1105013787746,
+            602.1967642009258,
+            602.3938674479723,
+            602.2683093324304,
+            602.6196228340268,
+            602.5906000286341,
+            602.0973064005375,
+            602.1008025854826,
+            601.9642874598503,
+            602.0936733111739,
+            602.401826530695,
+            602.728377096355,
+            602.5756113231182,
+            602.626889012754,
+            602.2384166717529,
+            602.369399741292,
+            602.4618418887258,
+            602.8131740167737,
+            602.7304269373417,
+            602.4254998192191,
+            602.653568610549,
+            602.5581248104572,
+            602.4212446063757,
+            601.986120454967,
+            602.2382974624634,
+            602.3872429504991,
+            602.4616854265332,
+            602.8393749147654
+          ],
+          "peak_allocated_memory_mib": 12073.982421875,
+          "peak_reserved_memory_mib": 12436.0
+        }
+      ],
+      "gpu_monitoring": {
+        "0": {
+          "sample_count": 600,
+          "average_utilization_percent": 99.855,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 17162.0
+        },
+        "1": {
+          "sample_count": 600,
+          "average_utilization_percent": 99.94,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 17162.0
+        }
+      }
+    },
+    "C1": {
+      "tensor_parallel": 2,
+      "sequence_parallel": true,
+      "average_step_time_ms": 564.0940368920565,
+      "median_step_time_ms": 564.1364129260182,
+      "tokens_per_second": 29044.802689760036,
+      "aggregate_mfu_percent": 23.505500851877787,
+      "rank_timing_and_memory": [
+        {
+          "rank": 0,
+          "step_times_ms": [
+            563.4542731568217,
+            563.5566879063845,
+            563.5164026170969,
+            563.7503070756793,
+            563.3038384839892,
+            563.3178222924471,
+            563.3595073595643,
+            564.078314229846,
+            563.5693203657866,
+            563.6079721152782,
+            563.4234342724085,
+            563.3435659110546,
+            563.8458970934153,
+            563.8241432607174,
+            564.2843768000603,
+            563.5788617655635,
+            563.3637644350529,
+            563.869908452034,
+            564.3025543540716,
+            564.1568107530475,
+            563.5008923709393,
+            563.591480255127,
+            563.6897487565875,
+            563.6775502935052,
+            564.3046209588647,
+            563.7642797082663,
+            563.3593434467912,
+            563.9811744913459,
+            564.1242554411292,
+            563.8494361191988,
+            563.6249985545874,
+            563.8222983106971,
+            564.1776118427515,
+            563.9488585293293,
+            564.5140623673797,
+            563.8783425092697,
+            563.9789942651987,
+            563.9073429629207,
+            563.9615757390857,
+            564.0676515176892,
+            564.2030443996191,
+            564.1411803662777,
+            564.2440766096115,
+            564.3774941563606,
+            563.9112321659923,
+            563.827108591795,
+            563.982155174017,
+            564.1887160018086,
+            564.1121231019497,
+            563.9710323885083,
+            564.1776835545897,
+            564.0095304697752,
+            564.2738314345479,
+            564.3644230440259,
+            563.9003878459334,
+            564.1604606062174,
+            564.1869772225618,
+            564.6852990612388,
+            563.9049913734198,
+            564.0871981158853,
+            564.2677182331681,
+            564.5289858803153,
+            564.2602620646358,
+            563.9243647456169,
+            564.3456159159541,
+            564.3106289207935,
+            564.5092846825719,
+            563.9050723984838,
+            563.950477167964,
+            564.5926063880324,
+            564.4061360508204,
+            564.309511333704,
+            564.0715109184384,
+            564.026614651084,
+            564.5046625286341,
+            564.3677990883589,
+            564.0990482643247,
+            563.9284262433648,
+            564.2564920708537,
+            564.3145544454455,
+            564.3557570874691,
+            564.3662456423044,
+            564.0963995829225,
+            564.5767813548446,
+            564.331017434597,
+            564.2609875649214,
+            564.0897797420621,
+            564.3520336598158,
+            564.1897534951568,
+            564.5716581493616,
+            564.1576545313001,
+            564.3682675436139,
+            564.5636534318328,
+            564.5935172215104,
+            564.133302308619,
+            564.1524968668818,
+            564.4367467612028,
+            564.4288612529635,
+            564.0952177345753,
+            564.2329836264253
+          ],
+          "peak_allocated_memory_mib": 12085.982421875,
+          "peak_reserved_memory_mib": 12452.0
+        },
+        {
+          "rank": 1,
+          "step_times_ms": [
+            563.4571872651577,
+            563.5711560025811,
+            563.2873605936766,
+            563.9351019635797,
+            563.3372832089663,
+            563.3929641917348,
+            563.3018594235182,
+            563.9368752017617,
+            563.6987248435616,
+            563.7080492451787,
+            563.3239224553108,
+            563.2610823959112,
+            563.829199410975,
+            564.1354331746697,
+            564.0441020950675,
+            563.5574832558632,
+            563.391538336873,
+            563.9830688014627,
+            563.9867605641484,
+            564.3785921856761,
+            563.5603237897158,
+            563.5612104088068,
+            563.6322498321533,
+            563.6857505887747,
+            564.2538443207741,
+            563.8274746015668,
+            563.3587138727307,
+            564.2214603722095,
+            563.9140643179417,
+            563.7845769524574,
+            563.6897413060069,
+            563.6901017278433,
+            564.418843947351,
+            563.8176389038563,
+            564.5000524818897,
+            563.8748537749052,
+            563.8287244364619,
+            564.1970401629806,
+            563.8371808454394,
+            564.0723453834653,
+            564.1109440475702,
+            564.2472635954618,
+            564.2098551616073,
+            564.6540550515056,
+            563.6635031551123,
+            563.8140123337507,
+            563.9968123286963,
+            564.1746697947383,
+            564.1054743900895,
+            564.1604447737336,
+            563.9750547707081,
+            564.0147207304835,
+            564.2707580700517,
+            564.3230667337775,
+            563.9513302594423,
+            564.14167676121,
+            564.3112380057573,
+            564.6605473011732,
+            563.835471868515,
+            563.9676554128528,
+            564.4578095525503,
+            564.4308729097247,
+            564.2819982022047,
+            563.9163115993142,
+            564.2930381000042,
+            564.3627950921655,
+            564.5200666040182,
+            563.9107767492533,
+            563.9894437044859,
+            564.5289402455091,
+            564.4229054450989,
+            564.3244441598654,
+            564.0390813350677,
+            564.0445426106453,
+            564.5148102194071,
+            564.3436117097735,
+            564.1108369454741,
+            563.9310972765088,
+            564.2445823177695,
+            564.3029836937785,
+            564.4909963011742,
+            564.2080502584577,
+            564.1373926773667,
+            564.5317137241364,
+            564.4280789420009,
+            564.2384495586157,
+            563.9175875112414,
+            564.5529255270958,
+            564.1461843624711,
+            564.5622257143259,
+            564.3624924123287,
+            564.1579302027822,
+            564.5747948437929,
+            564.6220948547125,
+            564.1129305586219,
+            564.1333358362317,
+            564.3075434491038,
+            564.5565437152982,
+            564.1318475827575,
+            564.1827611252666
+          ],
+          "peak_allocated_memory_mib": 12085.982421875,
+          "peak_reserved_memory_mib": 12452.0
+        }
+      ],
+      "gpu_monitoring": {
+        "0": {
+          "sample_count": 562,
+          "average_utilization_percent": 99.87900355871886,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 17650.0
+        },
+        "1": {
+          "sample_count": 562,
+          "average_utilization_percent": 99.84875444839858,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 17650.0
+        }
+      }
+    },
+    "C1_over_B": {
+      "speedup": 1.0674637416564814,
+      "throughput_gain_percent": 6.746374165648139
+    }
+  },
+  "reported_protocol": "formal_20_plus_100",
+  "reported_throughput": {
+    "B": {
+      "tensor_parallel": 2,
+      "sequence_parallel": true,
+      "average_step_time_ms": 602.1499312669039,
+      "median_step_time_ms": 602.1368624642491,
+      "tokens_per_second": 27209.170256863763,
+      "aggregate_mfu_percent": 22.019952467333592,
+      "rank_timing_and_memory": [
+        {
+          "rank": 0,
+          "step_times_ms": [
+            601.6898127272725,
+            601.4887737110257,
+            601.160547696054,
+            601.3701166957617,
+            601.9005421549082,
+            601.7156122252345,
+            601.3875985518098,
+            601.6282802447677,
+            601.9977126270533,
+            601.4831336215138,
+            601.5582475811243,
+            601.9105231389403,
+            602.2985195741057,
+            601.4861417934299,
+            601.7911490052938,
+            602.0146422088146,
+            601.9040327519178,
+            601.6154838725924,
+            601.5585968270898,
+            601.5603691339493,
+            601.5120120719075,
+            601.4251783490181,
+            601.757432334125,
+            601.6503591090441,
+            602.1582614630461,
+            602.0496552810073,
+            601.8893765285611,
+            601.4714110642672,
+            601.7719572409987,
+            601.7176313325763,
+            601.3376777991652,
+            601.3609822839499,
+            602.147588506341,
+            601.9642148166895,
+            601.8566498532891,
+            602.411893196404,
+            602.081224322319,
+            601.6394551843405,
+            601.893113926053,
+            601.5668893232942,
+            602.0561009645462,
+            602.1350771188736,
+            601.9817152991891,
+            602.3283097893,
+            602.1233350038528,
+            602.2375412285328,
+            601.94325260818,
+            601.989047601819,
+            601.649540476501,
+            601.884488016367,
+            602.4469286203384,
+            602.2247234359384,
+            602.039972320199,
+            602.6300992816687,
+            602.4887897074223,
+            601.956213824451,
+            602.1830271929502,
+            602.1938510239124,
+            602.1890752017498,
+            602.5636717677116,
+            602.4337848648429,
+            602.9785610735416,
+            602.2117910906672,
+            602.3286329582334,
+            601.9607046619058,
+            602.1289834752679,
+            602.4557249620557,
+            602.5346266105771,
+            602.5039991363883,
+            602.7892716228962,
+            602.4455009028316,
+            602.3686761036515,
+            602.0982032641768,
+            602.1383590996265,
+            602.4235459044576,
+            602.1881187334657,
+            602.7507036924362,
+            602.82351821661,
+            601.9882131367922,
+            602.0095152780414,
+            601.9782079383731,
+            602.024064399302,
+            602.6506256312132,
+            602.4098908528686,
+            602.8367290273309,
+            602.5712247937918,
+            602.2104555740952,
+            602.6373049244285,
+            602.1214574575424,
+            602.8769612312317,
+            602.6510251685977,
+            602.4508103728294,
+            602.5252379477024,
+            602.674825116992,
+            602.4018926545978,
+            602.0299475640059,
+            602.1416485309601,
+            602.5832733139396,
+            602.2853627800941,
+            602.8934828937054
+          ],
+          "peak_allocated_memory_mib": 12073.982421875,
+          "peak_reserved_memory_mib": 12436.0
+        },
+        {
+          "rank": 1,
+          "step_times_ms": [
+            601.6799537464976,
+            601.4072382822633,
+            601.507811807096,
+            601.2389753013849,
+            601.7307518050075,
+            601.7881305888295,
+            601.3941476121545,
+            602.0500836893916,
+            601.6914946958423,
+            601.5112083405256,
+            601.5727343037724,
+            602.1323092281818,
+            602.0332789048553,
+            601.4985833317041,
+            601.5838012099266,
+            602.2394709289074,
+            601.8923418596387,
+            601.3739304617047,
+            601.684371009469,
+            601.5243073925376,
+            601.5029735863209,
+            601.3555321842432,
+            601.9045915454626,
+            601.6398258507252,
+            602.0573461428285,
+            602.0252639427781,
+            601.9966974854469,
+            601.4831401407719,
+            601.8032785505056,
+            601.5882836654782,
+            601.3257941231132,
+            601.4006370678544,
+            602.1051192656159,
+            602.0233212038875,
+            602.1414157003164,
+            602.125926874578,
+            601.9893055781722,
+            601.7318870872259,
+            601.6862113028765,
+            601.7811102792621,
+            601.9569793716073,
+            602.3456323891878,
+            601.8995977938175,
+            601.9923277199268,
+            602.4347227066755,
+            602.2206582129002,
+            601.8817620351911,
+            601.8556738272309,
+            601.9571032375097,
+            601.8473654985428,
+            602.2826032713056,
+            602.2934773936868,
+            602.0443709567189,
+            602.9039779677987,
+            602.1811496466398,
+            601.9655829295516,
+            602.1665995940566,
+            602.234123274684,
+            602.3534797132015,
+            602.5765165686607,
+            602.3535411804914,
+            602.7132887393236,
+            602.3120358586311,
+            602.3611724376678,
+            602.0410303026438,
+            601.940831169486,
+            602.5880854576826,
+            602.5459989905357,
+            602.5400180369616,
+            602.6634825393558,
+            602.5732420384884,
+            602.3074574768543,
+            602.1105013787746,
+            602.1967642009258,
+            602.3938674479723,
+            602.2683093324304,
+            602.6196228340268,
+            602.5906000286341,
+            602.0973064005375,
+            602.1008025854826,
+            601.9642874598503,
+            602.0936733111739,
+            602.401826530695,
+            602.728377096355,
+            602.5756113231182,
+            602.626889012754,
+            602.2384166717529,
+            602.369399741292,
+            602.4618418887258,
+            602.8131740167737,
+            602.7304269373417,
+            602.4254998192191,
+            602.653568610549,
+            602.5581248104572,
+            602.4212446063757,
+            601.986120454967,
+            602.2382974624634,
+            602.3872429504991,
+            602.4616854265332,
+            602.8393749147654
+          ],
+          "peak_allocated_memory_mib": 12073.982421875,
+          "peak_reserved_memory_mib": 12436.0
+        }
+      ],
+      "gpu_monitoring": {
+        "0": {
+          "sample_count": 600,
+          "average_utilization_percent": 99.855,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 17162.0
+        },
+        "1": {
+          "sample_count": 600,
+          "average_utilization_percent": 99.94,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 17162.0
+        }
+      }
+    },
+    "C1": {
+      "tensor_parallel": 2,
+      "sequence_parallel": true,
+      "average_step_time_ms": 564.0940368920565,
+      "median_step_time_ms": 564.1364129260182,
+      "tokens_per_second": 29044.802689760036,
+      "aggregate_mfu_percent": 23.505500851877787,
+      "rank_timing_and_memory": [
+        {
+          "rank": 0,
+          "step_times_ms": [
+            563.4542731568217,
+            563.5566879063845,
+            563.5164026170969,
+            563.7503070756793,
+            563.3038384839892,
+            563.3178222924471,
+            563.3595073595643,
+            564.078314229846,
+            563.5693203657866,
+            563.6079721152782,
+            563.4234342724085,
+            563.3435659110546,
+            563.8458970934153,
+            563.8241432607174,
+            564.2843768000603,
+            563.5788617655635,
+            563.3637644350529,
+            563.869908452034,
+            564.3025543540716,
+            564.1568107530475,
+            563.5008923709393,
+            563.591480255127,
+            563.6897487565875,
+            563.6775502935052,
+            564.3046209588647,
+            563.7642797082663,
+            563.3593434467912,
+            563.9811744913459,
+            564.1242554411292,
+            563.8494361191988,
+            563.6249985545874,
+            563.8222983106971,
+            564.1776118427515,
+            563.9488585293293,
+            564.5140623673797,
+            563.8783425092697,
+            563.9789942651987,
+            563.9073429629207,
+            563.9615757390857,
+            564.0676515176892,
+            564.2030443996191,
+            564.1411803662777,
+            564.2440766096115,
+            564.3774941563606,
+            563.9112321659923,
+            563.827108591795,
+            563.982155174017,
+            564.1887160018086,
+            564.1121231019497,
+            563.9710323885083,
+            564.1776835545897,
+            564.0095304697752,
+            564.2738314345479,
+            564.3644230440259,
+            563.9003878459334,
+            564.1604606062174,
+            564.1869772225618,
+            564.6852990612388,
+            563.9049913734198,
+            564.0871981158853,
+            564.2677182331681,
+            564.5289858803153,
+            564.2602620646358,
+            563.9243647456169,
+            564.3456159159541,
+            564.3106289207935,
+            564.5092846825719,
+            563.9050723984838,
+            563.950477167964,
+            564.5926063880324,
+            564.4061360508204,
+            564.309511333704,
+            564.0715109184384,
+            564.026614651084,
+            564.5046625286341,
+            564.3677990883589,
+            564.0990482643247,
+            563.9284262433648,
+            564.2564920708537,
+            564.3145544454455,
+            564.3557570874691,
+            564.3662456423044,
+            564.0963995829225,
+            564.5767813548446,
+            564.331017434597,
+            564.2609875649214,
+            564.0897797420621,
+            564.3520336598158,
+            564.1897534951568,
+            564.5716581493616,
+            564.1576545313001,
+            564.3682675436139,
+            564.5636534318328,
+            564.5935172215104,
+            564.133302308619,
+            564.1524968668818,
+            564.4367467612028,
+            564.4288612529635,
+            564.0952177345753,
+            564.2329836264253
+          ],
+          "peak_allocated_memory_mib": 12085.982421875,
+          "peak_reserved_memory_mib": 12452.0
+        },
+        {
+          "rank": 1,
+          "step_times_ms": [
+            563.4571872651577,
+            563.5711560025811,
+            563.2873605936766,
+            563.9351019635797,
+            563.3372832089663,
+            563.3929641917348,
+            563.3018594235182,
+            563.9368752017617,
+            563.6987248435616,
+            563.7080492451787,
+            563.3239224553108,
+            563.2610823959112,
+            563.829199410975,
+            564.1354331746697,
+            564.0441020950675,
+            563.5574832558632,
+            563.391538336873,
+            563.9830688014627,
+            563.9867605641484,
+            564.3785921856761,
+            563.5603237897158,
+            563.5612104088068,
+            563.6322498321533,
+            563.6857505887747,
+            564.2538443207741,
+            563.8274746015668,
+            563.3587138727307,
+            564.2214603722095,
+            563.9140643179417,
+            563.7845769524574,
+            563.6897413060069,
+            563.6901017278433,
+            564.418843947351,
+            563.8176389038563,
+            564.5000524818897,
+            563.8748537749052,
+            563.8287244364619,
+            564.1970401629806,
+            563.8371808454394,
+            564.0723453834653,
+            564.1109440475702,
+            564.2472635954618,
+            564.2098551616073,
+            564.6540550515056,
+            563.6635031551123,
+            563.8140123337507,
+            563.9968123286963,
+            564.1746697947383,
+            564.1054743900895,
+            564.1604447737336,
+            563.9750547707081,
+            564.0147207304835,
+            564.2707580700517,
+            564.3230667337775,
+            563.9513302594423,
+            564.14167676121,
+            564.3112380057573,
+            564.6605473011732,
+            563.835471868515,
+            563.9676554128528,
+            564.4578095525503,
+            564.4308729097247,
+            564.2819982022047,
+            563.9163115993142,
+            564.2930381000042,
+            564.3627950921655,
+            564.5200666040182,
+            563.9107767492533,
+            563.9894437044859,
+            564.5289402455091,
+            564.4229054450989,
+            564.3244441598654,
+            564.0390813350677,
+            564.0445426106453,
+            564.5148102194071,
+            564.3436117097735,
+            564.1108369454741,
+            563.9310972765088,
+            564.2445823177695,
+            564.3029836937785,
+            564.4909963011742,
+            564.2080502584577,
+            564.1373926773667,
+            564.5317137241364,
+            564.4280789420009,
+            564.2384495586157,
+            563.9175875112414,
+            564.5529255270958,
+            564.1461843624711,
+            564.5622257143259,
+            564.3624924123287,
+            564.1579302027822,
+            564.5747948437929,
+            564.6220948547125,
+            564.1129305586219,
+            564.1333358362317,
+            564.3075434491038,
+            564.5565437152982,
+            564.1318475827575,
+            564.1827611252666
+          ],
+          "peak_allocated_memory_mib": 12085.982421875,
+          "peak_reserved_memory_mib": 12452.0
+        }
+      ],
+      "gpu_monitoring": {
+        "0": {
+          "sample_count": 562,
+          "average_utilization_percent": 99.87900355871886,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 17650.0
+        },
+        "1": {
+          "sample_count": 562,
+          "average_utilization_percent": 99.84875444839858,
+          "median_utilization_percent": 100.0,
+          "peak_memory_mib": 17650.0
+        }
+      }
+    },
+    "B_to_C1_speedup": {
+      "speedup": 1.0674637416564814,
+      "throughput_gain_percent": 6.746374165648139
+    }
+  },
+  "decision": {
+    "cuda_graph_enabled": false,
+    "rs_overlap_enabled": false,
+    "ag_only_overlap_works": true,
+    "ag_gemm_overlap_percent": 0.0,
+    "communication_compute_overlap_percent": 11.58599326984974,
+    "measured_overlap_gt_zero": true,
+    "throughput_gain_percent": 6.692317799333036,
+    "formal_20_plus_100_required": true,
+    "formal_20_plus_100_ran": true,
+    "c2_bulk_dgrad_tested": true,
+    "keep_fast_screen": false,
+    "dominant_remaining_bottleneck": "remaining Reduce-Scatter plus unhidden AG after partial overlap"
+  },
+  "environment": {
+    "timestamp_utc": "2026-08-25T09:08:12.611536+00:00",
+    "hostname": "f7653e4055e5",
+    "platform": "Linux-6.5.0-45-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "pytorch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "nccl": "2.27.3",
+    "cudnn": 91002,
+    "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+    "project_commit": "ccb5b42dee0c3d63b78ccfdc8b70c334428c21c8",
+    "transformer_engine_installed": true,
+    "transformer_engine_version": "2.17.1+4329ff84",
+    "gpus": [
+      {
+        "index": 0,
+        "name": "NVIDIA A40",
+        "driver": "570.211.01",
+        "memory_total_mib": 46068.0,
+        "pci_bus_id": "00000000:D1:00.0"
+      },
+      {
+        "index": 1,
+        "name": "NVIDIA A40",
+        "driver": "570.211.01",
+        "memory_total_mib": 46068.0,
+        "pci_bus_id": "00000000:D6:00.0"
+      }
+    ],
+    "cuda_graph_enabled": false,
+    "ub_skipmc": "1",
+    "cuda_device_max_connections": "1",
+    "nccl_p2p_disable": "0"
+  }
+}

@@ -75,6 +75,36 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sequence-parallel", action="store_true")
     parser.add_argument("--te-linear", action="store_true")
     parser.add_argument("--tp-comm-overlap", action="store_true")
+    parser.add_argument(
+        "--tp-comm-overlap-ag",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Megatron TransformerConfig.tp_comm_overlap_ag (TE ub_overlap_ag)",
+    )
+    parser.add_argument(
+        "--tp-comm-overlap-rs",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Megatron TransformerConfig.tp_comm_overlap_rs (TE ub_overlap_rs)",
+    )
+    parser.add_argument(
+        "--tp-comm-bulk-dgrad",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Megatron TransformerConfig.tp_comm_bulk_dgrad (TE ub_bulk_dgrad, AG)",
+    )
+    parser.add_argument(
+        "--tp-comm-bulk-wgrad",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Megatron TransformerConfig.tp_comm_bulk_wgrad (TE ub_bulk_wgrad, RS)",
+    )
+    parser.add_argument(
+        "--tp-comm-overlap-rs-dgrad",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Megatron TransformerConfig.tp_comm_overlap_rs_dgrad (TE ub_overlap_rs_dgrad)",
+    )
     parser.add_argument("--smoke-iterations", type=int, default=3)
     parser.add_argument("--warmup-iterations", type=int, default=5)
     parser.add_argument("--measured-iterations", type=int, default=20)
@@ -468,7 +498,9 @@ def initialize_userbuffers_if_needed(
         use_fp8=False,
         ub_cfgs={},
         bootstrap_backend="nccl",
+        with_cublasmp=False,
     )
+    metadata["with_cublasmp"] = False
     comms = te_module.base._ub_communicators or {}
     names = sorted(
         key[0] if isinstance(key, tuple) else str(key) for key in comms.keys()
@@ -487,6 +519,11 @@ def inspect_userbuffers(
     model: torch.nn.Module,
     requested_overlap: bool,
     init_metadata: dict[str, Any],
+    overlap_ag: bool,
+    overlap_rs: bool,
+    bulk_dgrad: bool,
+    bulk_wgrad: bool,
+    overlap_rs_dgrad: bool,
 ) -> dict[str, Any]:
     raw_model = unwrap_model(model)
     try:
@@ -519,37 +556,88 @@ def inspect_userbuffers(
         "mlp_fc1": linear_ub_state(layer.mlp.linear_fc1),
         "mlp_fc2": linear_ub_state(layer.mlp.linear_fc2),
     }
-    expected_names = {"qkv_fprop", "proj_fprop", "fc1_fprop", "fc2_fprop"}
+    config = raw_model.config
+    expected_ag_comms = {"qkv_fprop", "fc1_fprop"}
+    if overlap_ag:
+        expected_ag_comms.update({"proj_dgrad", "fc2_dgrad"})
     te_types = all("TE" in item["type"] for item in linear_state.values())
-    has_expected_communicators = expected_names.issubset(set(names))
+    has_expected_communicators = expected_ag_comms.issubset(set(names)) if requested_overlap else True
     ub_names = {
         item["ub_name"]
         for item in linear_state.values()
         if item.get("ub_name") is not None
     }
-    column_overlap = (
+    column_ag = (
         linear_state["attention_qkv"]["ub_overlap_ag_fprop"]
         and linear_state["mlp_fc1"]["ub_overlap_ag_fprop"]
     )
-    row_overlap = (
+    row_rs = (
         linear_state["attention_projection"]["ub_overlap_rs_fprop"]
         and linear_state["mlp_fc2"]["ub_overlap_rs_fprop"]
     )
+    row_ag_dgrad = (
+        linear_state["attention_projection"]["ub_overlap_ag_dgrad"]
+        and linear_state["mlp_fc2"]["ub_overlap_ag_dgrad"]
+    )
+    column_rs_dgrad = (
+        linear_state["attention_qkv"]["ub_overlap_rs_dgrad"]
+        or linear_state["mlp_fc1"]["ub_overlap_rs_dgrad"]
+    )
+    column_bulk_dgrad = (
+        linear_state["attention_qkv"]["ub_bulk_dgrad"]
+        or linear_state["mlp_fc1"]["ub_bulk_dgrad"]
+    )
+    column_bulk_wgrad = (
+        linear_state["attention_qkv"]["ub_bulk_wgrad"]
+        or linear_state["mlp_fc1"]["ub_bulk_wgrad"]
+    )
+    flags_match = (
+        column_ag == (requested_overlap and overlap_ag)
+        and row_rs == (requested_overlap and overlap_rs)
+        and row_ag_dgrad == (requested_overlap and overlap_ag)
+        and column_rs_dgrad == (requested_overlap and overlap_rs_dgrad)
+        and column_bulk_dgrad == (requested_overlap and bulk_dgrad)
+        and column_bulk_wgrad == (requested_overlap and bulk_wgrad)
+        and bool(config.tp_comm_overlap_ag) == overlap_ag
+        and bool(config.tp_comm_overlap_rs) == overlap_rs
+        and bool(config.tp_comm_bulk_dgrad) == bulk_dgrad
+        and bool(config.tp_comm_bulk_wgrad) == bulk_wgrad
+        and bool(config.tp_comm_overlap_rs_dgrad) == overlap_rs_dgrad
+    )
     active = bool(
         requested_overlap
-        and bool(raw_model.config.tp_comm_overlap)
+        and bool(config.tp_comm_overlap)
         and init_metadata.get("initialized")
         and has_expected_communicators
         and te_types
         and {"qkv", "proj", "fc1", "fc2"}.issubset(ub_names)
-        and column_overlap
-        and row_overlap
+        and flags_match
+        and column_ag
+        and not row_rs
+        and not column_rs_dgrad
+        and not column_bulk_wgrad
+    ) if requested_overlap and overlap_ag and not overlap_rs else bool(
+        requested_overlap
+        and bool(config.tp_comm_overlap)
+        and init_metadata.get("initialized")
+        and te_types
+        and {"qkv", "proj", "fc1", "fc2"}.issubset(ub_names)
+        and flags_match
+        and column_ag
+        and row_rs
     )
     if requested_overlap and not active:
         raise RuntimeError(
             "Userbuffers overlap was requested but is not active; refusing "
             f"silent fallback: init={init_metadata} linears={linear_state} "
-            f"communicators={names}"
+            f"communicators={names} flags_match={flags_match} "
+            f"ag={overlap_ag} rs={overlap_rs} bulk_dgrad={bulk_dgrad} "
+            f"bulk_wgrad={bulk_wgrad} rs_dgrad={overlap_rs_dgrad}"
+        )
+    if requested_overlap and overlap_rs is False and (row_rs or column_rs_dgrad or column_bulk_wgrad):
+        raise RuntimeError(
+            "Reduce-Scatter Userbuffers path is active despite being disabled: "
+            f"linears={linear_state}"
         )
     if not requested_overlap and (init_metadata.get("initialized") or names):
         raise RuntimeError(
@@ -559,8 +647,32 @@ def inspect_userbuffers(
     return {
         "requested": requested_overlap,
         "active": active,
+        "mode": (
+            (
+                "ag_plus_bulk_dgrad"
+                if bulk_dgrad
+                else "ag_only"
+            )
+            if requested_overlap and overlap_ag and not overlap_rs
+            else ("full" if requested_overlap else "off")
+        ),
         "silent_fallback": False,
-        "config_tp_comm_overlap": bool(raw_model.config.tp_comm_overlap),
+        "config_tp_comm_overlap": bool(config.tp_comm_overlap),
+        "config_flags": {
+            "tp_comm_overlap_ag": bool(config.tp_comm_overlap_ag),
+            "tp_comm_overlap_rs": bool(config.tp_comm_overlap_rs),
+            "tp_comm_bulk_dgrad": bool(config.tp_comm_bulk_dgrad),
+            "tp_comm_bulk_wgrad": bool(config.tp_comm_bulk_wgrad),
+            "tp_comm_overlap_rs_dgrad": bool(config.tp_comm_overlap_rs_dgrad),
+        },
+        "observed_paths": {
+            "column_ag_fprop": column_ag,
+            "row_rs_fprop": row_rs,
+            "row_ag_dgrad": row_ag_dgrad,
+            "column_rs_dgrad": column_rs_dgrad,
+            "column_bulk_dgrad": column_bulk_dgrad,
+            "column_bulk_wgrad": column_bulk_wgrad,
+        },
         "communicator_names": names,
         "communicator_count": len(names),
         "linear_userbuffers": linear_state,
@@ -816,6 +928,11 @@ def main() -> None:
             use_te_layernorm=True,
             use_te_linear=args.te_linear,
             tp_comm_overlap=args.tp_comm_overlap,
+            tp_comm_overlap_ag=args.tp_comm_overlap_ag,
+            tp_comm_overlap_rs=args.tp_comm_overlap_rs,
+            tp_comm_bulk_dgrad=args.tp_comm_bulk_dgrad,
+            tp_comm_bulk_wgrad=args.tp_comm_bulk_wgrad,
+            tp_comm_overlap_rs_dgrad=args.tp_comm_overlap_rs_dgrad,
         )
         if model.config.cuda_graph_impl != "none":
             raise RuntimeError("CUDA Graph must remain disabled")
@@ -829,6 +946,18 @@ def main() -> None:
                 "build_model did not honor tp_comm_overlap="
                 f"{args.tp_comm_overlap}"
             )
+        for flag_name in (
+            "tp_comm_overlap_ag",
+            "tp_comm_overlap_rs",
+            "tp_comm_bulk_dgrad",
+            "tp_comm_bulk_wgrad",
+            "tp_comm_overlap_rs_dgrad",
+        ):
+            if bool(getattr(model.config, flag_name)) != bool(getattr(args, flag_name)):
+                raise RuntimeError(
+                    f"build_model did not honor {flag_name}="
+                    f"{getattr(args, flag_name)}"
+                )
         bundle = build_ddp_optimizer_bundle(model, model_args.learning_rate)
         if args.profile_mode:
             instrument_tp_modules(bundle.model)
@@ -852,6 +981,11 @@ def main() -> None:
             bundle.model,
             args.tp_comm_overlap,
             ub_init,
+            overlap_ag=args.tp_comm_overlap_ag,
+            overlap_rs=args.tp_comm_overlap_rs,
+            bulk_dgrad=args.tp_comm_bulk_dgrad,
+            bulk_wgrad=args.tp_comm_bulk_wgrad,
+            overlap_rs_dgrad=args.tp_comm_overlap_rs_dgrad,
         )
         captured_shapes, shape_handles = capture_linear_input_shapes(bundle.model)
         rank_shards = gather_objects({"rank": rank, **shards})
@@ -1009,7 +1143,7 @@ def main() -> None:
 
         result = {
             "status": "success",
-            "experiment": "Phase 7.4 TE Userbuffers TP communication overlap",
+            "experiment": "Phase 7.4b targeted TP communication overlap",
             "run_label": args.run_label,
             "run_mode": "nsight_profile" if args.profile_mode else "benchmark",
             "model_config": {
@@ -1029,12 +1163,22 @@ def main() -> None:
                 "sequence_parallel": args.sequence_parallel,
                 "te_linear": args.te_linear,
                 "tp_comm_overlap": args.tp_comm_overlap,
+                "tp_comm_overlap_ag": args.tp_comm_overlap_ag,
+                "tp_comm_overlap_rs": args.tp_comm_overlap_rs,
+                "tp_comm_bulk_dgrad": args.tp_comm_bulk_dgrad,
+                "tp_comm_bulk_wgrad": args.tp_comm_bulk_wgrad,
+                "tp_comm_overlap_rs_dgrad": args.tp_comm_overlap_rs_dgrad,
                 "layernorm_implementation": "TENorm",
             },
             "parallelism": {
                 "tensor_parallel": args.tensor_parallel_size,
                 "sequence_parallel": args.sequence_parallel,
                 "tp_comm_overlap": args.tp_comm_overlap,
+                "tp_comm_overlap_ag": args.tp_comm_overlap_ag,
+                "tp_comm_overlap_rs": args.tp_comm_overlap_rs,
+                "tp_comm_bulk_dgrad": args.tp_comm_bulk_dgrad,
+                "tp_comm_bulk_wgrad": args.tp_comm_bulk_wgrad,
+                "tp_comm_overlap_rs_dgrad": args.tp_comm_overlap_rs_dgrad,
                 "te_linear": args.te_linear,
                 "pipeline_parallel": 1,
                 "data_parallel": 1,

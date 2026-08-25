@@ -140,6 +140,51 @@ def is_communication_kernel(name: str) -> bool:
     return is_nccl_kernel(name) or is_userbuffer_kernel(name)
 
 
+HANG_RS_KERNEL_TOKEN = "userbuffers_fp16_sum_inplace_gpu_rr_rs_oop"
+
+
+def is_rs_communication_kernel(name: str) -> bool:
+    lower = name.lower()
+    return (
+        HANG_RS_KERNEL_TOKEN in lower
+        or "rr_rs" in lower
+        or "_rs_oop" in lower
+        or "reducescatter" in lower
+        or "reduce_scatter" in lower
+        or ("userbuffer" in lower and "_rs" in lower)
+    )
+
+
+def is_ag_communication_kernel(name: str) -> bool:
+    if is_rs_communication_kernel(name):
+        return False
+    lower = name.lower()
+    compact = lower.replace("-", "").replace("_", "")
+    if "userbuffer" in lower and ("_ag" in lower or "allgather" in compact):
+        return True
+    if "nccl" in lower and "allgather" in compact:
+        return True
+    return False
+
+
+def is_gemm_kernel(name: str) -> bool:
+    if is_communication_kernel(name):
+        return False
+    lower = name.lower()
+    return any(
+        token in lower
+        for token in (
+            "gemm",
+            "cublas",
+            "cutlass",
+            "xmma",
+            "wgmma",
+            "mma_sync",
+            "nvte::gemm",
+        )
+    )
+
+
 def nvtx_collective_kind(name: str) -> str | None:
     compact = name.lower().replace("-", "").replace("_", "")
     if "allgather" in compact:
@@ -298,6 +343,10 @@ def analyze_trace(
     nccl_rows = []
     userbuffer_rows = []
     compute_rows = []
+    ag_rows = []
+    rs_rows = []
+    gemm_rows = []
+    hang_rs_rows = []
     for row in kernels:
         name = kernel_name(row, strings)
         entry = {
@@ -317,6 +366,14 @@ def analyze_trace(
             userbuffer_rows.append(entry)
         else:
             compute_rows.append(entry)
+        if is_ag_communication_kernel(name):
+            ag_rows.append(entry)
+        if is_rs_communication_kernel(name):
+            rs_rows.append(entry)
+        if HANG_RS_KERNEL_TOKEN in name.lower():
+            hang_rs_rows.append(entry)
+        if is_gemm_kernel(name):
+            gemm_rows.append(entry)
 
     memcpy_rows = []
     if table_exists(connection, "CUPTI_ACTIVITY_KIND_MEMCPY"):
@@ -405,6 +462,42 @@ def analyze_trace(
                 / iterations
             ),
         }
+        ag = merge_intervals(
+            (
+                (row["start"], row["end"])
+                for row in ag_rows
+                if row["device_id"] == device
+            ),
+            window_start,
+            window_end,
+        )
+        gemm = merge_intervals(
+            (
+                (row["start"], row["end"])
+                for row in gemm_rows
+                if row["device_id"] == device
+            ),
+            window_start,
+            window_end,
+        )
+        ag_ns = interval_total(ag)
+        gemm_ns = interval_total(gemm)
+        ag_gemm_ns = intersection_total(ag, gemm)
+        per_device[str(device)]["ag_communication_union_ms_per_step"] = (
+            ag_ns / NS_PER_MS / iterations
+        )
+        per_device[str(device)]["gemm_union_ms_per_step"] = (
+            gemm_ns / NS_PER_MS / iterations
+        )
+        per_device[str(device)]["ag_gemm_overlap_ms_per_step"] = (
+            ag_gemm_ns / NS_PER_MS / iterations
+        )
+        per_device[str(device)]["ag_gemm_overlap_percent"] = (
+            ag_gemm_ns / ag_ns * 100.0 if ag_ns else 0.0
+        )
+        per_device[str(device)]["exposed_ag_communication_ms_per_step"] = (
+            (ag_ns - ag_gemm_ns) / NS_PER_MS / iterations
+        )
 
     type_counts = Counter(collective_type(row["name"]) for row in nccl_rows)
     type_times_ns: dict[str, int] = defaultdict(int)
@@ -476,6 +569,61 @@ def analyze_trace(
             / iterations
             / tp
         ),
+        "ag_communication_kernel_launches": len(ag_rows),
+        "rs_communication_kernel_launches": len(rs_rows),
+        "hang_rs_kernel_launches": len(hang_rs_rows),
+        "gemm_kernel_launches": len(gemm_rows),
+        "average_ag_communication_ms_per_step_per_gpu": (
+            sum(row["duration_ns"] for row in ag_rows)
+            / NS_PER_MS
+            / iterations
+            / tp
+        ),
+        "average_rs_communication_ms_per_step_per_gpu": (
+            sum(row["duration_ns"] for row in rs_rows)
+            / NS_PER_MS
+            / iterations
+            / tp
+        ),
+        "top_userbuffer_kernels": [
+            {
+                "name": name,
+                "count": count,
+                "total_ms_all_gpus": (
+                    sum(
+                        row["duration_ns"]
+                        for row in userbuffer_rows
+                        if row["name"] == name
+                    )
+                    / NS_PER_MS
+                ),
+            }
+            for name, count in Counter(
+                row["name"] for row in userbuffer_rows
+            ).most_common(20)
+        ],
+        "top_ag_communication_kernels": [
+            {
+                "name": name,
+                "count": count,
+                "total_ms_all_gpus": (
+                    sum(row["duration_ns"] for row in ag_rows if row["name"] == name)
+                    / NS_PER_MS
+                ),
+            }
+            for name, count in Counter(row["name"] for row in ag_rows).most_common(20)
+        ],
+        "top_gemm_kernels": [
+            {
+                "name": name,
+                "count": count,
+                "total_ms_all_gpus": (
+                    sum(row["duration_ns"] for row in gemm_rows if row["name"] == name)
+                    / NS_PER_MS
+                ),
+            }
+            for name, count in Counter(row["name"] for row in gemm_rows).most_common(10)
+        ],
         "p2p_memcpy_count": len(memcpy_rows),
         "average_p2p_memcpy_ms_per_step_per_gpu": (
             sum(row["duration_ns"] for row in memcpy_rows)
