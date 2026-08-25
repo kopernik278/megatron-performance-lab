@@ -1,0 +1,138 @@
+{
+  "status": "success",
+  "experiment": "Phase 7.4 two-A40 topology and NCCL P2P sanity",
+  "infrastructure": {
+    "pod_id": "o2xtfls95kpxey",
+    "pod_count": 1,
+    "gpu_count": 2,
+    "gpu_type": "NVIDIA A40 48GB",
+    "same_physical_host": true,
+    "price_per_hour_usd": 0.88,
+    "price_target_usd": 0.9,
+    "price_target_met": true
+  },
+  "commands": {
+    "nvidia_smi": {
+      "command": [
+        "nvidia-smi"
+      ],
+      "exit_code": 0,
+      "output": "Tue Aug 25 15:33:11 2026       \n+-----------------------------------------------------------------------------------------+\n| NVIDIA-SMI 580.159.04             Driver Version: 580.159.04     CUDA Version: 13.0     |\n+-----------------------------------------+------------------------+----------------------+\n| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |\n| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |\n|                                         |                        |               MIG M. |\n|=========================================+========================+======================|\n|   0  NVIDIA A40                     On  |   00000000:52:00.0 Off |                    0 |\n|  0%   34C    P0             64W /  300W |     487MiB /  46068MiB |      0%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n|   1  NVIDIA A40                     On  |   00000000:53:00.0 Off |                    0 |\n|  0%   32C    P0             95W /  300W |     487MiB /  46068MiB |      7%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n\n+-----------------------------------------------------------------------------------------+\n| Processes:                                                                              |\n|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |\n|        ID   ID                                                               Usage      |\n|=========================================================================================|\n|    0   N/A  N/A            3168      C   ...formance-lab/.venv/bin/python        478MiB |\n|    1   N/A  N/A            3169      C   ...formance-lab/.venv/bin/python        478MiB |\n+-----------------------------------------------------------------------------------------+"
+    },
+    "nvidia_smi_query": {
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,name,uuid,pci.bus_id,driver_version,memory.total",
+        "--format=csv,noheader"
+      ],
+      "exit_code": 0,
+      "output": "0, NVIDIA A40, GPU-3a63a902-fa44-7596-6f53-bf6699a1fbd4, 00000000:52:00.0, 580.159.04, 46068 MiB\n1, NVIDIA A40, GPU-443b4534-72b2-6cee-25de-d9b71332eec2, 00000000:53:00.0, 580.159.04, 46068 MiB"
+    },
+    "nvidia_smi_topology": {
+      "command": [
+        "nvidia-smi",
+        "topo",
+        "-m"
+      ],
+      "exit_code": 0,
+      "output": "\u001b[4mGPU0\tGPU1\tNIC0\tNIC1\tCPU Affinity\tNUMA Affinity\tGPU NUMA ID\u001b[0m\nGPU0\t X \tPIX\tSYS\tSYS\t0-23,48-71\t0\t\tN/A\nGPU1\tPIX\t X \tSYS\tSYS\t0-23,48-71\t0\t\tN/A\nNIC0\tSYS\tSYS\t X \tPIX\t\t\t\t\nNIC1\tSYS\tSYS\tPIX\t X \t\t\t\t\n\nLegend:\n\n  X    = Self\n  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)\n  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node\n  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)\n  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)\n  PIX  = Connection traversing at most a single PCIe bridge\n  NV#  = Connection traversing a bonded set of # NVLinks\n\nNIC Legend:\n\n  NIC0: rocep177s0f0\n  NIC1: rocep177s0f1"
+    },
+    "nvidia_smi_nvlink": {
+      "command": [
+        "nvidia-smi",
+        "nvlink",
+        "--status"
+      ],
+      "exit_code": 0,
+      "output": "GPU 0: NVIDIA A40 (UUID: GPU-3a63a902-fa44-7596-6f53-bf6699a1fbd4)\nNVML: Unable to retrieve NVLink information as all links are inActive\nGPU 1: NVIDIA A40 (UUID: GPU-443b4534-72b2-6cee-25de-d9b71332eec2)\nNVML: Unable to retrieve NVLink information as all links are inActive"
+    },
+    "lspci_nvidia": {
+      "command": [
+        "bash",
+        "-lc",
+        "lspci -D | awk 'tolower($0) ~ /nvidia|vga|3d controller/'"
+      ],
+      "exit_code": 0,
+      "output": "bash: line 1: lspci: command not found"
+    }
+  },
+  "gpu0_gpu1_path": "PIX",
+  "numa_affinity_by_gpu": {
+    "GPU0": "SYS",
+    "GPU1": "SYS"
+  },
+  "same_numa_acceptable": true,
+  "abort_reason": null,
+  "p2p_accessibility": {
+    "matrix": [
+      [
+        true,
+        true
+      ],
+      [
+        true,
+        true
+      ]
+    ],
+    "consistent_across_ranks": true,
+    "bidirectional_gpu0_gpu1": true
+  },
+  "nccl_all_reduce_sanity": {
+    "backend": "nccl",
+    "per_rank": [
+      {
+        "rank": 0,
+        "result": 3.0,
+        "expected": 3.0,
+        "passed": true,
+        "latency_ms": 1.1585510001168586
+      },
+      {
+        "rank": 1,
+        "result": 3.0,
+        "expected": 3.0,
+        "passed": true,
+        "latency_ms": 0.8414359999733279
+      }
+    ],
+    "passed": true
+  },
+  "environment": {
+    "timestamp_utc": "2026-08-25T15:33:11.892977+00:00",
+    "hostname": "dd5157ae23fa",
+    "platform": "Linux-6.8.0-134-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "pytorch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "nccl": "2.27.3",
+    "cudnn": 91002,
+    "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+    "project_commit": "d582ebf744655de2ca80ca91d6a1b7bb2b226b5d",
+    "transformer_engine_installed": true,
+    "transformer_engine_version": "2.17.1+4329ff84",
+    "gpus": [
+      {
+        "index": 0,
+        "name": "NVIDIA A40",
+        "driver": "580.159.04",
+        "memory_total_mib": 46068.0,
+        "pci_bus_id": "00000000:52:00.0"
+      },
+      {
+        "index": 1,
+        "name": "NVIDIA A40",
+        "driver": "580.159.04",
+        "memory_total_mib": 46068.0,
+        "pci_bus_id": "00000000:53:00.0"
+      }
+    ],
+    "cuda_graph_enabled": false,
+    "ub_skipmc": null,
+    "cuda_device_max_connections": "8",
+    "nccl_p2p_disable": "0"
+  },
+  "public_ip": "69.30.85.9",
+  "data_center": "CA-MTL-1",
+  "host_public_ip": "69.30.85.9",
+  "data_center_id": "CA-MTL-1"
+}

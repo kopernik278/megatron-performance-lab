@@ -302,6 +302,12 @@ def build_model(
     pipeline_dtype: torch.dtype | None = None,
     overlap_p2p_comm: bool = False,
     batch_p2p_comm: bool = True,
+    overlap_p2p_comm_warmup_flush: bool = False,
+    virtual_pipeline_model_parallel_size: int | None = None,
+    microbatch_group_size_per_vp_stage: int | None = None,
+    vp_stage: int | None = None,
+    pre_process: bool | None = None,
+    post_process: bool | None = None,
     share_embeddings_and_output_weights: bool = True,
 ) -> GPTModel:
     if attention_implementation is None:
@@ -333,8 +339,11 @@ def build_model(
         params_dtype=torch.float32,
         pipeline_dtype=pipeline_dtype,
         pipeline_model_parallel_size=pipeline_model_parallel_size,
+        virtual_pipeline_model_parallel_size=virtual_pipeline_model_parallel_size,
+        microbatch_group_size_per_vp_stage=microbatch_group_size_per_vp_stage,
         overlap_p2p_comm=overlap_p2p_comm,
         batch_p2p_comm=batch_p2p_comm,
+        overlap_p2p_comm_warmup_flush=overlap_p2p_comm_warmup_flush,
         bf16=False,
         fp16=False,
         attention_backend=attention_backend,
@@ -364,22 +373,33 @@ def build_model(
         use_te_linear=use_te_linear,
     )
     if isinstance(layer_spec, TransformerBlockSubmodules):
-        layers_this_rank = get_num_layers_to_build(config)
+        layers_this_rank = get_num_layers_to_build(config, vp_stage=vp_stage)
         if len(layer_spec.layer_specs or []) != layers_this_rank:
             layer_spec = TransformerBlockSubmodules(
                 layer_specs=[layer_spec.layer_specs[0]] * layers_this_rank,
                 layer_norm=layer_spec.layer_norm,
             )
+    if pre_process is None:
+        pre_process = parallel_state.is_pipeline_first_stage(
+            ignore_virtual=False,
+            vp_stage=vp_stage,
+        )
+    if post_process is None:
+        post_process = parallel_state.is_pipeline_last_stage(
+            ignore_virtual=False,
+            vp_stage=vp_stage,
+        )
     model = GPTModel(
         config=config,
         transformer_layer_spec=layer_spec,
         vocab_size=args.vocab_size,
         max_sequence_length=args.sequence_length,
-        pre_process=parallel_state.is_pipeline_first_stage(),
-        post_process=parallel_state.is_pipeline_last_stage(),
+        pre_process=pre_process,
+        post_process=post_process,
         parallel_output=True,
         share_embeddings_and_output_weights=share_embeddings_and_output_weights,
         position_embedding_type="learned_absolute",
+        vp_stage=vp_stage,
     )
     return model.cuda()
 
