@@ -1,0 +1,790 @@
+{
+  "status": "success",
+  "experiment": "Phase 8.3 interleaved 1F1B + VPP + P2P overlap",
+  "iteration_mode": "FAST ITERATION MODE",
+  "mechanism": "combined interleaved 1F1B + VPP=2 + overlap_p2p_comm",
+  "isolation_caveat": "On PP=2, VPP and overlap_p2p_comm cannot be safely isolated. Do not claim the full speedup comes only from communication overlap.",
+  "formal_validation_ran": false,
+  "phase81_reference": {
+    "commit": "ebd98618",
+    "tokens_per_second": 21183.07,
+    "average_step_time_ms": 773.45,
+    "p2p_ms_per_step": 69.04,
+    "theoretical_bubble_percent": 20.0
+  },
+  "infrastructure": {
+    "pod_id": "o2xtfls95kpxey",
+    "price_per_hour_usd": 0.88,
+    "pod_status": "deleted",
+    "public_ip": "69.30.85.9",
+    "data_center": "CA-MTL-1",
+    "project_commit": "d582ebf744655de2ca80ca91d6a1b7bb2b226b5d",
+    "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+    "pytorch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "nccl": "2.27.3"
+  },
+  "topology": {
+    "gpu0_gpu1_path": "PIX",
+    "same_numa": true,
+    "p2p_bidirectional": true,
+    "nccl_all_reduce_passed": true
+  },
+  "variant_a": {
+    "run_label": "phase83_a_noninterleaved",
+    "schedule_name": "forward_backward_pipelining_without_interleaving",
+    "schedule_kind": "1F1B",
+    "parallelism": {
+      "tensor_parallel_size": 1,
+      "pipeline_parallel_size": 2,
+      "data_parallel_size": 1,
+      "world_size": 2
+    },
+    "batch": {
+      "global_batch_size": 8,
+      "num_microbatches": 4,
+      "micro_batch_size": 2,
+      "sequence_length": 2048,
+      "tokens_per_step": 16384
+    },
+    "tokens_per_second": 19652.745873951193,
+    "average_step_time_ms": 833.6748516000625,
+    "median_step_time_ms": 833.6390929998743,
+    "mfu_percent": 15.904657360428908,
+    "theoretical_bubble": {
+      "fill_drain_fraction": 0.2,
+      "one_f_one_b_warmup_over_steady_state": 0.25,
+      "pipeline_parallel_size": 2.0,
+      "num_microbatches": 4.0
+    },
+    "correctness": {
+      "forward": true,
+      "backward": true,
+      "main_grad": true,
+      "optimizer": true,
+      "finite_loss": true,
+      "no_deadlock": true,
+      "parameters_updated": true,
+      "smoke_losses": [
+        2.7555577754974365,
+        2.7598555088043213,
+        2.7564923763275146
+      ],
+      "lifecycle_checks": [
+        {
+          "step": 0,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true,
+          "deadlock": false
+        },
+        {
+          "step": 1,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true,
+          "deadlock": false
+        },
+        {
+          "step": 2,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true,
+          "deadlock": false
+        }
+      ]
+    },
+    "partitioning": [
+      {
+        "rank": 0,
+        "pipeline_rank": 0,
+        "pipeline_world_size": 2,
+        "tensor_parallel_world_size": 1,
+        "data_parallel_world_size": 1,
+        "is_pipeline_first_stage": true,
+        "is_pipeline_last_stage": false,
+        "owns_embedding": true,
+        "owns_output_layer": false,
+        "owns_loss": false,
+        "pre_process": true,
+        "post_process": false,
+        "layers_built": 12,
+        "expected_layers": 12,
+        "layer_offset": 0,
+        "global_layer_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "local_layer_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "share_embeddings_and_output_weights": false,
+        "parameter_count": 204763136,
+        "trainable_parameter_count": 204763136,
+        "embedding_parameter_count": 53608448,
+        "decoder_parameter_count": 151154688,
+        "output_parameter_count": 0,
+        "pipeline_dtype": "torch.float32",
+        "overlap_p2p_comm": false,
+        "batch_p2p_comm": false,
+        "cuda_graph_impl": "none",
+        "bias_dropout_fusion": true,
+        "bias_activation_fusion": false,
+        "sequence_parallel": false,
+        "tensor_model_parallel_size": 1,
+        "pipeline_model_parallel_size": 2
+      },
+      {
+        "rank": 1,
+        "pipeline_rank": 1,
+        "pipeline_world_size": 2,
+        "tensor_parallel_world_size": 1,
+        "data_parallel_world_size": 1,
+        "is_pipeline_first_stage": false,
+        "is_pipeline_last_stage": true,
+        "owns_embedding": false,
+        "owns_output_layer": true,
+        "owns_loss": true,
+        "pre_process": false,
+        "post_process": true,
+        "layers_built": 12,
+        "expected_layers": 12,
+        "layer_offset": 12,
+        "global_layer_numbers": [
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24
+        ],
+        "local_layer_numbers": [
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24
+        ],
+        "share_embeddings_and_output_weights": false,
+        "parameter_count": 202668032,
+        "trainable_parameter_count": 202668032,
+        "embedding_parameter_count": 0,
+        "decoder_parameter_count": 151156736,
+        "output_parameter_count": 51511296,
+        "pipeline_dtype": "torch.float32",
+        "overlap_p2p_comm": false,
+        "batch_p2p_comm": false,
+        "cuda_graph_impl": "none",
+        "bias_dropout_fusion": true,
+        "bias_activation_fusion": false,
+        "sequence_parallel": false,
+        "tensor_model_parallel_size": 1,
+        "pipeline_model_parallel_size": 2
+      }
+    ],
+    "peak_allocated_memory_mib": [
+      8913.529296875,
+      7156.97412109375
+    ],
+    "smi_peak_memory_mib": [
+      15443.0,
+      13937.0
+    ],
+    "mean_gpu_utilization_percent": 97.19277108433735,
+    "gpu_monitoring": {
+      "0": {
+        "sample_count": 166,
+        "average_utilization_percent": 97.04819277108433,
+        "median_utilization_percent": 100.0,
+        "peak_memory_mib": 15443.0
+      },
+      "1": {
+        "sample_count": 166,
+        "average_utilization_percent": 97.33734939759036,
+        "median_utilization_percent": 100.0,
+        "peak_memory_mib": 13937.0
+      }
+    },
+    "async_p2p_calls_by_rank": null,
+    "environment": {
+      "timestamp_utc": "2026-08-25T15:34:21.915226+00:00",
+      "hostname": "dd5157ae23fa",
+      "platform": "Linux-6.8.0-134-generic-x86_64-with-glibc2.39",
+      "python": "3.12.3",
+      "pytorch": "2.8.0+cu128",
+      "cuda_runtime": "12.8",
+      "nccl": "2.27.3",
+      "cudnn": 91002,
+      "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+      "project_commit": "d582ebf744655de2ca80ca91d6a1b7bb2b226b5d",
+      "transformer_engine_installed": true,
+      "transformer_engine_version": "2.17.1+4329ff84",
+      "gpus": [
+        {
+          "index": 0,
+          "name": "NVIDIA A40",
+          "driver": "580.159.04",
+          "memory_total_mib": 46068.0,
+          "pci_bus_id": "00000000:52:00.0"
+        },
+        {
+          "index": 1,
+          "name": "NVIDIA A40",
+          "driver": "580.159.04",
+          "memory_total_mib": 46068.0,
+          "pci_bus_id": "00000000:53:00.0"
+        }
+      ],
+      "cuda_graph_enabled": false,
+      "cuda_device_max_connections": "8",
+      "nccl_p2p_disable": "0"
+    }
+  },
+  "variant_b": {
+    "run_label": "phase83_b_interleaved_overlap",
+    "schedule_name": "forward_backward_pipelining_with_interleaving",
+    "schedule_kind": "interleaved_1F1B",
+    "parallelism": {
+      "tensor_parallel_size": 1,
+      "pipeline_parallel_size": 2,
+      "virtual_pipeline_size": 2,
+      "data_parallel_size": 1,
+      "world_size": 2
+    },
+    "batch": {
+      "global_batch_size": 8,
+      "num_microbatches": 4,
+      "micro_batch_size": 2,
+      "sequence_length": 2048,
+      "tokens_per_step": 16384,
+      "microbatch_group_size_per_vp_stage": 2
+    },
+    "tokens_per_second": 20112.631344403933,
+    "average_step_time_ms": 814.6124552001311,
+    "median_step_time_ms": 807.2626224998203,
+    "mfu_percent": 16.27683542040603,
+    "theoretical_bubble": {
+      "fill_drain_fraction": 0.1111111111111111,
+      "one_f_one_b_warmup_over_steady_state": 0.125,
+      "pipeline_parallel_size": 2.0,
+      "num_microbatches": 4.0,
+      "virtual_pipeline_size": 2.0,
+      "formula": "(PP-1)/(M*VPP+PP-1)"
+    },
+    "correctness": {
+      "forward": true,
+      "backward": true,
+      "main_grad": true,
+      "optimizer": true,
+      "finite_loss": true,
+      "no_nan_inf": true,
+      "no_deadlock": true,
+      "parameters_updated": true,
+      "interleaved_schedule": true,
+      "async_p2p_issued": true,
+      "smoke_losses": [
+        2.7549855709075928,
+        2.7610812187194824,
+        2.7564263343811035
+      ],
+      "lifecycle_checks": [
+        {
+          "step": 0,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true,
+          "deadlock": false,
+          "async_p2p_forward_calls": 4,
+          "async_p2p_backward_calls": 5
+        },
+        {
+          "step": 1,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true,
+          "deadlock": false,
+          "async_p2p_forward_calls": 8,
+          "async_p2p_backward_calls": 10
+        },
+        {
+          "step": 2,
+          "loss_finite": true,
+          "main_grads_finite": true,
+          "optimizer_consumed_main_grad": true,
+          "main_grad_addresses_stable": true,
+          "deadlock": false,
+          "async_p2p_forward_calls": 12,
+          "async_p2p_backward_calls": 15
+        }
+      ]
+    },
+    "partitioning": [
+      [
+        {
+          "rank": 0,
+          "pipeline_rank": 0,
+          "pipeline_world_size": 2,
+          "virtual_pipeline_stage": 0,
+          "virtual_pipeline_size": 2,
+          "is_pipeline_first_stage": true,
+          "is_pipeline_last_stage": false,
+          "owns_embedding": true,
+          "owns_output_layer": false,
+          "owns_loss": false,
+          "pre_process": true,
+          "post_process": false,
+          "layers_built": 6,
+          "expected_layers": 6,
+          "layer_offset": 0,
+          "global_layer_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "local_layer_numbers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "share_embeddings_and_output_weights": false,
+          "parameter_count": 129185792,
+          "trainable_parameter_count": 129185792,
+          "embedding_parameter_count": 53608448,
+          "decoder_parameter_count": 75577344,
+          "output_parameter_count": 0,
+          "pipeline_dtype": "torch.float32",
+          "overlap_p2p_comm": true,
+          "overlap_p2p_comm_warmup_flush": false,
+          "batch_p2p_comm": false,
+          "cuda_graph_impl": "none",
+          "bias_dropout_fusion": true,
+          "bias_activation_fusion": false,
+          "sequence_parallel": false,
+          "tensor_model_parallel_size": 1,
+          "pipeline_model_parallel_size": 2,
+          "virtual_pipeline_model_parallel_size": 2,
+          "microbatch_group_size_per_vp_stage": 2
+        },
+        {
+          "rank": 0,
+          "pipeline_rank": 0,
+          "pipeline_world_size": 2,
+          "virtual_pipeline_stage": 1,
+          "virtual_pipeline_size": 2,
+          "is_pipeline_first_stage": false,
+          "is_pipeline_last_stage": false,
+          "owns_embedding": false,
+          "owns_output_layer": false,
+          "owns_loss": false,
+          "pre_process": false,
+          "post_process": false,
+          "layers_built": 6,
+          "expected_layers": 6,
+          "layer_offset": 12,
+          "global_layer_numbers": [
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ],
+          "local_layer_numbers": [
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ],
+          "share_embeddings_and_output_weights": false,
+          "parameter_count": 75577344,
+          "trainable_parameter_count": 75577344,
+          "embedding_parameter_count": 0,
+          "decoder_parameter_count": 75577344,
+          "output_parameter_count": 0,
+          "pipeline_dtype": "torch.float32",
+          "overlap_p2p_comm": true,
+          "overlap_p2p_comm_warmup_flush": false,
+          "batch_p2p_comm": false,
+          "cuda_graph_impl": "none",
+          "bias_dropout_fusion": true,
+          "bias_activation_fusion": false,
+          "sequence_parallel": false,
+          "tensor_model_parallel_size": 1,
+          "pipeline_model_parallel_size": 2,
+          "virtual_pipeline_model_parallel_size": 2,
+          "microbatch_group_size_per_vp_stage": 2
+        }
+      ],
+      [
+        {
+          "rank": 1,
+          "pipeline_rank": 1,
+          "pipeline_world_size": 2,
+          "virtual_pipeline_stage": 0,
+          "virtual_pipeline_size": 2,
+          "is_pipeline_first_stage": false,
+          "is_pipeline_last_stage": false,
+          "owns_embedding": false,
+          "owns_output_layer": false,
+          "owns_loss": false,
+          "pre_process": false,
+          "post_process": false,
+          "layers_built": 6,
+          "expected_layers": 6,
+          "layer_offset": 6,
+          "global_layer_numbers": [
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ],
+          "local_layer_numbers": [
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ],
+          "share_embeddings_and_output_weights": false,
+          "parameter_count": 75577344,
+          "trainable_parameter_count": 75577344,
+          "embedding_parameter_count": 0,
+          "decoder_parameter_count": 75577344,
+          "output_parameter_count": 0,
+          "pipeline_dtype": "torch.float32",
+          "overlap_p2p_comm": true,
+          "overlap_p2p_comm_warmup_flush": false,
+          "batch_p2p_comm": false,
+          "cuda_graph_impl": "none",
+          "bias_dropout_fusion": true,
+          "bias_activation_fusion": false,
+          "sequence_parallel": false,
+          "tensor_model_parallel_size": 1,
+          "pipeline_model_parallel_size": 2,
+          "virtual_pipeline_model_parallel_size": 2,
+          "microbatch_group_size_per_vp_stage": 2
+        },
+        {
+          "rank": 1,
+          "pipeline_rank": 1,
+          "pipeline_world_size": 2,
+          "virtual_pipeline_stage": 1,
+          "virtual_pipeline_size": 2,
+          "is_pipeline_first_stage": false,
+          "is_pipeline_last_stage": true,
+          "owns_embedding": false,
+          "owns_output_layer": true,
+          "owns_loss": true,
+          "pre_process": false,
+          "post_process": true,
+          "layers_built": 6,
+          "expected_layers": 6,
+          "layer_offset": 18,
+          "global_layer_numbers": [
+            19,
+            20,
+            21,
+            22,
+            23,
+            24
+          ],
+          "local_layer_numbers": [
+            19,
+            20,
+            21,
+            22,
+            23,
+            24
+          ],
+          "share_embeddings_and_output_weights": false,
+          "parameter_count": 127090688,
+          "trainable_parameter_count": 127090688,
+          "embedding_parameter_count": 0,
+          "decoder_parameter_count": 75579392,
+          "output_parameter_count": 51511296,
+          "pipeline_dtype": "torch.float32",
+          "overlap_p2p_comm": true,
+          "overlap_p2p_comm_warmup_flush": false,
+          "batch_p2p_comm": false,
+          "cuda_graph_impl": "none",
+          "bias_dropout_fusion": true,
+          "bias_activation_fusion": false,
+          "sequence_parallel": false,
+          "tensor_model_parallel_size": 1,
+          "pipeline_model_parallel_size": 2,
+          "virtual_pipeline_model_parallel_size": 2,
+          "microbatch_group_size_per_vp_stage": 2
+        }
+      ]
+    ],
+    "peak_allocated_memory_mib": [
+      10426.9541015625,
+      8646.3134765625
+    ],
+    "smi_peak_memory_mib": [
+      17077.0,
+      15005.0
+    ],
+    "mean_gpu_utilization_percent": 93.28395061728395,
+    "gpu_monitoring": {
+      "0": {
+        "sample_count": 162,
+        "average_utilization_percent": 92.32098765432099,
+        "median_utilization_percent": 100.0,
+        "peak_memory_mib": 17077.0
+      },
+      "1": {
+        "sample_count": 162,
+        "average_utilization_percent": 94.24691358024691,
+        "median_utilization_percent": 100.0,
+        "peak_memory_mib": 15005.0
+      }
+    },
+    "async_p2p_calls_by_rank": [
+      {
+        "rank": 0,
+        "calls": {
+          "send_forward_recv_forward_overlap": 112,
+          "send_backward_recv_backward_overlap": 140,
+          "send_forward_recv_forward_sync": 112,
+          "send_backward_recv_backward_sync": 112
+        }
+      },
+      {
+        "rank": 1,
+        "calls": {
+          "send_forward_recv_forward_overlap": 168,
+          "send_backward_recv_backward_overlap": 196,
+          "send_forward_recv_forward_sync": 56,
+          "send_backward_recv_backward_sync": 56
+        }
+      }
+    ],
+    "environment": {
+      "timestamp_utc": "2026-08-25T15:36:02.728681+00:00",
+      "hostname": "dd5157ae23fa",
+      "platform": "Linux-6.8.0-134-generic-x86_64-with-glibc2.39",
+      "python": "3.12.3",
+      "pytorch": "2.8.0+cu128",
+      "cuda_runtime": "12.8",
+      "nccl": "2.27.3",
+      "cudnn": 91002,
+      "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+      "project_commit": "d582ebf744655de2ca80ca91d6a1b7bb2b226b5d",
+      "transformer_engine_installed": true,
+      "transformer_engine_version": "2.17.1+4329ff84",
+      "gpus": [
+        {
+          "index": 0,
+          "name": "NVIDIA A40",
+          "driver": "580.159.04",
+          "memory_total_mib": 46068.0,
+          "pci_bus_id": "00000000:52:00.0"
+        },
+        {
+          "index": 1,
+          "name": "NVIDIA A40",
+          "driver": "580.159.04",
+          "memory_total_mib": 46068.0,
+          "pci_bus_id": "00000000:53:00.0"
+        }
+      ],
+      "cuda_graph_enabled": false,
+      "cuda_device_max_connections": "8",
+      "nccl_p2p_disable": "0"
+    }
+  },
+  "traces": {
+    "A": {
+      "sqlite": "profiles/phase83_work/variant_a.sqlite",
+      "window_ms": 1750.615501,
+      "measured_iterations": 4,
+      "per_device": {
+        "0": {
+          "busy_ms_per_step": 398.6448525,
+          "idle_ms_per_step": 39.00902275,
+          "idle_fraction": 0.08913213147653946,
+          "compute_ms_per_step": 274.95335375,
+          "gemm_ms_per_step": 74.46252825,
+          "p2p_send_recv_ms_per_step": 123.68774675,
+          "p2p_compute_overlap_ms_per_step": 0.0,
+          "p2p_overlap_percent": 0.0,
+          "exposed_p2p_ms_per_step": 123.68774675
+        },
+        "1": {
+          "busy_ms_per_step": 411.76031075,
+          "idle_ms_per_step": 25.8935645,
+          "idle_fraction": 0.059164481258640475,
+          "compute_ms_per_step": 332.796526,
+          "gemm_ms_per_step": 93.84599875,
+          "p2p_send_recv_ms_per_step": 32.94628975,
+          "p2p_compute_overlap_ms_per_step": 0.0,
+          "p2p_overlap_percent": 0.0,
+          "exposed_p2p_ms_per_step": 32.94628975
+        }
+      },
+      "mean_gpu_idle_fraction": 0.07414830636758997,
+      "mean_gpu_idle_percent": 7.414830636758997,
+      "mean_p2p_send_recv_ms_per_step": 78.31701825,
+      "mean_p2p_overlap_percent": 0.0,
+      "mean_exposed_p2p_ms_per_step": 78.31701825,
+      "theoretical_fill_drain_percent": 20.0,
+      "nvtx": {
+        "chunk0_forward_count": 0,
+        "chunk1_forward_count": 0,
+        "async_forward_p2p_count": 0,
+        "async_backward_p2p_count": 0,
+        "sync_forward_p2p_count": 0,
+        "sync_backward_p2p_count": 0,
+        "warmup_ms_per_step": 0.0,
+        "steady_ms_per_step": 0.0,
+        "cooldown_ms_per_step": 0.0,
+        "chunk_compute_vs_async_p2p_overlap_ms_per_step": 0.0,
+        "forward_p2p_transfers_per_step": 0.0,
+        "backward_p2p_transfers_per_step": 0.0
+      },
+      "stage_imbalance_ratio": 0.17380942326903964,
+      "top_p2p_kernels": [
+        {
+          "name": "ncclDevKernel_SendRecv(ncclDevKernelArgsStorage<(unsigned long)4096>)",
+          "launches": 32,
+          "total_ms": 991.6547199999999
+        }
+      ],
+      "schedule_name": "forward_backward_pipelining_without_interleaving"
+    },
+    "B": {
+      "sqlite": "profiles/phase83_work/variant_b.sqlite",
+      "window_ms": 1736.852802,
+      "measured_iterations": 4,
+      "per_device": {
+        "0": {
+          "busy_ms_per_step": 364.096372,
+          "idle_ms_per_step": 70.1168285,
+          "idle_fraction": 0.16148018627545158,
+          "compute_ms_per_step": 275.925036,
+          "gemm_ms_per_step": 74.90929125,
+          "p2p_send_recv_ms_per_step": 180.60864075,
+          "p2p_compute_overlap_ms_per_step": 92.44135275,
+          "p2p_overlap_percent": 51.18323927699456,
+          "exposed_p2p_ms_per_step": 88.167288
+        },
+        "1": {
+          "busy_ms_per_step": 401.681405,
+          "idle_ms_per_step": 32.5317955,
+          "idle_fraction": 0.07492124942894268,
+          "compute_ms_per_step": 334.3421005,
+          "gemm_ms_per_step": 93.962767,
+          "p2p_send_recv_ms_per_step": 58.6150485,
+          "p2p_compute_overlap_ms_per_step": 14.83146175,
+          "p2p_overlap_percent": 25.30316382831279,
+          "exposed_p2p_ms_per_step": 43.78358675
+        }
+      },
+      "mean_gpu_idle_fraction": 0.11820071785219713,
+      "mean_gpu_idle_percent": 11.820071785219714,
+      "mean_p2p_send_recv_ms_per_step": 119.611844625,
+      "mean_p2p_overlap_percent": 38.24320155265367,
+      "mean_exposed_p2p_ms_per_step": 65.975437375,
+      "theoretical_fill_drain_percent": 11.11111111111111,
+      "nvtx": {
+        "chunk0_forward_count": 16,
+        "chunk1_forward_count": 16,
+        "async_forward_p2p_count": 20,
+        "async_backward_p2p_count": 24,
+        "sync_forward_p2p_count": 12,
+        "sync_backward_p2p_count": 12,
+        "warmup_ms_per_step": 119.245824,
+        "steady_ms_per_step": 361.31528275,
+        "cooldown_ms_per_step": 175.80923825,
+        "chunk_compute_vs_async_p2p_overlap_ms_per_step": 1.26946175,
+        "forward_p2p_transfers_per_step": 8.0,
+        "backward_p2p_transfers_per_step": 9.0
+      },
+      "stage_imbalance_ratio": 0.17472243074575058,
+      "top_p2p_kernels": [
+        {
+          "name": "ncclDevKernel_SendRecv(ncclDevKernelArgsStorage<(unsigned long)4096>)",
+          "launches": 96,
+          "total_ms": 1414.9016859999995
+        }
+      ],
+      "schedule_name": "forward_backward_pipelining_with_interleaving"
+    }
+  },
+  "trace_files": {
+    "A": {
+      "sqlite": "profiles/phase83_work/variant_a.sqlite",
+      "sha256": "21b14e6d5d83a30b17fb61604f0fb55b05fe98bd8a780e15b0916cadb2f8bdff",
+      "nsys": "profiles/phase83_work/variant_a.nsys-rep"
+    },
+    "B": {
+      "sqlite": "profiles/phase83_work/variant_b.sqlite",
+      "sha256": "acb410db85e6ce71bc2992833af07428c9e5faa9d1d29ede4a6d7aa5a2e96195",
+      "nsys": "profiles/phase83_work/variant_b.nsys-rep"
+    }
+  },
+  "comparison": {
+    "throughput_change_percent": 2.340057076005329,
+    "step_time_change_ms": -19.06239639993146,
+    "mfu_change_pp": 0.37217805997712183,
+    "theoretical_bubble_a_percent": 20.0,
+    "theoretical_bubble_b_percent": 11.11111111111111,
+    "theoretical_bubble_reduction_pp": 8.88888888888889,
+    "p2p_overlap_percent_b": 38.24320155265367,
+    "exposed_p2p_reduction_ms": 12.341580875000005,
+    "extra_p2p_hop_cost_ms": 41.294826375,
+    "dominant_remaining_bottleneck": "exposed pipeline activation P2P (extra interleaved hops and/or warmup/cooldown, because overlap_p2p_comm_warmup_flush stayed off)"
+  },
+  "decision_text": "Correctness passed but fast-screen gain +2.34% is below 3%, so formal 20+100 did not run. Keep the FAST screen. Combined interleaved+VPP+overlap is not accepted as a throughput win on this host."
+}
