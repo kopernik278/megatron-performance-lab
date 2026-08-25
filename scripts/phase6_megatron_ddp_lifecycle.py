@@ -52,17 +52,35 @@ def named_trainable_parameters(
 def wrap_with_megatron_ddp(
     model: torch.nn.Module,
     use_initialization_stream: bool = True,
+    overlap_grad_reduce: bool = False,
+    disable_bucketing: bool | None = None,
+    bucket_size: int | None = None,
 ) -> tuple[DistributedDataParallel, DistributedDataParallelConfig]:
-    """Wrap a model with non-overlapped, non-distributed MCore DDP."""
+    """Wrap a model with MCore DDP.
 
+    Flag names match pinned Megatron-LM 09fde85
+    ``DistributedDataParallelConfig`` / ``--overlap-grad-reduce``.
+    ``bucket_size=None`` keeps MCore's default
+    ``max(40000000, 1000000 * dp_size)`` when overlap is on; MCore then
+    forces ``bucket_size=None`` when overlap is off.
+    """
+
+    if disable_bucketing is None:
+        disable_bucketing = not overlap_grad_reduce
+    if overlap_grad_reduce and disable_bucketing:
+        raise RuntimeError(
+            "overlap_grad_reduce=True requires disable_bucketing=False so "
+            "DDP can issue per-bucket async All-Reduce"
+        )
     ddp_config = DistributedDataParallelConfig(
         grad_reduce_in_fp32=False,
-        overlap_grad_reduce=False,
+        overlap_grad_reduce=overlap_grad_reduce,
         overlap_param_gather=False,
         use_distributed_optimizer=False,
         check_for_nan_in_grad=False,
         check_for_large_grads=False,
         average_in_collective=False,
+        bucket_size=bucket_size,
     )
 
     def _wrap() -> DistributedDataParallel:
@@ -70,7 +88,7 @@ def wrap_with_megatron_ddp(
             config=model.config,
             ddp_config=ddp_config,
             module=model,
-            disable_bucketing=True,
+            disable_bucketing=disable_bucketing,
         )
 
     if not use_initialization_stream:
@@ -130,12 +148,18 @@ def build_ddp_optimizer_bundle(
     model: torch.nn.Module,
     learning_rate: float,
     use_initialization_stream: bool = True,
+    overlap_grad_reduce: bool = False,
+    disable_bucketing: bool | None = None,
+    bucket_size: int | None = None,
 ) -> DDPOptimizerBundle:
     """Build DDP before creating the optimizer, as required by MCore."""
 
     ddp_model, ddp_config = wrap_with_megatron_ddp(
         model,
         use_initialization_stream=use_initialization_stream,
+        overlap_grad_reduce=overlap_grad_reduce,
+        disable_bucketing=disable_bucketing,
+        bucket_size=bucket_size,
     )
     optimizer, base_optimizer, optimizer_config = build_fp32_optimizer(
         ddp_model,
@@ -242,6 +266,63 @@ def optimizer_state_dtypes(base_optimizer: torch.optim.Optimizer) -> list[str]:
             if isinstance(value, torch.Tensor) and value.is_floating_point()
         }
     )
+
+
+def collect_bucket_metadata(model: DistributedDataParallel) -> dict[str, Any]:
+    """Describe DDP gradient buckets without touching private buffer layout APIs."""
+
+    buckets: list[dict[str, Any]] = []
+    for buffer_index, buffer in enumerate(getattr(model, "buffers", []) or []):
+        param_dtype = str(getattr(buffer, "param_dtype", None))
+        grad_dtype = str(getattr(buffer, "grad_dtype", None))
+        for bucket_index, bucket in enumerate(getattr(buffer, "buckets", []) or []):
+            grad_data = getattr(bucket, "grad_data", None)
+            padded_numel = int(grad_data.numel()) if grad_data is not None else None
+            element_size = int(grad_data.element_size()) if grad_data is not None else None
+            params = getattr(bucket, "params", None) or getattr(bucket, "params_list", [])
+            buckets.append(
+                {
+                    "buffer_index": buffer_index,
+                    "bucket_index": bucket_index,
+                    "param_dtype": param_dtype,
+                    "grad_dtype": grad_dtype,
+                    "numel_unpadded": int(getattr(bucket, "numel_unpadded", 0)),
+                    "padded_numel": padded_numel,
+                    "bytes": (
+                        None
+                        if padded_numel is None or element_size is None
+                        else padded_numel * element_size
+                    ),
+                    "param_count": len(list(params)),
+                }
+            )
+    return {
+        "overlap_grad_reduce": bool(model.ddp_config.overlap_grad_reduce),
+        "overlap_param_gather": bool(model.ddp_config.overlap_param_gather),
+        "use_distributed_optimizer": bool(model.ddp_config.use_distributed_optimizer),
+        "configured_bucket_size": model.ddp_config.bucket_size,
+        "effective_bucket_size": getattr(model, "bucket_size", None),
+        "bucket_count": len(buckets),
+        "buckets": buckets,
+    }
+
+
+def instrument_grad_sync_nvtx(model: DistributedDataParallel) -> None:
+    """Wrap DDP grad-sync entry points with NVTX for Nsight attribution."""
+
+    original_start = model.start_grad_sync
+    original_finish = model.finish_grad_sync
+
+    def start_grad_sync(*args: Any, **kwargs: Any) -> Any:
+        with torch.cuda.nvtx.range("dp_start_grad_sync"):
+            return original_start(*args, **kwargs)
+
+    def finish_grad_sync(*args: Any, **kwargs: Any) -> Any:
+        with torch.cuda.nvtx.range("dp_finish_grad_sync"):
+            return original_finish(*args, **kwargs)
+
+    model.start_grad_sync = start_grad_sync  # type: ignore[method-assign]
+    model.finish_grad_sync = finish_grad_sync  # type: ignore[method-assign]
 
 
 def lifecycle_metadata(bundle: DDPOptimizerBundle) -> dict[str, Any]:
