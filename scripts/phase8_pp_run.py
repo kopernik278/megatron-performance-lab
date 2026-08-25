@@ -467,7 +467,7 @@ def main() -> None:
             pipeline_model_parallel_size=args.pipeline_parallel_size,
             pipeline_dtype=torch.bfloat16 if args.pipeline_parallel_size > 1 else torch.float32,
             overlap_p2p_comm=False,
-            batch_p2p_comm=True,
+            batch_p2p_comm=False,
         )
         if model.config.cuda_graph_impl != "none":
             raise RuntimeError("CUDA Graph must remain disabled")
@@ -481,6 +481,13 @@ def main() -> None:
             raise RuntimeError("bias_dropout_fusion must stay True")
         if bool(model.config.overlap_p2p_comm):
             raise RuntimeError("PP P2P overlap must stay off for this baseline")
+        if bool(model.config.batch_p2p_comm):
+            raise RuntimeError("batched PP P2P must stay off for this baseline")
+        print(
+            f"PHASE81_RANK{rank}_MODEL_BUILT pp={args.pipeline_parallel_size} "
+            f"layers={len(model.decoder.layers)}",
+            flush=True,
+        )
 
         schedule = get_forward_backward_func()
         expected_schedule = (
@@ -493,14 +500,26 @@ def main() -> None:
                 f"Unexpected pipeline schedule {schedule.__name__}, expected {expected_schedule}"
             )
 
-        bundle = build_ddp_optimizer_bundle(model, model_args.learning_rate)
+        bundle = build_ddp_optimizer_bundle(
+            model,
+            model_args.learning_rate,
+            use_initialization_stream=args.pipeline_parallel_size == 1,
+        )
         pointers = main_grad_pointers(bundle.model)
         partition = partitioning_report(
             bundle.model,
             args.pipeline_parallel_size,
             model_args.num_layers,
         )
+        print(
+            f"PHASE81_RANK{rank}_PARTITION layers={partition['layers_built']} "
+            f"offset={partition['layer_offset']} embedding={partition['owns_embedding']} "
+            f"output={partition['owns_output_layer']}",
+            flush=True,
+        )
         rank_partitions = gather_objects(partition)
+        if rank == 0:
+            print("PHASE81_PARTITIONS_GATHERED", flush=True)
 
         tracked_name, tracked_parameter = next(iter(named_trainable_parameters(bundle.model)))
         parameters_before = {tracked_name: tracked_parameter.detach().cpu().clone()}
@@ -513,6 +532,10 @@ def main() -> None:
             assert_main_grad_pointers(bundle.model, pointers)
             loss = pipeline_train_step(bundle, model_args, args, device, smoke_index)
             torch.cuda.synchronize(device)
+            print(
+                f"PHASE81_RANK{rank}_SMOKE step={smoke_index} loss={loss}",
+                flush=True,
+            )
             gradients_finite = main_grads_finite(bundle)
             assert_optimizer_consumed_main_grad(bundle)
             assert_main_grad_pointers(bundle.model, pointers)

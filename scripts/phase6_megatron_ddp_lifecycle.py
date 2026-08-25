@@ -51,6 +51,7 @@ def named_trainable_parameters(
 
 def wrap_with_megatron_ddp(
     model: torch.nn.Module,
+    use_initialization_stream: bool = True,
 ) -> tuple[DistributedDataParallel, DistributedDataParallelConfig]:
     """Wrap a model with non-overlapped, non-distributed MCore DDP."""
 
@@ -64,15 +65,21 @@ def wrap_with_megatron_ddp(
         average_in_collective=False,
     )
 
-    initialization_stream = torch.cuda.Stream()
-    initialization_stream.wait_stream(torch.cuda.current_stream())
-    with torch.cuda.stream(initialization_stream):
-        ddp_model = DistributedDataParallel(
+    def _wrap() -> DistributedDataParallel:
+        return DistributedDataParallel(
             config=model.config,
             ddp_config=ddp_config,
             module=model,
             disable_bucketing=True,
         )
+
+    if not use_initialization_stream:
+        return _wrap(), ddp_config
+
+    initialization_stream = torch.cuda.Stream()
+    initialization_stream.wait_stream(torch.cuda.current_stream())
+    with torch.cuda.stream(initialization_stream):
+        ddp_model = _wrap()
     torch.cuda.current_stream().wait_stream(initialization_stream)
     return ddp_model, ddp_config
 
@@ -122,10 +129,14 @@ def build_fp32_optimizer(
 def build_ddp_optimizer_bundle(
     model: torch.nn.Module,
     learning_rate: float,
+    use_initialization_stream: bool = True,
 ) -> DDPOptimizerBundle:
     """Build DDP before creating the optimizer, as required by MCore."""
 
-    ddp_model, ddp_config = wrap_with_megatron_ddp(model)
+    ddp_model, ddp_config = wrap_with_megatron_ddp(
+        model,
+        use_initialization_stream=use_initialization_stream,
+    )
     optimizer, base_optimizer, optimizer_config = build_fp32_optimizer(
         ddp_model,
         learning_rate,
