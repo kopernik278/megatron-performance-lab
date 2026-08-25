@@ -466,7 +466,9 @@ def main() -> None:
             use_te_layernorm=False,
             use_te_linear=False,
             pipeline_model_parallel_size=args.pipeline_parallel_size,
-            pipeline_dtype=torch.float32 if args.pipeline_parallel_size > 1 else torch.float32,
+            # Activations stay FP32 on the P2P path. BF16 pipeline_dtype with this
+            # FP32-param + autocast-BF16 model produced all-NaN last-stage losses.
+            pipeline_dtype=torch.float32,
             overlap_p2p_comm=False,
             batch_p2p_comm=False,
             share_embeddings_and_output_weights=args.pipeline_parallel_size == 1,

@@ -328,7 +328,10 @@ def markdown_report(payload: dict[str, Any]) -> str:
         [
             "",
             "Embedding lives on the first stage. Output layer and loss live on the last stage.",
-            "Word embeddings remain tied across the pipeline embedding group.",
+            "Word embeddings are **untied** on PP=2 (`share_embeddings_and_output_weights=False`) "
+            "so the embedding group does not all-reduce during 1F1B. Compute stays BF16 autocast; "
+            "pipeline send/recv uses FP32 (`pipeline_dtype=torch.float32`) because BF16 P2P with "
+            "this FP32-param model produced all-NaN last-stage losses.",
             "",
             "## Correctness",
             "",
