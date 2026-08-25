@@ -1,0 +1,192 @@
+{
+  "status": "success",
+  "run_label": "phase91_b_smoke",
+  "run_mode": "smoke",
+  "overlap_grad_reduce": true,
+  "parallelism": {
+    "tensor_parallel_size": 1,
+    "pipeline_parallel_size": 1,
+    "data_parallel_size": 2,
+    "world_size": 2
+  },
+  "correctness": {
+    "both_ranks_initialized": true,
+    "different_data_per_dp_rank": true,
+    "forward": true,
+    "backward": true,
+    "main_grad": true,
+    "optimizer": true,
+    "gradients_synchronized": true,
+    "parameters_identical_after_optimizer": true,
+    "finite_loss": true,
+    "no_nan_inf": true,
+    "no_deadlock": true,
+    "parameters_updated": true,
+    "smoke_losses": [
+      11.02549934387207,
+      11.030083656311035,
+      11.0205659866333
+    ],
+    "lifecycle_checks": [
+      {
+        "step": 0,
+        "loss_finite": true,
+        "main_grads_finite": true,
+        "gradients_synchronized": true,
+        "parameters_identical_across_ranks": true,
+        "optimizer_consumed_main_grad": true,
+        "main_grad_addresses_stable": true,
+        "deadlock": false
+      },
+      {
+        "step": 1,
+        "loss_finite": true,
+        "main_grads_finite": true,
+        "gradients_synchronized": true,
+        "parameters_identical_across_ranks": true,
+        "optimizer_consumed_main_grad": true,
+        "main_grad_addresses_stable": true,
+        "deadlock": false
+      },
+      {
+        "step": 2,
+        "loss_finite": true,
+        "main_grads_finite": true,
+        "gradients_synchronized": true,
+        "parameters_identical_across_ranks": true,
+        "optimizer_consumed_main_grad": true,
+        "main_grad_addresses_stable": true,
+        "deadlock": false
+      }
+    ],
+    "rank_token_fingerprints": [
+      {
+        "rank": 0,
+        "dp_rank": 0,
+        "token_fingerprint": [
+          23755,
+          21154,
+          408364819
+        ]
+      },
+      {
+        "rank": 1,
+        "dp_rank": 1,
+        "token_fingerprint": [
+          8906,
+          49723,
+          409231410
+        ]
+      }
+    ]
+  },
+  "buckets": {
+    "overlap_grad_reduce": true,
+    "overlap_param_gather": false,
+    "use_distributed_optimizer": false,
+    "configured_bucket_size": 40000000,
+    "effective_bucket_size": 40000000,
+    "bucket_count": 8,
+    "buckets": [
+      {
+        "buffer_index": 0,
+        "bucket_index": 0,
+        "param_dtype": "torch.float32",
+        "grad_dtype": "torch.float32",
+        "numel_unpadded": 41986048,
+        "padded_numel": 41986048,
+        "bytes": 167944192,
+        "param_count": 40
+      },
+      {
+        "buffer_index": 0,
+        "bucket_index": 1,
+        "param_dtype": "torch.float32",
+        "grad_dtype": "torch.float32",
+        "numel_unpadded": 41987072,
+        "padded_numel": 41987072,
+        "bytes": 167948288,
+        "param_count": 38
+      },
+      {
+        "buffer_index": 0,
+        "bucket_index": 2,
+        "param_dtype": "torch.float32",
+        "grad_dtype": "torch.float32",
+        "numel_unpadded": 40939520,
+        "padded_numel": 40939520,
+        "bytes": 163758080,
+        "param_count": 40
+      },
+      {
+        "buffer_index": 0,
+        "bucket_index": 3,
+        "param_dtype": "torch.float32",
+        "grad_dtype": "torch.float32",
+        "numel_unpadded": 43035648,
+        "padded_numel": 43035648,
+        "bytes": 172142592,
+        "param_count": 42
+      },
+      {
+        "buffer_index": 0,
+        "bucket_index": 4,
+        "param_dtype": "torch.float32",
+        "grad_dtype": "torch.float32",
+        "numel_unpadded": 41987072,
+        "padded_numel": 41987072,
+        "bytes": 167948288,
+        "param_count": 38
+      },
+      {
+        "buffer_index": 0,
+        "bucket_index": 5,
+        "param_dtype": "torch.float32",
+        "grad_dtype": "torch.float32",
+        "numel_unpadded": 40939520,
+        "padded_numel": 40939520,
+        "bytes": 163758080,
+        "param_count": 40
+      },
+      {
+        "buffer_index": 0,
+        "bucket_index": 6,
+        "param_dtype": "torch.float32",
+        "grad_dtype": "torch.float32",
+        "numel_unpadded": 43035648,
+        "padded_numel": 43035648,
+        "bytes": 172142592,
+        "param_count": 42
+      },
+      {
+        "buffer_index": 0,
+        "bucket_index": 7,
+        "param_dtype": "torch.float32",
+        "grad_dtype": "torch.float32",
+        "numel_unpadded": 62009344,
+        "padded_numel": 62009344,
+        "bytes": 248037376,
+        "param_count": 12
+      }
+    ]
+  },
+  "ddp_lifecycle": {
+    "wrapper": "DistributedDataParallel",
+    "main_grad_parameter_count": 292,
+    "grad_reduce_in_fp32": false,
+    "overlap_grad_reduce": true,
+    "overlap_param_gather": false,
+    "use_distributed_optimizer": false,
+    "optimizer_wrapper": "FP32Optimizer",
+    "base_optimizer": "AdamW",
+    "clip_grad": 0.0,
+    "optimizer_cuda_graph": false,
+    "optimizer_state_dtypes": []
+  },
+  "fused_backend_status": {
+    "flash_attention": false,
+    "fused_attention": true,
+    "unfused_attention": false,
+    "fused_sub_backend": 1
+  }
+}
