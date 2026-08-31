@@ -81,7 +81,7 @@ Path("docs/experiments/phase10_tp2_pp2_hybrid_baseline.md").write_text(
     encoding="utf-8",
 )
 PY
-  exit 2
+  exit 0
 }
 
 if [[ ! -d "${ROOT}/.git" ]]; then
