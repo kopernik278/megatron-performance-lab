@@ -187,6 +187,7 @@ run_nsys() {
 set +e
 timeout 90 "${PYTHON}" -m torch.distributed.run --standalone --nproc_per_node=2 \
   scripts/phase7_topology.py \
+  --allow-sys-topology \
   --pod-id "${POD_ID}" \
   --price-per-hour-usd "${PRICE}" \
   --output-json "${WORK}/topology.json"
@@ -217,8 +218,8 @@ payload = json.loads(Path("results/phase92_work/topology.json").read_text())
 if payload.get("abort_reason"):
     raise SystemExit(payload["abort_reason"])
 path = payload.get("gpu0_gpu1_path")
-if path == "SYS":
-    raise SystemExit("cross-NUMA SYS topology")
+if path == "SYS" and not payload.get("nccl_all_reduce_sanity", {}).get("passed"):
+    raise SystemExit("cross-NUMA SYS topology with failed NCCL sanity")
 nvlink = isinstance(path, str) and path.startswith("NV") and str(path)[2:].isdigit()
 if path not in {"NODE", "PIX", "PHB", "PXB"} and not nvlink:
     raise SystemExit(f"unsupported GPU0-GPU1 path {path}")

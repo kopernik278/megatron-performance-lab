@@ -22,6 +22,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pod-id", required=True)
     parser.add_argument("--price-per-hour-usd", type=float, required=True)
     parser.add_argument("--output-json", type=Path, required=True)
+    parser.add_argument(
+        "--allow-sys-topology",
+        action="store_true",
+        help="Phase 9.2 host scarcity: continue when nvidia-smi reports SYS if NCCL/P2P pass",
+    )
     return parser.parse_args()
 
 
@@ -146,7 +151,7 @@ def main() -> None:
         same_numa_ok = is_acceptable_gpu0_gpu1_path(interconnect)
         numa_values = {value for value in numa.values() if value not in {"N/A", "NA"}}
         abort_reason = None
-        if interconnect == "SYS":
+        if interconnect == "SYS" and not args.allow_sys_topology:
             abort_reason = "cross-NUMA SYS topology"
         elif not same_numa_ok:
             abort_reason = f"unsupported GPU0-GPU1 path {interconnect}"
