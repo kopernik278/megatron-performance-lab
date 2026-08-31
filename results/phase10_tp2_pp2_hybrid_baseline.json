@@ -2,7 +2,7 @@
   "status": "blocked",
   "experiment": "Phase 10.1 TP=2 PP=2 hybrid baseline",
   "iteration_mode": "FAST ITERATION MODE",
-  "abort_reason": "RunPod 4x NVIDIA A40 stockout since 2026-08-31T11:40Z UTC; no benchmark pod could be provisioned after harness fix ddd32e6",
+  "abort_reason": "RunPod GPU stockout: A40 unavailable since 2026-08-31T11:40Z; 4x L40S also unavailable at 2026-08-31T13:10Z after harness switch (f79e4f3)",
   "infrastructure": {
     "attempts": [
       {
@@ -54,16 +54,20 @@
     ],
     "pod_count": 4,
     "gpu_count": 4,
-    "gpu_type": "NVIDIA A40 48GB",
+    "gpu_type": "NVIDIA L40S 48GB (approved alternate; was A40)",
+    "gpu_type_primary": "NVIDIA A40 48GB",
+    "gpu_type_alternate": "NVIDIA L40S 48GB",
     "price_target_usd_per_hour": 1.8,
+    "l40s_price_estimate_usd_per_hour": 3.96,
     "budget_target_usd": 3.0,
     "pod_status": "none_running",
     "template_id": "zh7yn78wii",
-    "auto_retry_timer": "phase101-a40-retry (every 300s)"
+    "auto_retry_timer": "phase101-l40s-retry (every 300s)"
   },
   "harness_ready": true,
-  "project_commit": "ddd32e6",
+  "project_commit": "f79e4f3",
   "scripts": [
+    "scripts/phase10_gpu_profile.py",
     "scripts/phase10_preflight.py",
     "scripts/phase10_topology.py",
     "scripts/phase10_tp_pp_run.py",
@@ -84,5 +88,5 @@
     "pipeline_dtype": "torch.float32",
     "cuda_graph": false
   },
-  "decision_text": "Harness fixed and ready (preflight + topology wiring, one-shot abort guard). Experiment blocked on RunPod A40 capacity; timer retries deployment automatically."
+  "decision_text": "Harness supports A40 and L40S (auto TE arch + MFU peak). User approved L40S alternate; template updated; waiting for 4x L40S RunPod capacity."
 }

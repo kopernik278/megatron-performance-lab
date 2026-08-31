@@ -5,18 +5,19 @@ FAST ITERATION MODE planned (5 warmup + 20 measured). CUDA Graph off.
 ## Outcome
 
 - Status: **blocked (capacity)**
-- Harness: **ready** on branch `cursor/phase101-tp2-pp2-hybrid-3b5c` at commit `ddd32e6`
-- Blocker: RunPod has no available **NVIDIA A40** instances (4-GPU and 1-GPU probes fail since ~11:40 UTC)
+- Harness: **ready** on branch `cursor/phase101-tp2-pp2-hybrid-3b5c` at commit `f79e4f3`
+- GPU: **NVIDIA L40S 48GB ×4** (user-approved alternate; A40 stockout)
+- Blocker: RunPod has no available **4×L40S** instances (SECURE/COMMUNITY/global as of 13:10 UTC)
 
-## Latest fix (`ddd32e6`)
+## Latest fix (`f79e4f3`)
 
-`fc0a5c6` split host preflight from 4-rank NCCL topology but the pod script was not updated in git. Pods failed with:
+User approved **L40S** as alternate 48GB GPU after A40 stockout:
 
-```
-phase10_topology.py: error: the following arguments are required: --preflight-json
-```
+- `scripts/phase10_gpu_profile.py` — A40 (149.7 TFLOPS) / L40S (181.0 TFLOPS) peaks + NVTE archs (86/89)
+- Pod script auto-detects GPU, rebuilds TransformerEngine when CUDA arch changes
+- RunPod template `zh7yn78wii` updated: `PHASE101_GPU_TYPE=NVIDIA L40S`, price arg `3.96` ($0.99/h×4 SECURE)
 
-Fixed by running `phase10_preflight.py` first and passing `--preflight-json`. Added `/tmp/phase101_run_done` to stop RunPod restart loops.
+Prior fix `ddd32e6`: preflight → topology `--preflight-json` wiring + one-shot abort guard.
 
 ## Planned experiment
 
@@ -42,6 +43,7 @@ After `ddd32e6`, repeated create-pod calls (SECURE/COMMUNITY, CA-MTL-1/global, 4
 
 ## Harness files
 
+- `scripts/phase10_gpu_profile.py` — GPU peak TFLOPS + NVTE CUDA arch selection
 - `scripts/phase10_preflight.py` — single-process topo/P2P/pairwise NCCL gate
 - `scripts/phase10_topology.py` — 4-rank NCCL all-reduce sanity
 - `scripts/phase10_tp_pp_run.py` — hybrid runner with rank/group/layer/sharding reports
@@ -50,10 +52,10 @@ After `ddd32e6`, repeated create-pod calls (SECURE/COMMUNITY, CA-MTL-1/global, 4
 
 ## Retry
 
-Template `zh7yn78wii` auto-deploys branch `cursor/phase101-tp2-pp2-hybrid-3b5c`:
+Template `zh7yn78wii` auto-deploys L40S branch with `PHASE101_GPU_TYPE=NVIDIA L40S`:
 
 ```bash
-bash scripts/phase10_tp_pp_pod.sh <pod_id> 1.76
+PHASE101_GPU_TYPE="NVIDIA L40S" bash scripts/phase10_tp_pp_pod.sh <pod_id> 3.96
 ```
 
-Cloud Agent timer `phase101-a40-retry` retries every 5 minutes until 4×A40 capacity appears.
+Cloud Agent timer `phase101-l40s-retry` retries every 5 minutes until 4×L40S capacity appears.
