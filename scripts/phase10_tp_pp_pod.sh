@@ -18,8 +18,14 @@ if [[ ! -x "${NSYS}" ]]; then
 fi
 CUDNN_LIB=/usr/local/lib/python3.12/dist-packages/nvidia/cudnn/lib
 ABORT_MARKER=/tmp/phase101_abort_reason.txt
+RUN_DONE_MARKER=/tmp/phase101_run_done
 WORK=results/phase101_work
 PROF=profiles/phase101_work
+
+if [[ -f "${RUN_DONE_MARKER}" ]]; then
+  echo "PHASE101_ALREADY_RAN"
+  exit 0
+fi
 
 export PYTHONPATH="${MEGATRON}:${ROOT}/scripts${PYTHONPATH:+:${PYTHONPATH}}"
 export PYTHONUNBUFFERED=1
@@ -48,6 +54,7 @@ abort() {
   local reason="$1"
   echo "${reason}" | tee "${ABORT_MARKER}"
   echo "PHASE101_ABORT=${reason}"
+  touch "${RUN_DONE_MARKER}"
   "${PYTHON:-python3}" - "$reason" "${POD_ID}" "${PRICE}" <<'PY' || true
 import json, sys
 from pathlib import Path
@@ -200,16 +207,38 @@ run_hybrid_nsys() {
 }
 
 set +e
-timeout 240 "${PYTHON}" -m torch.distributed.run --standalone --nproc_per_node=4 \
+"${PYTHON}" scripts/phase10_preflight.py \
+  --pod-id "${POD_ID}" \
+  --price-per-hour-usd "${PRICE}" \
+  --output-json "${WORK}/preflight.json" \
+  --allow-sys-topology
+preflight_status=$?
+set -e
+if [[ "${preflight_status}" -ne 0 ]]; then
+  reason="preflight failed"
+  if [[ -f "${WORK}/preflight.json" ]]; then
+    reason="$("${PYTHON}" - <<'PY'
+import json
+from pathlib import Path
+payload = json.loads(Path("results/phase101_work/preflight.json").read_text())
+print(payload.get("abort_reason") or "preflight failed")
+PY
+)"
+  fi
+  abort "${reason}"
+fi
+
+set +e
+timeout 180 "${PYTHON}" -m torch.distributed.run --standalone --nproc_per_node=4 \
   scripts/phase10_topology.py \
   --pod-id "${POD_ID}" \
   --price-per-hour-usd "${PRICE}" \
   --output-json "${WORK}/topology.json" \
-  --allow-sys-topology
+  --preflight-json "${WORK}/preflight.json"
 topo_status=$?
 set -e
 if [[ "${topo_status}" -eq 124 ]]; then
-  abort "NCCL P2P hang during 4-GPU topology sanity (timeout 240s)"
+  abort "NCCL hang during 4-GPU topology sanity (timeout 180s)"
 fi
 if [[ "${topo_status}" -ne 0 ]]; then
   reason="topology probe failed"
@@ -334,4 +363,5 @@ if [[ -f /tmp/phase101_artifacts.tgz ]]; then
   echo "PHASE101_ARTIFACT_B64_END"
 fi
 
+touch "${RUN_DONE_MARKER}"
 echo "PHASE101_POD_RUN_COMPLETE"
