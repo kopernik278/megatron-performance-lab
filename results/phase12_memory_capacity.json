@@ -1,14 +1,7 @@
 {
-  "status": "running",
+  "status": "aborted",
   "experiment": "Phase 12 training memory and capacity",
-  "active_pod": {
-    "pod_id": "gyisoehezdhyiv",
-    "dc": "EU-SE-1",
-    "host": "64411137",
-    "cuda": "13.0",
-    "price_per_hr": 0.88,
-    "note": "Final allowed GPU retry after CA-MTL NCCL hangs"
-  },
+  "abort_reason": "Infrastructure-blocked: final EU-SE retry pod gyisoehezdhyiv (host 64411137, CUDA 13.0) NCCL P2P-hung during topology sanity (90s). Prior CA-MTL hosts also NCCL-hung. Only host 64411267 previously passed topology; harness bugs there were fixed but not revalidated. GPU retry loops stopped.",
   "infrastructure": {
     "attempts": [
       {"pod_id": "4e5cg8xbus1gb5", "dc": "EU-SE-1", "host": "64411731", "failure": "SYS gate bug"},
@@ -16,12 +9,16 @@
       {"pod_id": "1cjjx4oc2l2uvr", "dc": "CA-MTL-1", "host": "64411856", "failure": "NCCL hang"},
       {"pod_id": "x73moln06loei1", "dc": "EU-SE-1", "host": "64411267", "failure": "premature fused_backend_status", "topology": "SYS OK"},
       {"pod_id": "idk2hckrkrbejr", "dc": "EU-SE-1", "host": "64411267", "failure": "C recompute outside autocast", "smoke_AB": "passed", "topology": "SYS OK"},
-      {"pod_id": "8iishiy8k49pf8", "dc": "CA-MTL-1", "host": "64411133", "failure": "NCCL hang"},
-      {"pod_id": "gyisoehezdhyiv", "dc": "EU-SE-1", "host": "64411137", "status": "running", "cuda": "13.0"}
+      {"pod_id": "8iishiy8k49pf8", "dc": "CA-MTL-1", "host": "64411133", "cuda": "13.0", "failure": "NCCL hang"},
+      {"pod_id": "gyisoehezdhyiv", "dc": "EU-SE-1", "host": "64411137", "cuda": "13.0", "failure": "NCCL hang", "note": "final allowed retry"}
     ],
     "known_good_topology_hosts": ["64411267"],
-    "known_bad_nccl_hosts": ["644110db", "64411856", "64411133"]
+    "known_bad_nccl_hosts": ["644110db", "64411856", "64411133", "64411137"],
+    "pod_status": "deleted",
+    "gpu_retries_stopped": true
   },
   "harness_commits": ["e249c1d", "70e9aab"],
-  "decision_text": "Final EU-SE attempt on host 64411137; if this fails stop GPU loops."
+  "variants_measured": [],
+  "decision_text": "Phase 12 incomplete (infrastructure-blocked). Proceed only to Phase 15 packaging when directed. Do not start Phases 10/11/13/14.",
+  "next_phase": 15
 }
