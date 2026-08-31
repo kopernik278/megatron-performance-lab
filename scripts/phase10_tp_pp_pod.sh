@@ -35,6 +35,9 @@ export CUDACXX="${CUDA_HOME}/bin/nvcc"
 export LD_LIBRARY_PATH="${CUDNN_LIB}:${CUDA_HOME}/lib64:${LD_LIBRARY_PATH:-}"
 export LD_PRELOAD="${CUDNN_LIB}/libcudnn.so.9"
 unset NCCL_P2P_DISABLE || true
+export NCCL_IB_DISABLE="${NCCL_IB_DISABLE:-1}"
+export NCCL_NVLS_ENABLE="${NCCL_NVLS_ENABLE:-0}"
+export TORCH_NCCL_ASYNC_ERROR_HANDLING="${TORCH_NCCL_ASYNC_ERROR_HANDLING:-1}"
 
 if [[ "${NCCL_P2P_DISABLE:-0}" == "1" ]]; then
   echo "NCCL_P2P_DISABLE must not be set for Phase 10.1" >&2
