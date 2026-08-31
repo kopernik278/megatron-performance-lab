@@ -25,8 +25,20 @@ WORK=results/phase101_work
 PROF=profiles/phase101_work
 
 if [[ -f "${RUN_DONE_MARKER}" ]]; then
-  echo "PHASE101_ALREADY_RAN"
-  exit 0
+  if "${PYTHON:-python3}" - <<'PY' 2>/dev/null
+import json
+from pathlib import Path
+path = Path("results/phase10_tp2_pp2_hybrid_baseline.json")
+if not path.exists():
+    raise SystemExit(1)
+payload = json.loads(path.read_text(encoding="utf-8"))
+raise SystemExit(0 if payload.get("status") == "success" else 1)
+PY
+  then
+    echo "PHASE101_ALREADY_RAN"
+    exit 0
+  fi
+  rm -f "${RUN_DONE_MARKER}"
 fi
 
 export PYTHONPATH="${MEGATRON}:${ROOT}/scripts${PYTHONPATH:+:${PYTHONPATH}}"
