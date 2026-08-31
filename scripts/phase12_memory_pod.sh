@@ -26,8 +26,8 @@ PROF=profiles/phase12_work
 if [[ -f "${RUN_DONE_MARKER}" ]]; then
   if [[ -f "${ROOT}/results/phase12_memory_capacity.json" ]]; then
     status="$("${ROOT}/.venv/bin/python" -c "import json;print(json.load(open('${ROOT}/results/phase12_memory_capacity.json')).get('status',''))" 2>/dev/null || true)"
-    if [[ "${status}" == "success" ]]; then
-      echo "PHASE12_ALREADY_RAN"
+    if [[ "${status}" == "success" || "${status}" == "aborted" ]]; then
+      echo "PHASE12_ALREADY_RAN status=${status}"
       exit 0
     fi
   fi
@@ -100,6 +100,8 @@ abort() {
   echo "${reason}" | tee "${ABORT_MARKER}"
   echo "PHASE12_ABORT=${reason}"
   write_abort "${reason}" || true
+  # Prevent container restart loops from re-billing a known-bad host.
+  touch "${RUN_DONE_MARKER}" || true
   exit 2
 }
 
