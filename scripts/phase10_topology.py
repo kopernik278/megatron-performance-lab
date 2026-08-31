@@ -65,57 +65,57 @@ def main() -> None:
         }
         sanity_by_rank: list[Any] = [None] * world
         dist.all_gather_object(sanity_by_rank, sanity)
+        abort_reason = None
+        if rank == 0:
+            p2p_matrix = preflight["p2p_matrix"]
+            result = {
+                "status": "success",
+                "experiment": "Phase 10.1 four-A40 topology and NCCL P2P sanity",
+                "infrastructure": {
+                    "pod_id": args.pod_id,
+                    "pod_count": 1,
+                    "gpu_count": 4,
+                    "gpu_type": "NVIDIA A40 48GB",
+                    "same_physical_host": True,
+                    "price_per_hour_usd": args.price_per_hour_usd,
+                    "price_target_usd": 1.80,
+                    "price_target_met": args.price_per_hour_usd <= 1.80,
+                },
+                "preflight": preflight,
+                "commands": preflight.get("commands", {}),
+                "topology_matrix": preflight.get("topology_matrix", {}),
+                "gpu_pair_paths": preflight.get("gpu_pair_paths", []),
+                "numa_affinity_by_gpu": preflight.get("numa_affinity_by_gpu", {}),
+                "same_numa": preflight.get("same_numa", True),
+                "abort_reason": None,
+                "p2p_accessibility": {
+                    "matrix": p2p_matrix,
+                    "fully_bidirectional": all(
+                        p2p_matrix[i][j] and p2p_matrix[j][i]
+                        for i in range(4)
+                        for j in range(4)
+                        if i != j
+                    ),
+                },
+                "nccl_all_reduce_sanity": {
+                    "backend": dist.get_backend(),
+                    "per_rank": sanity_by_rank,
+                    "passed": all(item["passed"] for item in sanity_by_rank),
+                },
+                "pairwise_nccl_tests": preflight.get("pairwise_nccl_tests", []),
+                "environment": collect_environment(tensor_parallel_size=4),
+            }
+            if not result["nccl_all_reduce_sanity"]["passed"]:
+                result["status"] = "abort"
+                result["abort_reason"] = "NCCL All-Reduce sanity failed"
+            args.output_json.parent.mkdir(parents=True, exist_ok=True)
+            args.output_json.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+            print("PHASE10_TOPOLOGY_JSON=" + json.dumps({"status": result["status"]}))
+            abort_reason = result["abort_reason"]
+
         dist.barrier()
-
-        if rank != 0:
-            return
-
-        p2p_matrix = preflight["p2p_matrix"]
-        result = {
-            "status": "success",
-            "experiment": "Phase 10.1 four-A40 topology and NCCL P2P sanity",
-            "infrastructure": {
-                "pod_id": args.pod_id,
-                "pod_count": 1,
-                "gpu_count": 4,
-                "gpu_type": "NVIDIA A40 48GB",
-                "same_physical_host": True,
-                "price_per_hour_usd": args.price_per_hour_usd,
-                "price_target_usd": 1.80,
-                "price_target_met": args.price_per_hour_usd <= 1.80,
-            },
-            "preflight": preflight,
-            "commands": preflight.get("commands", {}),
-            "topology_matrix": preflight.get("topology_matrix", {}),
-            "gpu_pair_paths": preflight.get("gpu_pair_paths", []),
-            "numa_affinity_by_gpu": preflight.get("numa_affinity_by_gpu", {}),
-            "same_numa": preflight.get("same_numa", True),
-            "abort_reason": None,
-            "p2p_accessibility": {
-                "matrix": p2p_matrix,
-                "fully_bidirectional": all(
-                    p2p_matrix[i][j] and p2p_matrix[j][i]
-                    for i in range(4)
-                    for j in range(4)
-                    if i != j
-                ),
-            },
-            "nccl_all_reduce_sanity": {
-                "backend": dist.get_backend(),
-                "per_rank": sanity_by_rank,
-                "passed": all(item["passed"] for item in sanity_by_rank),
-            },
-            "pairwise_nccl_tests": preflight.get("pairwise_nccl_tests", []),
-            "environment": collect_environment(tensor_parallel_size=4),
-        }
-        if not result["nccl_all_reduce_sanity"]["passed"]:
-            result["status"] = "abort"
-            result["abort_reason"] = "NCCL All-Reduce sanity failed"
-        args.output_json.parent.mkdir(parents=True, exist_ok=True)
-        args.output_json.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-        print("PHASE10_TOPOLOGY_JSON=" + json.dumps({"status": result["status"]}))
-        if result["abort_reason"] is not None:
-            raise RuntimeError(f"PHASE101_ABORT:{result['abort_reason']}")
+        if abort_reason is not None:
+            raise RuntimeError(f"PHASE101_ABORT:{abort_reason}")
     finally:
         if dist.is_initialized():
             dist.barrier()
