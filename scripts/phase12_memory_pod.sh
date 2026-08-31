@@ -111,6 +111,11 @@ fi
 cd "${ROOT}"
 git fetch origin "${BRANCH}"
 git checkout "${BRANCH}"
+# Abort artifacts written under docs/results can block pull on container restart.
+git restore --worktree --staged -- \
+  docs/experiments/phase12_memory_capacity.md \
+  results/phase12_memory_capacity.json 2>/dev/null || true
+git clean -fd -- results/phase12_work profiles/phase12_work 2>/dev/null || true
 git pull origin "${BRANCH}"
 
 if [[ ! -d "${MEGATRON}/.git" ]]; then

@@ -1,18 +1,21 @@
 # Phase 12: Training Memory and Capacity Engineering
 
-Status: **retrying** — two CA-MTL-1 hosts hung on NCCL P2P topology; next attempt targets EU-SE-1 (prior SYS+NCCL-pass host class; gate fix `a742cb8`).
+Status: **retrying** — EU-SE-1 topology **passed** (SYS + NCCL); smoke aborted due to premature TE backend check (fixed). Redeploying.
 
-## Latest aborts
+## Latest attempts
 
-| Pod | DC | Host | Failure |
+| Pod | DC | Host | Outcome |
 |---|---|---|---|
-| `4e5cg8xbus1gb5` | EU-SE-1 | 64411731 | SYS path rejected despite NCCL pass (gate bug; fixed) |
-| `ymmbcftxbayqyy` | CA-MTL-1 | 644110db | NCCL P2P hang during topology (90s) |
-| `1cjjx4oc2l2uvr` | CA-MTL-1 | 64411856 | NCCL P2P hang during topology (90s); TE built OK |
+| `4e5cg8xbus1gb5` | EU-SE-1 | 64411731 | SYS gate bug (fixed `a742cb8`) |
+| `ymmbcftxbayqyy` | CA-MTL-1 | 644110db | NCCL P2P hang |
+| `1cjjx4oc2l2uvr` | CA-MTL-1 | 64411856 | NCCL P2P hang (TE built OK) |
+| `x73moln06loei1` | EU-SE-1 | 64411267 | Topology OK (`SYS`, NCCL pass); smoke failed: `fused_backend_status` before first forward |
 
-Known-bad CA-MTL hosts for NCCL P2P: `644110db`, `64411856`. Prior success family: Phase 9.2 DistOpt on `644110d6`.
+Known-bad CA-MTL NCCL hosts: `644110db`, `64411856`. Prefer EU-SE-1 (SYS+NCCL works with `--allow-sys-topology`).
 
-Harness remains ready; redeploying on EU-SE-1 2×A40.
+## Fix after `x73moln06loei1`
+
+TE populates `_attention_backends` on first `DotProductAttention` forward. Phase 12 called `fused_backend_status()` before smoke (unlike Phase 9.2/8.1). Moved the check to after smoke.
 
 ## Scope change
 
@@ -21,22 +24,11 @@ Do not start Phase 10/11/13/14.
 
 ## Pinned Megatron activation recompute (commit `09fde85`)
 
-Verified flags (do not invent names):
-
 | Field | Value | Role |
 |---|---|---|
 | `recompute_granularity` | `'full'` | Checkpoint entire Transformer layer |
 | `recompute_method` | `'uniform'` | Uniform layer chunks |
-| `recompute_num_layers` | `1` | One layer per recompute unit (24 units for 24 layers) |
-
-Sources:
-- `megatron/core/transformer/transformer_config.py` — config fields + validation
-- `megatron/core/transformer/transformer_block.py` — `recompute_granularity == 'full'` → `checkpointed_forward`
-- `megatron/core/recompute.py` — uniform `tensor_parallel.checkpoint` chunks
-
-Deprecated CLI `--checkpoint-activations` is rejected; `--recompute-activations` maps to **selective** (core_attn only). Phase 12 uses programmatic **full** layer recompute, not selective.
-
-Expected behavior: layer inputs saved; activations discarded after forward; backward recomputes each layer before local gradients.
+| `recompute_num_layers` | `1` | One layer per recompute unit |
 
 ## Variants (DP=2, TP=1, PP=1)
 
@@ -52,14 +44,6 @@ Expected behavior: layer inputs saved; activations discarded after forward; back
 Fixed: ~355.9M GPT, 24L, h=1024, FFN=4096, heads=16, seq=2048, MB=8/GPU, BF16 autocast, fused attn, BDA on, bias-GELU off, CUDA Graph off.
 
 Capacity: bounded exponential+binary search on microbatch @ seq=2048 (cap MB≤64).
-
-## Harness
-
-- `scripts/phase12_memory_run.py`
-- `scripts/phase12_capacity_search.py`
-- `scripts/phase12_analyze_memory.py`
-- `scripts/phase12_memory_pod.sh`
-- `build_model(..., recompute_*)` wired in `scripts/phase1_baseline.py`
 
 ```bash
 bash scripts/phase12_memory_pod.sh <pod_id> 0.88

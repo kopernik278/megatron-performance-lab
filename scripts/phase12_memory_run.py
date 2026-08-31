@@ -655,7 +655,9 @@ def main() -> None:
         pointers = main_grad_pointers(bundle.model)
         buckets = collect_bucket_metadata(bundle.model)
         lifecycle = lifecycle_metadata(bundle)
-        fused = fused_backend_status()
+        # TE populates _attention_backends on first DotProductAttention forward.
+        # Check fused status only after smoke steps (matches Phase 9.2 / 8.1).
+        fused: dict[str, Any] | None = None
 
         if args.mode == "smoke":
             correctness = run_smoke_correctness(
@@ -669,6 +671,7 @@ def main() -> None:
                 args,
                 pointers,
             )
+            fused = fused_backend_status()
             if rank == 0:
                 write_rank0_json(
                     args.output_json,
@@ -708,6 +711,7 @@ def main() -> None:
                 args,
                 pointers,
             )
+            fused = fused_backend_status()
         except Exception as exc:
             if is_oom_error(exc):
                 oom_status = True

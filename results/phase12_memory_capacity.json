@@ -2,7 +2,7 @@
   "status": "aborted",
   "experiment": "Phase 12 training memory and capacity",
   "iteration_mode": "FAST ITERATION MODE",
-  "abort_reason": "NCCL P2P hang during topology sanity (timeout 90s) on CA-MTL-1 host 64411856 (pod 1cjjx4oc2l2uvr). Prior CA-MTL hang on 644110db; EU-SE-1 pod 4e5cg8xbus1gb5 had SYS+NCCL pass but gate bug (fixed a742cb8). Retrying EU-SE-1.",
+  "abort_reason": "EU-SE-1 host 64411267 topology passed (SYS+NCCL) but correctness smoke failed: fused_backend_status() ran before first TE DotProductAttention forward (all backends False). Fixed: check after smoke (matches Phase 9.2). Redeploying.",
   "recompute_configuration": {
     "recompute_granularity": "full",
     "recompute_method": "uniform",
@@ -15,35 +15,38 @@
         "pod_id": "4e5cg8xbus1gb5",
         "data_center": "EU-SE-1",
         "host_suffix": "64411731",
-        "cuda_version": "12.8",
-        "price_per_hour_usd": 0.88,
-        "failure": "unsupported SYS topology (gate bug; NCCL had passed); fixed in a742cb8"
+        "failure": "SYS gate bug; fixed a742cb8"
       },
       {
         "pod_id": "ymmbcftxbayqyy",
         "data_center": "CA-MTL-1",
         "host_suffix": "644110db",
-        "cuda_version": "12.8",
-        "price_per_hour_usd": 0.88,
-        "failure": "NCCL P2P hang during topology sanity (timeout 90s)"
+        "failure": "NCCL P2P hang"
       },
       {
         "pod_id": "1cjjx4oc2l2uvr",
         "data_center": "CA-MTL-1",
         "host_suffix": "64411856",
-        "cuda_version": "12.8",
-        "price_per_hour_usd": 0.88,
-        "failure": "NCCL P2P hang during topology sanity (timeout 90s); TE 2.17.1 built successfully"
+        "failure": "NCCL P2P hang"
+      },
+      {
+        "pod_id": "x73moln06loei1",
+        "data_center": "EU-SE-1",
+        "host_suffix": "64411267",
+        "cuda_version": "13.0",
+        "topology": "SYS",
+        "nccl_passed": true,
+        "failure": "premature fused_backend_status before first forward"
       }
     ],
     "gpu_count": 2,
     "gpu_type": "NVIDIA A40 48GB",
     "price_target_usd_per_hour": 0.9,
     "pod_status": "deleted",
-    "known_bad_hosts_nccl_hang": ["644110db", "64411856"],
-    "next_retry_data_center": "EU-SE-1"
+    "known_good_topology_hosts": ["64411267"],
+    "known_bad_hosts_nccl_hang": ["644110db", "64411856"]
   },
   "harness_ready": true,
-  "project_commit": "dd9b308",
-  "decision_text": "Retry once on EU-SE-1 (SYS+NCCL-pass class with gate fix); avoid known-bad CA-MTL hosts."
+  "fix": "Moved fused_backend_status after smoke; redeploy EU-SE-1",
+  "decision_text": "Topology proven on EU-SE; retry after TE backend check fix."
 }
