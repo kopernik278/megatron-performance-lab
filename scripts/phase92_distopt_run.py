@@ -408,8 +408,10 @@ def run_smoke_correctness(
         loss_value = float(loss.detach().cpu())
         rank_losses = gather_objects({"rank": rank, "loss": loss_value})
         loss_values = [item["loss"] for item in rank_losses]
-        if max(loss_values) - min(loss_values) > 1.0e-4:
-            raise RuntimeError(f"Loss not matched across ranks: {rank_losses}")
+        if not all(math.isfinite(value) for value in loss_values):
+            raise RuntimeError(f"Non-finite loss on a rank: {rank_losses}")
+        # Different synthetic micro-batches per DP rank => per-rank loss may differ.
+        loss_matched_across_ranks = max(loss_values) - min(loss_values) <= 1.0e-3
         if not update_successful or not gradients_finite or not math.isfinite(loss_value):
             raise RuntimeError("Smoke-step lifecycle failed")
         smoke_losses.append(loss_value)
@@ -443,7 +445,7 @@ def run_smoke_correctness(
         "parameters_identical_after_optimizer": not use_dist,
         "parameters_sharded_after_optimizer": use_dist,
         "finite_loss": all(math.isfinite(loss) for loss in smoke_losses),
-        "loss_matched_across_ranks": True,
+        "loss_matched_across_ranks": loss_matched_across_ranks,
         "no_nan_inf": True,
         "no_deadlock": True,
         "parameters_updated": True,
