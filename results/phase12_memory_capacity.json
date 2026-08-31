@@ -1,7 +1,13 @@
 {
   "status": "running",
   "experiment": "Phase 12 training memory and capacity",
-  "note": "EU-SE-1 retry loop; target host 64411267 class. Delete on NCCL hang.",
+  "active_pod": {
+    "pod_id": "tsp6vzihrfsajk",
+    "dc": "EU-SE-1",
+    "host": "6441120d",
+    "cuda": "13.0",
+    "price_per_hr": 0.88
+  },
   "infrastructure": {
     "attempts": [
       {"pod_id": "4e5cg8xbus1gb5", "dc": "EU-SE-1", "host": "64411731", "failure": "SYS gate bug"},
@@ -11,7 +17,8 @@
       {"pod_id": "idk2hckrkrbejr", "dc": "EU-SE-1", "host": "64411267", "failure": "C recompute outside autocast", "smoke_AB": "passed", "topology": "SYS OK"},
       {"pod_id": "8iishiy8k49pf8", "dc": "CA-MTL-1", "host": "64411133", "cuda": "13.0", "failure": "NCCL hang"},
       {"pod_id": "gyisoehezdhyiv", "dc": "EU-SE-1", "host": "64411137", "cuda": "13.0", "failure": "NCCL hang"},
-      {"pod_id": "mebfqubiyk8agy", "dc": "EU-SE-1", "host": "6441127d", "cuda": "13.0", "failure": "NCCL hang"}
+      {"pod_id": "mebfqubiyk8agy", "dc": "EU-SE-1", "host": "6441127d", "cuda": "13.0", "failure": "NCCL hang"},
+      {"pod_id": "tsp6vzihrfsajk", "dc": "EU-SE-1", "host": "6441120d", "cuda": "13.0", "status": "running"}
     ],
     "known_good_topology_hosts": ["64411267"],
     "known_bad_nccl_hosts": ["644110db", "64411856", "64411133", "64411137", "6441127d"],

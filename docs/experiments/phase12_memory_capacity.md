@@ -14,7 +14,7 @@ Status: **retrying on EU-SE-1** — host `6441127d` NCCL-hung (not the same as g
 | `8iishiy8k49pf8` | CA-MTL-1 | 64411133 | 13.0 | NCCL hang |
 | `gyisoehezdhyiv` | EU-SE-1 | 64411137 | 13.0 | NCCL hang |
 | `mebfqubiyk8agy` | EU-SE-1 | 6441127d | 13.0 | NCCL hang (≠ 64411267) |
-| *(pending)* | EU-SE-1 | TBD | TBD | retry |
+| `tsp6vzihrfsajk` | EU-SE-1 | 6441120d | 13.0 | **running** |
 
 ## Host classes
 
