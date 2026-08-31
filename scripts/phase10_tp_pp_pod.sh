@@ -25,10 +25,11 @@ WORK=results/phase101_work
 PROF=profiles/phase101_work
 
 if [[ -f "${RUN_DONE_MARKER}" ]]; then
-  if "${PYTHON:-python3}" - <<'PY' 2>/dev/null
+  if python3 - "${ROOT}" <<'PY' 2>/dev/null
 import json
+import sys
 from pathlib import Path
-path = Path("results/phase10_tp2_pp2_hybrid_baseline.json")
+path = Path(sys.argv[1]) / "results/phase10_tp2_pp2_hybrid_baseline.json"
 if not path.exists():
     raise SystemExit(1)
 payload = json.loads(path.read_text(encoding="utf-8"))
@@ -69,7 +70,6 @@ abort() {
   local reason="$1"
   echo "${reason}" | tee "${ABORT_MARKER}"
   echo "PHASE101_ABORT=${reason}"
-  touch "${RUN_DONE_MARKER}"
   "${PYTHON:-python3}" - "$reason" "${POD_ID}" "${PRICE}" <<'PY' || true
 import json, sys
 from pathlib import Path
@@ -145,13 +145,21 @@ mkdir -p "${ROOT}/${WORK}" "${ROOT}/${PROF}"
 cd "${ROOT}"
 PYTHON="${ROOT}/.venv/bin/python"
 
-read -r NVTE_CUDA_ARCHS GPU_TYPE_ID GPU_DISPLAY < <("${PYTHON}" - <<'PY'
+read -r GPU_PROFILE_JSON < <("${PYTHON}" - <<'PY'
+import json
 import os
 from phase10_gpu_profile import resolve_profile
 profile = resolve_profile(os.environ.get("PHASE101_GPU_TYPE"))
-print(profile.nvte_cuda_archs, profile.gpu_type_id, profile.display_name)
+print(json.dumps({
+    "nvte_cuda_archs": profile.nvte_cuda_archs,
+    "gpu_type_id": profile.gpu_type_id,
+    "display_name": profile.display_name,
+}))
 PY
 )
+NVTE_CUDA_ARCHS="$(echo "${GPU_PROFILE_JSON}" | "${PYTHON}" -c "import json,sys; print(json.load(sys.stdin)['nvte_cuda_archs'])")"
+GPU_TYPE_ID="$(echo "${GPU_PROFILE_JSON}" | "${PYTHON}" -c "import json,sys; print(json.load(sys.stdin)['gpu_type_id'])")"
+GPU_DISPLAY="$(echo "${GPU_PROFILE_JSON}" | "${PYTHON}" -c "import json,sys; print(json.load(sys.stdin)['display_name'])")"
 echo "PHASE101_GPU_PROFILE=${GPU_TYPE_ID} (${GPU_DISPLAY}) NVTE_CUDA_ARCHS=${NVTE_CUDA_ARCHS}"
 
 TE_ARCH_MARKER="${ROOT}/.venv/.te_cuda_archs"
