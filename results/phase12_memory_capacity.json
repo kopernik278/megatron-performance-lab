@@ -1,7 +1,14 @@
 {
-  "status": "aborted",
+  "status": "running",
   "experiment": "Phase 12 training memory and capacity",
-  "abort_reason": "NCCL P2P hang on CA-MTL host 64411133 (pod 8iishiy8k49pf8). Harness fixes ready. Retrying once on EU-SE (known-good topology host class 64411267).",
+  "active_pod": {
+    "pod_id": "gyisoehezdhyiv",
+    "dc": "EU-SE-1",
+    "host": "64411137",
+    "cuda": "13.0",
+    "price_per_hr": 0.88,
+    "note": "Final allowed GPU retry after CA-MTL NCCL hangs"
+  },
   "infrastructure": {
     "attempts": [
       {"pod_id": "4e5cg8xbus1gb5", "dc": "EU-SE-1", "host": "64411731", "failure": "SYS gate bug"},
@@ -9,12 +16,12 @@
       {"pod_id": "1cjjx4oc2l2uvr", "dc": "CA-MTL-1", "host": "64411856", "failure": "NCCL hang"},
       {"pod_id": "x73moln06loei1", "dc": "EU-SE-1", "host": "64411267", "failure": "premature fused_backend_status", "topology": "SYS OK"},
       {"pod_id": "idk2hckrkrbejr", "dc": "EU-SE-1", "host": "64411267", "failure": "C recompute outside autocast", "smoke_AB": "passed", "topology": "SYS OK"},
-      {"pod_id": "8iishiy8k49pf8", "dc": "CA-MTL-1", "host": "64411133", "failure": "NCCL hang"}
+      {"pod_id": "8iishiy8k49pf8", "dc": "CA-MTL-1", "host": "64411133", "failure": "NCCL hang"},
+      {"pod_id": "gyisoehezdhyiv", "dc": "EU-SE-1", "host": "64411137", "status": "running", "cuda": "13.0"}
     ],
     "known_good_topology_hosts": ["64411267"],
-    "known_bad_nccl_hosts": ["644110db", "64411856", "64411133"],
-    "pod_status": "deleted"
+    "known_bad_nccl_hosts": ["644110db", "64411856", "64411133"]
   },
   "harness_commits": ["e249c1d", "70e9aab"],
-  "decision_text": "One more EU-SE attempt; if that fails stop GPU loops."
+  "decision_text": "Final EU-SE attempt on host 64411137; if this fails stop GPU loops."
 }
