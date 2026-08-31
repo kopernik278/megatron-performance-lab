@@ -1,0 +1,119 @@
+{
+  "status": "stopped",
+  "experiment": "Phase 10.1 TP=2 PP=2 hybrid baseline",
+  "iteration_mode": "FAST ITERATION MODE",
+  "abort_reason": "Stopped by user 2026-08-31T16:04Z. Prior failure: preflight NCCL pairwise sanity timed out (GPU0-GPU1, 90s) on 4x A40 CA-MTL-1 host 64410fe7.",
+  "infrastructure": {
+    "attempts": [
+      {
+        "pod_id": "c2xo8wckih83bz",
+        "data_center": "CA-MTL-1",
+        "host_suffix": "644113db",
+        "price_per_hour_usd": 1.76,
+        "failure": "git clone restart loop (fixed in template v2)"
+      },
+      {
+        "pod_id": "f45lmcr4ssphq6",
+        "data_center": "CA-MTL-1",
+        "host_suffix": "644113db",
+        "price_per_hour_usd": 1.76,
+        "failure": "NCCL P2P hang during 4-GPU topology sanity (timeout 120s)"
+      },
+      {
+        "pod_id": "adkaupj01r70h7",
+        "data_center": "EU-SE-1",
+        "host_suffix": "644112a8",
+        "price_per_hour_usd": 1.76,
+        "failure": "Repeated 4-GPU topology NCCL hang (~240s cycles; container restart loop)"
+      },
+      {
+        "pod_id": "09lguqnpdx9c2e",
+        "data_center": "CA-MTL-1",
+        "host_suffix": "6441153f",
+        "price_per_hour_usd": 1.76,
+        "failure": "Pod script missing --preflight-json (uncommitted wiring bug; fixed ddd32e6); restart loop until deleted"
+      },
+      {
+        "pod_id": "nlg0ojcni8i1xk",
+        "data_center": "CA-MTL-1",
+        "host_suffix": "64410fe7",
+        "cuda_version": "12.8",
+        "price_per_hour_usd": 1.76,
+        "started_at_utc": "2026-08-31T15:50:32Z",
+        "deleted_at_utc": "2026-08-31T16:01:30Z",
+        "approx_cost_usd": 0.32,
+        "failure": "preflight nccl_pair_sanity(0,1) TimeoutExpired after 90s; PHASE101_ABORT=preflight failed; container restart loop begun; pod deleted"
+      }
+    ],
+    "capacity_checks": [
+      {
+        "timestamp_utc": "2026-08-31T11:40:00Z",
+        "gpu_type": "NVIDIA A40",
+        "gpu_count": 4,
+        "cloud": "SECURE",
+        "data_center": "CA-MTL-1",
+        "result": "no instances available"
+      },
+      {
+        "timestamp_utc": "2026-08-31T12:10:00Z",
+        "gpu_type": "NVIDIA A40",
+        "gpu_count": 1,
+        "cloud": "SECURE",
+        "data_center": "CA-MTL-1",
+        "result": "no instances available (full A40 stockout)"
+      },
+      {
+        "timestamp_utc": "2026-08-31T15:10:00Z",
+        "gpu_type": "NVIDIA A40",
+        "gpu_count": 4,
+        "cloud": "SECURE",
+        "cuda_version": "12.8",
+        "result": "Out (global)"
+      },
+      {
+        "timestamp_utc": "2026-08-31T15:50:00Z",
+        "gpu_type": "NVIDIA A40",
+        "gpu_count": 4,
+        "cloud": "SECURE",
+        "cuda_version": "12.8",
+        "result": "Low ($1.76/h) — created nlg0ojcni8i1xk"
+      }
+    ],
+    "pod_count": 4,
+    "gpu_count": 4,
+    "gpu_type": "NVIDIA A40 48GB",
+    "price_per_hour_usd": 1.76,
+    "price_target_usd_per_hour": 1.8,
+    "budget_target_usd": 3.0,
+    "approx_spent_usd": 0.32,
+    "pod_status": "none",
+    "template_id": "zh7yn78wii",
+    "last_pod_id": "nlg0ojcni8i1xk",
+    "auto_retry_timer": "cancelled"
+  },
+  "harness_ready": true,
+  "project_commit": "c982ac7",
+  "scripts": [
+    "scripts/phase10_gpu_profile.py",
+    "scripts/phase10_preflight.py",
+    "scripts/phase10_topology.py",
+    "scripts/phase10_tp_pp_run.py",
+    "scripts/phase10_analyze_tp_pp.py",
+    "scripts/phase10_tp_pp_pod.sh"
+  ],
+  "planned_configuration": {
+    "tensor_parallel_size": 2,
+    "pipeline_parallel_size": 2,
+    "data_parallel_size": 1,
+    "world_size": 4,
+    "layers_per_pp_stage": 12,
+    "global_batch_size": 8,
+    "microbatch_candidates": [2, 4, 8],
+    "sequence_parallel": false,
+    "distributed_optimizer": false,
+    "overlap_p2p_comm": false,
+    "pipeline_dtype": "torch.float32",
+    "cuda_graph": false
+  },
+  "decision_text": "User stopped Phase 10.1. No further retries. Last run nlg0ojcni8i1xk failed preflight NCCL on CA-MTL-1 host 64410fe7 (~$0.32)."
+}
