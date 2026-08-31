@@ -1,0 +1,60 @@
+{
+  "status": "aborted",
+  "experiment": "Phase 10.1 TP=2 PP=2 hybrid baseline",
+  "iteration_mode": "FAST ITERATION MODE",
+  "abort_reason": "4-GPU NCCL/P2P topology sanity hung on all attempted hosts within 120-240s timeout; budget limit reached before hybrid A/B/C could run",
+  "infrastructure": {
+    "attempts": [
+      {
+        "pod_id": "c2xo8wckih83bz",
+        "data_center": "CA-MTL-1",
+        "host_suffix": "644113db",
+        "price_per_hour_usd": 1.76,
+        "failure": "git clone restart loop (fixed in template v2)"
+      },
+      {
+        "pod_id": "f45lmcr4ssphq6",
+        "data_center": "CA-MTL-1",
+        "host_suffix": "644113db",
+        "price_per_hour_usd": 1.76,
+        "failure": "NCCL P2P hang during 4-GPU topology sanity (timeout 120s)"
+      },
+      {
+        "pod_id": "adkaupj01r70h7",
+        "data_center": "EU-SE-1",
+        "host_suffix": "644112a8",
+        "price_per_hour_usd": 1.76,
+        "failure": "Repeated 4-GPU topology NCCL hang (~240s cycles; container restart loop)"
+      }
+    ],
+    "pod_count": 3,
+    "gpu_count": 4,
+    "gpu_type": "NVIDIA A40 48GB",
+    "price_target_usd_per_hour": 1.8,
+    "budget_target_usd": 3.0,
+    "pod_status": "deleted"
+  },
+  "harness_ready": true,
+  "project_commit": "2a56000",
+  "scripts": [
+    "scripts/phase10_topology.py",
+    "scripts/phase10_tp_pp_run.py",
+    "scripts/phase10_analyze_tp_pp.py",
+    "scripts/phase10_tp_pp_pod.sh"
+  ],
+  "planned_configuration": {
+    "tensor_parallel_size": 2,
+    "pipeline_parallel_size": 2,
+    "data_parallel_size": 1,
+    "world_size": 4,
+    "layers_per_pp_stage": 12,
+    "global_batch_size": 8,
+    "microbatch_candidates": [2, 4, 8],
+    "sequence_parallel": false,
+    "distributed_optimizer": false,
+    "overlap_p2p_comm": false,
+    "pipeline_dtype": "torch.float32",
+    "cuda_graph": false
+  },
+  "decision_text": "Harness implemented and pushed; GPU experiment blocked by 4-rank NCCL topology hangs on available A40 hosts."
+}
