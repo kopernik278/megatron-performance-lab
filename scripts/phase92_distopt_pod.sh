@@ -381,6 +381,23 @@ fi
 
 echo "PHASE92_POD_RUN_COMPLETE"
 
+if [[ -f results/phase9_distributed_optimizer.json ]]; then
+  "${PYTHON}" - <<'PY'
+import base64
+from pathlib import Path
+for rel in (
+    "results/phase9_distributed_optimizer.json",
+    "docs/experiments/phase9_distributed_optimizer.md",
+):
+    path = Path(rel)
+    if not path.exists():
+        continue
+    print(f"PHASE92_ARTIFACT_B64_BEGIN {rel}")
+    print(base64.b64encode(path.read_bytes()).decode())
+    print(f"PHASE92_ARTIFACT_B64_END {rel}")
+PY
+fi
+
 if [[ -n "${GH_TOKEN:-}" ]] && [[ -f results/phase9_distributed_optimizer.json ]]; then
   git config user.email "cursor-agent@users.noreply.github.com"
   git config user.name "cursor-agent"
