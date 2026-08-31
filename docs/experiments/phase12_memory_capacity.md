@@ -1,6 +1,6 @@
 # Phase 12: Training Memory and Capacity Engineering
 
-Status: **retrying** — last CA-MTL-1 host hung on NCCL topology; EU-SE-1 SYS gate bug fixed (`a742cb8`).
+Status: **retrying** — two CA-MTL-1 hosts hung on NCCL P2P topology; next attempt targets EU-SE-1 (prior SYS+NCCL-pass host class; gate fix `a742cb8`).
 
 ## Latest aborts
 
@@ -8,8 +8,11 @@ Status: **retrying** — last CA-MTL-1 host hung on NCCL topology; EU-SE-1 SYS g
 |---|---|---|---|
 | `4e5cg8xbus1gb5` | EU-SE-1 | 64411731 | SYS path rejected despite NCCL pass (gate bug; fixed) |
 | `ymmbcftxbayqyy` | CA-MTL-1 | 644110db | NCCL P2P hang during topology (90s) |
+| `1cjjx4oc2l2uvr` | CA-MTL-1 | 64411856 | NCCL P2P hang during topology (90s); TE built OK |
 
-Harness remains ready; redeploying on a different 2×A40 host.
+Known-bad CA-MTL hosts for NCCL P2P: `644110db`, `64411856`. Prior success family: Phase 9.2 DistOpt on `644110d6`.
+
+Harness remains ready; redeploying on EU-SE-1 2×A40.
 
 ## Scope change
 
