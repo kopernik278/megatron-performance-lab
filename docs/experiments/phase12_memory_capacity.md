@@ -1,8 +1,6 @@
 # Phase 12: Training Memory and Capacity Engineering
 
-Status: **retrying on EU-SE-1** — user-directed rerun after infrastructure-blocked pause. Harness `70e9aab` + `e249c1d` ready. Prefer topology-good host class `64411267`; delete immediately on NCCL hang.
-
-After Phase 12 → **Phase 15 only** (packaging).
+Status: **retrying on EU-SE-1** — host `6441127d` NCCL-hung (not the same as good `64411267`). Deleted `mebfqubiyk8agy`; spawning next EU-SE pod.
 
 ## Attempts
 
@@ -15,18 +13,15 @@ After Phase 12 → **Phase 15 only** (packaging).
 | `idk2hckrkrbejr` | EU-SE-1 | 64411267 | — | Topology OK; A/B smoke OK; C autocast bug |
 | `8iishiy8k49pf8` | CA-MTL-1 | 64411133 | 13.0 | NCCL hang |
 | `gyisoehezdhyiv` | EU-SE-1 | 64411137 | 13.0 | NCCL hang |
-| `mebfqubiyk8agy` | EU-SE-1 | 6441127d | 13.0 | **running** (rerun) |
+| `mebfqubiyk8agy` | EU-SE-1 | 6441127d | 13.0 | NCCL hang (≠ 64411267) |
+| *(pending)* | EU-SE-1 | TBD | TBD | retry |
 
 ## Host classes
 
-- Known-good topology (prior): EU-SE `64411267`
-- Known-bad NCCL: CA-MTL `644110db`, `64411856`, `64411133`; EU-SE `64411137`
+- Known-good topology: EU-SE **`64411267` only**
+- Known-bad NCCL: `644110db`, `64411856`, `64411133`, `64411137`, `6441127d`
 
 ## Harness fixes
 
 - `e249c1d`: TE fused backend check after smoke forward
 - `70e9aab`: BF16 autocast wraps forward+backward for TE full recompute
-
-## Experiment design
-
-Variants A/B/C/D on DP=2, TP=1, PP=1; no SP/VPP/Userbuffers/CUDA Graph. Workload ~355.9M GPT, MB=8 fixed + capacity search MB≤64. Megatron recompute: full/uniform/num_layers=1.
