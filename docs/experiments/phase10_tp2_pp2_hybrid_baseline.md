@@ -4,9 +4,19 @@ FAST ITERATION MODE planned (5 warmup + 20 measured). CUDA Graph off.
 
 ## Outcome
 
-- Status: **aborted (infrastructure)**
-- Reason: 4-GPU NCCL/P2P topology sanity hung on all attempted RunPod hosts before hybrid runs could start.
-- Harness: **ready** on branch `cursor/phase101-tp2-pp2-hybrid-3b5c`
+- Status: **blocked (capacity)**
+- Harness: **ready** on branch `cursor/phase101-tp2-pp2-hybrid-3b5c` at commit `ddd32e6`
+- Blocker: RunPod has no available **NVIDIA A40** instances (4-GPU and 1-GPU probes fail since ~11:40 UTC)
+
+## Latest fix (`ddd32e6`)
+
+`fc0a5c6` split host preflight from 4-rank NCCL topology but the pod script was not updated in git. Pods failed with:
+
+```
+phase10_topology.py: error: the following arguments are required: --preflight-json
+```
+
+Fixed by running `phase10_preflight.py` first and passing `--preflight-json`. Added `/tmp/phase101_run_done` to stop RunPod restart loops.
 
 ## Planned experiment
 
@@ -25,21 +35,25 @@ pod_id          | DC        | host       | price/h | failure
 c2xo8wckih83bz  | CA-MTL-1  | 644113db   | 1.76    | template git clone loop (fixed)
 f45lmcr4ssphq6  | CA-MTL-1  | 644113db   | 1.76    | NCCL 4-GPU topology timeout 120s
 adkaupj01r70h7  | EU-SE-1   | 644112a8   | 1.76    | NCCL 4-GPU topology timeout ~240s loop
+09lguqnpdx9c2e  | CA-MTL-1  | 6441153f   | 1.76    | missing --preflight-json (fixed ddd32e6)
 ```
 
-Budget target was $3.00 at $1.76/h (4x A40 Secure). Three pods were provisioned and deleted; no benchmark data collected.
+After `ddd32e6`, repeated create-pod calls (SECURE/COMMUNITY, CA-MTL-1/global, 4-GPU and 1-GPU) return **no instances available**.
 
 ## Harness files
 
-- `scripts/phase10_topology.py` — full 4-GPU topo matrix + NCCL/P2P sanity
-- `scripts/phase10_tp_pp_run.py` — hybrid runner with explicit rank/group/layer/sharding reports
+- `scripts/phase10_preflight.py` — single-process topo/P2P/pairwise NCCL gate
+- `scripts/phase10_topology.py` — 4-rank NCCL all-reduce sanity
+- `scripts/phase10_tp_pp_run.py` — hybrid runner with rank/group/layer/sharding reports
 - `scripts/phase10_analyze_tp_pp.py` — microbatch sweep, TP/PP comm split, scaling
 - `scripts/phase10_tp_pp_pod.sh` — pod orchestration
 
-## Retry command
+## Retry
+
+Template `zh7yn78wii` auto-deploys branch `cursor/phase101-tp2-pp2-hybrid-3b5c`:
 
 ```bash
 bash scripts/phase10_tp_pp_pod.sh <pod_id> 1.76
 ```
 
-Requires a 4x A40 host where `torch.distributed.run --nproc_per_node=4 scripts/phase10_topology.py` completes within 240s.
+Cloud Agent timer `phase101-a40-retry` retries every 5 minutes until 4×A40 capacity appears.

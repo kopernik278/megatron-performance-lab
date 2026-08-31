@@ -1,8 +1,8 @@
 {
-  "status": "aborted",
+  "status": "blocked",
   "experiment": "Phase 10.1 TP=2 PP=2 hybrid baseline",
   "iteration_mode": "FAST ITERATION MODE",
-  "abort_reason": "4-GPU NCCL/P2P topology sanity hung on all attempted hosts within 120-240s timeout; budget limit reached before hybrid A/B/C could run",
+  "abort_reason": "RunPod 4x NVIDIA A40 stockout since 2026-08-31T11:40Z UTC; no benchmark pod could be provisioned after harness fix ddd32e6",
   "infrastructure": {
     "attempts": [
       {
@@ -25,18 +25,46 @@
         "host_suffix": "644112a8",
         "price_per_hour_usd": 1.76,
         "failure": "Repeated 4-GPU topology NCCL hang (~240s cycles; container restart loop)"
+      },
+      {
+        "pod_id": "09lguqnpdx9c2e",
+        "data_center": "CA-MTL-1",
+        "host_suffix": "6441153f",
+        "price_per_hour_usd": 1.76,
+        "failure": "Pod script missing --preflight-json (uncommitted wiring bug; fixed ddd32e6); restart loop until deleted"
       }
     ],
-    "pod_count": 3,
+    "capacity_checks": [
+      {
+        "timestamp_utc": "2026-08-31T11:40:00Z",
+        "gpu_type": "NVIDIA A40",
+        "gpu_count": 4,
+        "cloud": "SECURE",
+        "data_center": "CA-MTL-1",
+        "result": "no instances available"
+      },
+      {
+        "timestamp_utc": "2026-08-31T12:10:00Z",
+        "gpu_type": "NVIDIA A40",
+        "gpu_count": 1,
+        "cloud": "SECURE",
+        "data_center": "CA-MTL-1",
+        "result": "no instances available (full A40 stockout)"
+      }
+    ],
+    "pod_count": 4,
     "gpu_count": 4,
     "gpu_type": "NVIDIA A40 48GB",
     "price_target_usd_per_hour": 1.8,
     "budget_target_usd": 3.0,
-    "pod_status": "deleted"
+    "pod_status": "none_running",
+    "template_id": "zh7yn78wii",
+    "auto_retry_timer": "phase101-a40-retry (every 300s)"
   },
   "harness_ready": true,
-  "project_commit": "2a56000",
+  "project_commit": "ddd32e6",
   "scripts": [
+    "scripts/phase10_preflight.py",
     "scripts/phase10_topology.py",
     "scripts/phase10_tp_pp_run.py",
     "scripts/phase10_analyze_tp_pp.py",
@@ -56,5 +84,5 @@
     "pipeline_dtype": "torch.float32",
     "cuda_graph": false
   },
-  "decision_text": "Harness implemented and pushed; GPU experiment blocked by 4-rank NCCL topology hangs on available A40 hosts."
+  "decision_text": "Harness fixed and ready (preflight + topology wiring, one-shot abort guard). Experiment blocked on RunPod A40 capacity; timer retries deployment automatically."
 }
