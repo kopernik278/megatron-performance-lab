@@ -181,9 +181,9 @@ python -m pip install pydantic einops importlib-metadata nvdlfw-inspect onnx onn
 
 driver="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -n1 | tr -d ' ')"
 case "${driver}" in
-  570.*|580.*) ;;
+  570.*|580.*|595.*) ;;
   *)
-    abort "Rejecting driver ${driver}; Phase 10.1 requires 570.x or 580.x"
+    abort "Rejecting driver ${driver}; Phase 10.1 requires 570.x, 580.x, or 595.x (Blackwell)"
     ;;
 esac
 gpu_count="$(nvidia-smi -L | wc -l)"
