@@ -1,6 +1,15 @@
 # Phase 12: Training Memory and Capacity Engineering
 
-Status: **harness ready** — awaiting 2×A40 pod run.
+Status: **retrying** — last CA-MTL-1 host hung on NCCL topology; EU-SE-1 SYS gate bug fixed (`a742cb8`).
+
+## Latest aborts
+
+| Pod | DC | Host | Failure |
+|---|---|---|---|
+| `4e5cg8xbus1gb5` | EU-SE-1 | 64411731 | SYS path rejected despite NCCL pass (gate bug; fixed) |
+| `ymmbcftxbayqyy` | CA-MTL-1 | 644110db | NCCL P2P hang during topology (90s) |
+
+Harness remains ready; redeploying on a different 2×A40 host.
 
 ## Scope change
 
