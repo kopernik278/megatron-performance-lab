@@ -380,3 +380,14 @@ fi
   "${FORMAL_ARGS[@]+"${FORMAL_ARGS[@]}"}"
 
 echo "PHASE92_POD_RUN_COMPLETE"
+
+if [[ -n "${GH_TOKEN:-}" ]] && [[ -f results/phase9_distributed_optimizer.json ]]; then
+  git config user.email "cursor-agent@users.noreply.github.com"
+  git config user.name "cursor-agent"
+  git add docs/experiments/phase9_distributed_optimizer.md results/phase9_distributed_optimizer.json results/phase92_work profiles/phase92_work || true
+  if ! git diff --cached --quiet; then
+    git commit -m "results: Phase 9.2 distributed optimizer A/B/C"
+    git -c credential.helper='!f() { echo username=x-access-token; echo password=${GH_TOKEN}; }; f' \
+      push origin "${BRANCH}"
+  fi
+fi
