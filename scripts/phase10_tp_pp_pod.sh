@@ -54,7 +54,9 @@ export CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
 export PATH="${CUDA_HOME}/bin:${PATH}"
 export CUDACXX="${CUDA_HOME}/bin/nvcc"
 export LD_LIBRARY_PATH="${CUDNN_LIB}:${CUDA_HOME}/lib64:${LD_LIBRARY_PATH:-}"
-export LD_PRELOAD="${CUDNN_LIB}/libcudnn.so.9"
+# Defer libcudnn LD_PRELOAD until after CUDA preflight; it can break torch init on some hosts.
+CUDNN_LD_PRELOAD="${CUDNN_LIB}/libcudnn.so.9"
+unset LD_PRELOAD || true
 unset NCCL_P2P_DISABLE || true
 export NCCL_IB_DISABLE="${NCCL_IB_DISABLE:-1}"
 export NCCL_NVLS_ENABLE="${NCCL_NVLS_ENABLE:-0}"
@@ -189,6 +191,29 @@ if [[ "${gpu_count}" -ne 4 ]]; then
   abort "Need exactly 4 visible GPUs, got ${gpu_count}"
 fi
 
+wait_for_cuda_ready() {
+  local max_wait="${1:-120}"
+  local elapsed=0
+  while (( elapsed < max_wait )); do
+    if env -u LD_PRELOAD "${PYTHON}" - <<'PY' 2>/dev/null
+import torch
+assert torch.cuda.is_available()
+assert torch.cuda.device_count() == 4
+torch.zeros(1, device="cuda:0")
+assert torch.cuda.can_device_access_peer(0, 1)
+PY
+    then
+      echo "PHASE101_CUDA_READY elapsed=${elapsed}s"
+      return 0
+    fi
+    sleep 5
+    elapsed=$((elapsed + 5))
+  done
+  abort "CUDA not ready after ${max_wait}s (nvidia-smi ok but torch CUDA init failed)"
+}
+
+wait_for_cuda_ready 120
+
 run_dist() {
   local nproc="$1"
   shift
@@ -269,6 +294,8 @@ PY
   fi
   abort "${reason}"
 fi
+
+export LD_PRELOAD="${CUDNN_LD_PRELOAD}"
 
 set +e
 timeout 180 "${PYTHON}" -m torch.distributed.run --standalone --nproc_per_node=4 \

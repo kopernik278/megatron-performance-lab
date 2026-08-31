@@ -53,6 +53,13 @@ GPU_PROFILES: dict[str, GpuProfile] = {
         dense_bf16_peak_tflops=142.6,
         nvte_cuda_archs="86",
     ),
+    "NVIDIA RTX A6000": GpuProfile(
+        gpu_type_id="NVIDIA RTX A6000",
+        display_name="NVIDIA RTX A6000 48GB",
+        memory_gb=48,
+        dense_bf16_peak_tflops=155.0,
+        nvte_cuda_archs="86",
+    ),
     "NVIDIA A100-SXM4-80GB": GpuProfile(
         gpu_type_id="NVIDIA A100-SXM4-80GB",
         display_name="NVIDIA A100 SXM 80GB",
@@ -86,6 +93,8 @@ def match_profile_from_name(gpu_name: str) -> GpuProfile | None:
         return GPU_PROFILES["NVIDIA GeForce RTX 5090"]
     if "3090" in upper:
         return GPU_PROFILES["NVIDIA GeForce RTX 3090"]
+    if "A6000" in upper:
+        return GPU_PROFILES["NVIDIA RTX A6000"]
     if "A100" in upper:
         return GPU_PROFILES["NVIDIA A100-SXM4-80GB"]
     return None
