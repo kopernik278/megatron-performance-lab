@@ -210,14 +210,13 @@ def gather_objects(value: Any) -> list[Any]:
 
 
 def forward_loss(model: torch.nn.Module, batch: dict[str, torch.Tensor]) -> torch.Tensor:
-    with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=True):
-        output = model(
-            batch["tokens"],
-            batch["position_ids"],
-            batch["attention_mask"],
-            labels=batch["labels"],
-        )
-        return masked_language_model_loss(output, batch["loss_mask"])
+    output = model(
+        batch["tokens"],
+        batch["position_ids"],
+        batch["attention_mask"],
+        labels=batch["labels"],
+    )
+    return masked_language_model_loss(output, batch["loss_mask"])
 
 
 def train_step(
@@ -228,11 +227,13 @@ def train_step(
     with torch.cuda.nvtx.range(f"train_step_{step_index:03d}"):
         with torch.cuda.nvtx.range("optimizer_zero_grad"):
             zero_gradients(bundle)
-        with torch.cuda.nvtx.range("forward"):
-            loss = forward_loss(bundle.model, batch)
-        with torch.cuda.nvtx.range("backward"):
-            # Under full recompute, Megatron re-runs layer forwards inside backward.
-            loss.backward()
+        # Autocast must wrap backward too: full activation recompute re-runs TE
+        # DotProductAttention during backward, and fused attn expects BF16 QKV.
+        with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=True):
+            with torch.cuda.nvtx.range("forward"):
+                loss = forward_loss(bundle.model, batch)
+            with torch.cuda.nvtx.range("backward"):
+                loss.backward()
         with torch.cuda.nvtx.range("finalize_model_grads"):
             finalize_gradients(bundle.model)
         with torch.cuda.nvtx.range("optimizer_step"):
@@ -439,8 +440,10 @@ def run_smoke_correctness(
         torch.cuda.synchronize(device)
         assert_zeroed_lifecycle(bundle)
         assert_main_grad_pointers(bundle.model, pointers)
-        loss = forward_loss(bundle.model, batch)
-        loss.backward()
+        # Keep BF16 autocast across backward so TE fused attn recompute sees BF16 QKV.
+        with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=True):
+            loss = forward_loss(bundle.model, batch)
+            loss.backward()
         finalize_gradients(bundle.model)
         torch.cuda.synchronize(device)
         gradients_finite = main_grads_finite(bundle)
