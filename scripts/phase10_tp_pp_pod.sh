@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Phase 10.1: TP=2 + PP=2 hybrid baseline on one 4-GPU pod (DP=1).
-# Default GPU: NVIDIA A40; alternate: NVIDIA L40S via PHASE101_GPU_TYPE.
+# Default GPU: auto-detect via nvidia-smi; set PHASE101_GPU_TYPE to override.
 set -euo pipefail
 
 ROOT=/workspace/megatron-performance-lab
@@ -10,8 +10,8 @@ MEGATRON_COMMIT=09fde85ea25fb67e9b32019089fae163a3233bd3
 TE_COMMIT=4329ff84bfbdaa778a33cba02a15fb0807c64689
 BRANCH="${PHASE101_BRANCH:-cursor/phase101-tp2-pp2-hybrid-3b5c}"
 POD_ID="${1:?pod id required}"
-PRICE="${2:-3.96}"
-PHASE101_GPU_TYPE="${PHASE101_GPU_TYPE:-NVIDIA L40S}"
+PRICE="${2:-1.36}"
+PHASE101_GPU_TYPE="${PHASE101_GPU_TYPE:-}"
 PUBLIC_IP="${PHASE101_PUBLIC_IP:-}"
 DATA_CENTER="${PHASE101_DATA_CENTER:-}"
 NSYS=/opt/nvidia/nsight-compute/2025.1.1/host/target-linux-x64/nsys
