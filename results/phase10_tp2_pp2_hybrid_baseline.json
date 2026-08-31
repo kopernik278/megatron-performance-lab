@@ -1,8 +1,8 @@
 {
-  "status": "aborted",
+  "status": "stopped",
   "experiment": "Phase 10.1 TP=2 PP=2 hybrid baseline",
   "iteration_mode": "FAST ITERATION MODE",
-  "abort_reason": "Preflight NCCL pairwise sanity timed out (GPU0-GPU1, 90s) on 4x A40 CA-MTL-1 host 64410fe7; same NCCL hang class as prior CA-MTL-1/EU-SE-1 attempts. Pod deleted to stop restart loop.",
+  "abort_reason": "Stopped by user 2026-08-31T16:04Z. Prior failure: preflight NCCL pairwise sanity timed out (GPU0-GPU1, 90s) on 4x A40 CA-MTL-1 host 64410fe7.",
   "infrastructure": {
     "attempts": [
       {
@@ -86,9 +86,10 @@
     "price_target_usd_per_hour": 1.8,
     "budget_target_usd": 3.0,
     "approx_spent_usd": 0.32,
-    "pod_status": "deleted",
+    "pod_status": "none",
     "template_id": "zh7yn78wii",
-    "last_pod_id": "nlg0ojcni8i1xk"
+    "last_pod_id": "nlg0ojcni8i1xk",
+    "auto_retry_timer": "cancelled"
   },
   "harness_ready": true,
   "project_commit": "c982ac7",
@@ -114,5 +115,5 @@
     "pipeline_dtype": "torch.float32",
     "cuda_graph": false
   },
-  "decision_text": "4x A40 pod nlg0ojcni8i1xk reached CUDA ready and TE build OK, but preflight pairwise NCCL (GPU0-GPU1) hung 90s on CA-MTL-1 host 64410fe7. Preflight correctly aborted before wasting budget on full sweeps. Retry on a different host/DC (prefer EU-SE-1) when capacity allows; do not disable NCCL P2P for a TP/PP baseline."
+  "decision_text": "User stopped Phase 10.1. No further retries. Last run nlg0ojcni8i1xk failed preflight NCCL on CA-MTL-1 host 64410fe7 (~$0.32)."
 }

@@ -4,10 +4,10 @@ FAST ITERATION MODE planned (5 warmup + 20 measured). CUDA Graph off.
 
 ## Outcome
 
-- Status: **aborted (NCCL preflight)**
-- Harness: **ready** on branch `cursor/phase101-tp2-pp2-hybrid-3b5c`
-- GPU: **NVIDIA A40 48GB ×4** (user request)
-- Blocker: Preflight NCCL pairwise sanity (GPU0↔GPU1) timed out after 90s on CA-MTL-1 host `64410fe7`
+- Status: **stopped by user** (2026-08-31 16:04 UTC)
+- No further capacity retries or pod deployments
+- Last abort: Preflight NCCL pairwise sanity (GPU0↔GPU1) timed out after 90s on CA-MTL-1 host `64410fe7`
+- Harness remains on branch `cursor/phase101-tp2-pp2-hybrid-3b5c` for a future resume
 
 ## Latest run (2026-08-31 15:50–16:01 UTC)
 
@@ -52,9 +52,9 @@ nlg0ojcni8i1xk  | CA-MTL-1  | 64410fe7   | 1.76    | preflight NCCL pair 0-1 tim
 - `scripts/phase10_analyze_tp_pp.py` — microbatch sweep, TP/PP comm split, scaling
 - `scripts/phase10_tp_pp_pod.sh` — pod orchestration
 
-## Next
+## Stopped
 
-Retry 4×A40 on a **different host** (prefer EU-SE-1; avoid known bad suffixes `644113db`, `644112a8`, `64410fe7` when possible). Do **not** disable NCCL P2P for this baseline — TP/PP needs working GPU interconnect.
+User requested stop — no auto-retry timer, no running pods. To resume later:
 
 ```bash
 PHASE101_GPU_TYPE="NVIDIA A40" bash scripts/phase10_tp_pp_pod.sh <pod_id> 1.76
