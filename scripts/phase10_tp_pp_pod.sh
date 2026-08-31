@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Phase 10.1: TP=2 + PP=2 hybrid baseline on one 4x A40 pod (DP=1).
+# Phase 10.1: TP=2 + PP=2 hybrid baseline on one 4-GPU pod (DP=1).
+# Default GPU: NVIDIA A40; alternate: NVIDIA L40S via PHASE101_GPU_TYPE.
 set -euo pipefail
 
 ROOT=/workspace/megatron-performance-lab
@@ -9,7 +10,8 @@ MEGATRON_COMMIT=09fde85ea25fb67e9b32019089fae163a3233bd3
 TE_COMMIT=4329ff84bfbdaa778a33cba02a15fb0807c64689
 BRANCH="${PHASE101_BRANCH:-cursor/phase101-tp2-pp2-hybrid-3b5c}"
 POD_ID="${1:?pod id required}"
-PRICE="${2:-1.76}"
+PRICE="${2:-3.96}"
+PHASE101_GPU_TYPE="${PHASE101_GPU_TYPE:-NVIDIA L40S}"
 PUBLIC_IP="${PHASE101_PUBLIC_IP:-}"
 DATA_CENTER="${PHASE101_DATA_CENTER:-}"
 NSYS=/opt/nvidia/nsight-compute/2025.1.1/host/target-linux-x64/nsys
@@ -44,6 +46,7 @@ unset NCCL_P2P_DISABLE || true
 export NCCL_IB_DISABLE="${NCCL_IB_DISABLE:-1}"
 export NCCL_NVLS_ENABLE="${NCCL_NVLS_ENABLE:-0}"
 export TORCH_NCCL_ASYNC_ERROR_HANDLING="${TORCH_NCCL_ASYNC_ERROR_HANDLING:-1}"
+export PHASE101_GPU_TYPE
 
 if [[ "${NCCL_P2P_DISABLE:-0}" == "1" ]]; then
   echo "NCCL_P2P_DISABLE must not be set for Phase 10.1" >&2
@@ -121,11 +124,6 @@ fi
 # shellcheck disable=SC1091
 source "${ROOT}/.venv/bin/activate"
 python -m pip install -U pip setuptools wheel ninja "pybind11[global]" "cmake>=3.21,<4"
-if ! python -c "import transformer_engine" >/dev/null 2>&1; then
-  NVTE_FRAMEWORK=pytorch NVTE_CUDA_ARCHS=86 NVTE_WITH_NCCL_EP=0 MAX_JOBS=8 \
-    python -m pip install --no-build-isolation --no-deps "${TE}"
-fi
-python -m pip install pydantic einops importlib-metadata nvdlfw-inspect onnx onnxscript pyyaml
 
 ln -sfn "${ROOT}" /workspace/megatron-performance-lab
 ln -sfn "${MEGATRON}" /workspace/Megatron-LM
@@ -134,6 +132,30 @@ ln -sfn "${TE}" /workspace/TransformerEngine
 mkdir -p "${ROOT}/${WORK}" "${ROOT}/${PROF}"
 cd "${ROOT}"
 PYTHON="${ROOT}/.venv/bin/python"
+
+read -r NVTE_CUDA_ARCHS GPU_TYPE_ID GPU_DISPLAY < <("${PYTHON}" - <<'PY'
+import os
+from phase10_gpu_profile import resolve_profile
+profile = resolve_profile(os.environ.get("PHASE101_GPU_TYPE"))
+print(profile.nvte_cuda_archs, profile.gpu_type_id, profile.display_name)
+PY
+)
+echo "PHASE101_GPU_PROFILE=${GPU_TYPE_ID} (${GPU_DISPLAY}) NVTE_CUDA_ARCHS=${NVTE_CUDA_ARCHS}"
+
+TE_ARCH_MARKER="${ROOT}/.venv/.te_cuda_archs"
+need_te_install=0
+if ! python -c "import transformer_engine" >/dev/null 2>&1; then
+  need_te_install=1
+elif [[ ! -f "${TE_ARCH_MARKER}" ]] || [[ "$(cat "${TE_ARCH_MARKER}")" != "${NVTE_CUDA_ARCHS}" ]]; then
+  need_te_install=1
+fi
+if [[ "${need_te_install}" -eq 1 ]]; then
+  python -m pip uninstall -y transformer-engine transformer_engine 2>/dev/null || true
+  NVTE_FRAMEWORK=pytorch NVTE_CUDA_ARCHS="${NVTE_CUDA_ARCHS}" NVTE_WITH_NCCL_EP=0 MAX_JOBS=8 \
+    python -m pip install --no-build-isolation --no-deps "${TE}"
+  echo "${NVTE_CUDA_ARCHS}" > "${TE_ARCH_MARKER}"
+fi
+python -m pip install pydantic einops importlib-metadata nvdlfw-inspect onnx onnxscript pyyaml
 
 driver="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -n1 | tr -d ' ')"
 case "${driver}" in

@@ -31,8 +31,8 @@ from megatron.core.tensor_parallel.random import model_parallel_cuda_manual_seed
 from megatron.core.transformer.transformer_block import get_num_layers_to_build
 from megatron.core.transformer.transformer_layer import get_transformer_layer_offset
 
+from phase10_gpu_profile import resolve_profile
 from phase1_baseline import (
-    A40_DENSE_BF16_PEAK_TFLOPS,
     TE_FUSED_ATTENTION,
     build_model,
     masked_language_model_loss,
@@ -805,7 +805,9 @@ def main() -> None:
             model_args.vocab_size,
         )
         aggregate_tflops = flops_per_iteration / (average_step_time_ms / 1000.0) / 1e12
-        mfu_percent = aggregate_tflops / (world_size * A40_DENSE_BF16_PEAK_TFLOPS) * 100.0
+        gpu_profile = resolve_profile()
+        peak_tflops = gpu_profile.dense_bf16_peak_tflops
+        mfu_percent = aggregate_tflops / (world_size * peak_tflops) * 100.0
         payload = {
             "status": "success",
             "run_label": args.run_label,
@@ -868,7 +870,9 @@ def main() -> None:
             "mfu_percent": mfu_percent,
             "per_gpu_mfu_percent": mfu_percent,
             "aggregate_tflops": aggregate_tflops,
-            "a40_peak_tflops": A40_DENSE_BF16_PEAK_TFLOPS,
+            "gpu_type_id": gpu_profile.gpu_type_id,
+            "gpu_dense_bf16_peak_tflops": peak_tflops,
+            "a40_peak_tflops": peak_tflops,
             "smoke_iterations": args.smoke_iterations,
             "warmup_iterations": args.warmup_iterations,
             "measured_iterations": args.measured_iterations,

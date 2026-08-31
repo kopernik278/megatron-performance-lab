@@ -13,6 +13,7 @@ from typing import Any
 import torch
 import torch.distributed as dist
 
+from phase10_gpu_profile import resolve_profile
 from phase7_tp_run import collect_environment
 
 
@@ -68,14 +69,17 @@ def main() -> None:
         abort_reason = None
         if rank == 0:
             p2p_matrix = preflight["p2p_matrix"]
+            gpu_profile = resolve_profile()
             result = {
                 "status": "success",
-                "experiment": "Phase 10.1 four-A40 topology and NCCL P2P sanity",
+                "experiment": "Phase 10.1 four-GPU topology and NCCL P2P sanity",
                 "infrastructure": {
                     "pod_id": args.pod_id,
                     "pod_count": 1,
                     "gpu_count": 4,
-                    "gpu_type": "NVIDIA A40 48GB",
+                    "gpu_type": gpu_profile.display_name,
+                    "gpu_type_id": gpu_profile.gpu_type_id,
+                    "gpu_dense_bf16_peak_tflops": gpu_profile.dense_bf16_peak_tflops,
                     "same_physical_host": True,
                     "price_per_hour_usd": args.price_per_hour_usd,
                     "price_target_usd": 1.80,
@@ -118,7 +122,6 @@ def main() -> None:
             raise RuntimeError(f"PHASE101_ABORT:{abort_reason}")
     finally:
         if dist.is_initialized():
-            dist.barrier()
             dist.destroy_process_group()
 
 
