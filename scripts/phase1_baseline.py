@@ -309,6 +309,10 @@ def build_model(
     pre_process: bool | None = None,
     post_process: bool | None = None,
     share_embeddings_and_output_weights: bool = True,
+    recompute_granularity: str | None = None,
+    recompute_method: str | None = None,
+    recompute_num_layers: int | None = None,
+    distribute_saved_activations: bool = False,
 ) -> GPTModel:
     if attention_implementation is None:
         attention_implementation = getattr(
@@ -359,6 +363,10 @@ def build_model(
         cuda_graph_impl=cuda_graph_impl,
         cuda_graph_modules=[],
         cuda_graph_warmup_steps=cuda_graph_warmup_steps,
+        recompute_granularity=recompute_granularity,
+        recompute_method=recompute_method,
+        recompute_num_layers=recompute_num_layers,
+        distribute_saved_activations=distribute_saved_activations,
     )
     from megatron.core.transformer.transformer_block import (
         TransformerBlockSubmodules,

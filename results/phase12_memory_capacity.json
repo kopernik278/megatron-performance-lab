@@ -1,0 +1,26 @@
+{
+  "status": "harness_ready",
+  "experiment": "Phase 12 training memory and capacity",
+  "iteration_mode": "FAST ITERATION MODE",
+  "recompute_configuration": {
+    "enabled_when_variant_C_or_D": true,
+    "recompute_granularity": "full",
+    "recompute_method": "uniform",
+    "recompute_num_layers": 1,
+    "layers_recomputation_unit": "each of 24 Transformer layers",
+    "source": "megatron/core/transformer/transformer_config.py; transformer_block.py; recompute.py (Megatron 09fde85)"
+  },
+  "planned_variants": {
+    "A": {"use_distributed_optimizer": false, "activation_checkpointing": false},
+    "B": {"use_distributed_optimizer": true, "overlap_grad_reduce": true, "overlap_param_gather": true, "activation_checkpointing": false},
+    "C": {"use_distributed_optimizer": false, "activation_checkpointing": true},
+    "D": {"use_distributed_optimizer": true, "overlap_grad_reduce": true, "overlap_param_gather": true, "activation_checkpointing": true}
+  },
+  "parallelism": {"tp": 1, "pp": 1, "dp": 2},
+  "infrastructure_target": {
+    "gpu_count": 2,
+    "gpu_type": "NVIDIA A40 48GB",
+    "price_target_usd_per_hour": 0.9
+  },
+  "decision_text": "Harness ready. Next: one 2x A40 pod run, then stop for Phase 15 packaging."
+}
