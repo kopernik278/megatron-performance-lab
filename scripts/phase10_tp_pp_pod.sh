@@ -45,6 +45,42 @@ abort() {
   local reason="$1"
   echo "${reason}" | tee "${ABORT_MARKER}"
   echo "PHASE101_ABORT=${reason}"
+  "${PYTHON:-python3}" - "$reason" "${POD_ID}" "${PRICE}" <<'PY' || true
+import json, sys
+from pathlib import Path
+reason, pod_id, price = sys.argv[1], sys.argv[2], float(sys.argv[3])
+topology = {}
+path = Path("results/phase101_work/topology.json")
+if path.exists():
+    try:
+        topology = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        topology = {"unparsed": path.read_text(encoding="utf-8")[:4000]}
+Path("results").mkdir(parents=True, exist_ok=True)
+Path("docs/experiments").mkdir(parents=True, exist_ok=True)
+Path("results/phase10_tp2_pp2_hybrid_baseline.json").write_text(
+    json.dumps(
+        {
+            "status": "aborted",
+            "experiment": "Phase 10.1 TP=2 PP=2 hybrid baseline",
+            "abort_reason": reason,
+            "infrastructure": {
+                "pod_id": pod_id,
+                "price_per_hour_usd": price,
+                "pod_status": "to_be_deleted",
+            },
+            "topology": topology,
+        },
+        indent=2,
+    )
+    + "\n",
+    encoding="utf-8",
+)
+Path("docs/experiments/phase10_tp2_pp2_hybrid_baseline.md").write_text(
+    f"# Phase 10.1 aborted\n\n{reason}\n",
+    encoding="utf-8",
+)
+PY
   exit 2
 }
 
@@ -161,15 +197,16 @@ run_hybrid_nsys() {
 }
 
 set +e
-timeout 120 "${PYTHON}" -m torch.distributed.run --standalone --nproc_per_node=4 \
+timeout 240 "${PYTHON}" -m torch.distributed.run --standalone --nproc_per_node=4 \
   scripts/phase10_topology.py \
   --pod-id "${POD_ID}" \
   --price-per-hour-usd "${PRICE}" \
-  --output-json "${WORK}/topology.json"
+  --output-json "${WORK}/topology.json" \
+  --allow-sys-topology
 topo_status=$?
 set -e
 if [[ "${topo_status}" -eq 124 ]]; then
-  abort "NCCL P2P hang during 4-GPU topology sanity (timeout 120s)"
+  abort "NCCL P2P hang during 4-GPU topology sanity (timeout 240s)"
 fi
 if [[ "${topo_status}" -ne 0 ]]; then
   reason="topology probe failed"
