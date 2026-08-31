@@ -1,47 +1,85 @@
 {
-  "status": "aborted",
+  "status": "infrastructure_blocked",
   "experiment": "Phase 9.2 DP=2 Megatron Distributed Optimizer",
-  "abort_reason": "Could not obtain a 2xA40 Secure host with passing NCCL topology after multiple CA-MTL-1 attempts; only suffixes 64411136/64411b62/64411275/64411914 were allocated and each failed NCCL hang or SYS topology before benchmarks completed.",
+  "abort_reason": "Retry host search could not provision any 2xA40 Pod: RunPod Secure and Community pools report A40 stock Out (2026-08-31T07:10Z). Zero pods created within search budget (0/3 pods, <1 minute elapsed).",
   "iteration_mode": "FAST ITERATION MODE (not executed)",
-  "harness_commit": "c4d82d5",
+  "host_search": {
+    "budget_max_pods": 3,
+    "budget_max_minutes": 20,
+    "pods_provisioned": 0,
+    "pods_rejected": 0,
+    "elapsed_seconds": 30,
+    "topology_policy": "Accept any same-host 2xA40 topology including SYS when CUDA P2P bidirectional and NCCL All-Reduce sanity passes within 90s",
+    "attempts": [
+      {
+        "attempt": 1,
+        "cloud": "SECURE",
+        "data_center": "CA-MTL-1",
+        "gpu": "2x NVIDIA A40",
+        "outcome": "provision_failed_no_stock"
+      },
+      {
+        "attempt": 2,
+        "cloud": "SECURE",
+        "data_center": "any",
+        "gpu": "2x NVIDIA A40",
+        "outcome": "provision_failed_no_stock"
+      },
+      {
+        "attempt": 3,
+        "cloud": "COMMUNITY",
+        "data_center": "any",
+        "gpu": "2x NVIDIA A40",
+        "outcome": "provision_failed_no_stock"
+      }
+    ],
+    "capacity_check": {
+      "gpu": "NVIDIA A40",
+      "secure_cloud_stock_12_8": "Out",
+      "community_cloud_stock_12_8": "Out"
+    }
+  },
+  "harness_commit": "2b73981",
   "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
-  "partial_evidence": {
-    "topology_pass_host_suffix": "64411397",
-    "topology_pass_pod_id": "t4za3nhwouivve",
-    "topology_path": "NODE",
-    "blocked_at": "A/B/C correctness smoke (fixed in 68703e9: per-rank loss check)",
-    "host_pool_observed": [
-      {"suffix": "64411397", "outcome": "NODE topology OK, smoke failed (pre-fix)"},
-      {"suffix": "64411b62", "outcome": "SYS topology (allowed with NCCL pass after e1e5c48)"},
-      {"suffix": "64411136", "outcome": "NCCL P2P hang (topology timeout 90s)"},
-      {"suffix": "64411275", "outcome": "NCCL P2P hang (EU-SE-1)"},
-      {"suffix": "64411914", "outcome": "NCCL P2P hang (CA-MTL-1)"}
-    ]
-  },
-  "infrastructure": {
-    "pod_id": null,
-    "pod_status": "deleted",
-    "price_per_hour_usd": 0.88,
-    "data_center": "CA-MTL-1",
-    "gpu": "2x NVIDIA A40 Secure",
-    "image": "runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404"
-  },
   "variants_planned": {
     "A": {
       "use_distributed_optimizer": false,
       "overlap_grad_reduce": true,
-      "overlap_param_gather": false
+      "overlap_param_gather": false,
+      "expected_grad_comm": "All-Reduce"
     },
     "B": {
       "use_distributed_optimizer": true,
       "overlap_grad_reduce": true,
-      "overlap_param_gather": false
+      "overlap_param_gather": false,
+      "expected_grad_comm": "Reduce-Scatter",
+      "expected_param_comm": "All-Gather sync"
     },
     "C": {
       "use_distributed_optimizer": true,
       "overlap_grad_reduce": true,
-      "overlap_param_gather": true
+      "overlap_param_gather": true,
+      "expected_grad_comm": "Reduce-Scatter",
+      "expected_param_comm": "All-Gather overlap"
     }
   },
-  "next_step": "Re-run bash scripts/phase92_distopt_pod.sh <pod_id> 0.88 on CA-MTL-1 host suffix 64411397 or 6441139d (NODE topology, NCCL sanity pass)."
+  "infrastructure": {
+    "pod_id": null,
+    "pod_status": "none_running",
+    "price_per_hour_usd": null,
+    "data_center": null,
+    "gpu0_gpu1_path": null
+  },
+  "correctness": null,
+  "variant_a": null,
+  "variant_b": null,
+  "variant_c": null,
+  "comparison": null,
+  "traces": null,
+  "formal_validation_ran": false,
+  "prior_partial_evidence": {
+    "note": "Earlier hunt (same branch) reached NODE topology on suffix 64411397 but aborted before benchmarks due to smoke bug since fixed in 68703e9",
+    "topology_pass_host_suffix": "64411397",
+    "topology_path": "NODE"
+  }
 }
