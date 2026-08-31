@@ -2,7 +2,7 @@
   "status": "blocked",
   "experiment": "Phase 10.1 TP=2 PP=2 hybrid baseline",
   "iteration_mode": "FAST ITERATION MODE",
-  "abort_reason": "RunPod GPU stockout: A40 unavailable since 2026-08-31T11:40Z; 4x L40S also unavailable at 2026-08-31T13:10Z after harness switch (f79e4f3)",
+  "abort_reason": "RunPod GPU stockout: 4x NVIDIA A40 SECURE unavailable globally as of 2026-08-31T15:10Z (user requested A40 only)",
   "infrastructure": {
     "attempts": [
       {
@@ -50,19 +50,25 @@
         "cloud": "SECURE",
         "data_center": "CA-MTL-1",
         "result": "no instances available (full A40 stockout)"
+      },
+      {
+        "timestamp_utc": "2026-08-31T15:10:00Z",
+        "gpu_type": "NVIDIA A40",
+        "gpu_count": 4,
+        "cloud": "SECURE",
+        "cuda_version": "12.8",
+        "result": "Out (global)"
       }
     ],
     "pod_count": 4,
     "gpu_count": 4,
-    "gpu_type": "NVIDIA L40S 48GB (approved alternate; was A40)",
-    "gpu_type_primary": "NVIDIA A40 48GB",
-    "gpu_type_alternate": "NVIDIA L40S 48GB",
+    "gpu_type": "NVIDIA A40 48GB",
+    "price_per_hour_usd": 1.76,
     "price_target_usd_per_hour": 1.8,
-    "l40s_price_estimate_usd_per_hour": 3.96,
     "budget_target_usd": 3.0,
     "pod_status": "none_running",
     "template_id": "zh7yn78wii",
-    "auto_retry_timer": "phase101-l40s-retry (every 300s)"
+    "auto_retry_timer": "phase101-a40-retry (every 300s)"
   },
   "harness_ready": true,
   "project_commit": "f79e4f3",
@@ -88,5 +94,5 @@
     "pipeline_dtype": "torch.float32",
     "cuda_graph": false
   },
-  "decision_text": "Harness supports A40 and L40S (auto TE arch + MFU peak). User approved L40S alternate; template updated; waiting for 4x L40S RunPod capacity."
+  "decision_text": "User requested A40 only. Template zh7yn78wii pinned to NVIDIA A40 at $1.76/h (4x SECURE). Waiting for RunPod 4x A40 capacity; timer phase101-a40-retry every 300s."
 }
