@@ -1,11 +1,12 @@
 {
   "status": "running",
   "experiment": "Phase 12 training memory and capacity",
+  "note": "User-directed EU-SE-1 rerun. Delete pod on NCCL topology hang.",
   "active_pod": {
-    "pod_id": "tsp6vzihrfsajk",
+    "pod_id": "ita9rvo5y7jbps",
     "dc": "EU-SE-1",
-    "host": "6441120d",
-    "cuda": "13.0",
+    "host": "64411279",
+    "cuda": "12.8",
     "price_per_hr": 0.88
   },
   "infrastructure": {
@@ -18,10 +19,10 @@
       {"pod_id": "8iishiy8k49pf8", "dc": "CA-MTL-1", "host": "64411133", "cuda": "13.0", "failure": "NCCL hang"},
       {"pod_id": "gyisoehezdhyiv", "dc": "EU-SE-1", "host": "64411137", "cuda": "13.0", "failure": "NCCL hang"},
       {"pod_id": "mebfqubiyk8agy", "dc": "EU-SE-1", "host": "6441127d", "cuda": "13.0", "failure": "NCCL hang"},
-      {"pod_id": "tsp6vzihrfsajk", "dc": "EU-SE-1", "host": "6441120d", "cuda": "13.0", "status": "running"}
+      {"pod_id": "tsp6vzihrfsajk", "dc": "EU-SE-1", "host": "6441120d", "cuda": "13.0", "failure": "NCCL hang"}
     ],
     "known_good_topology_hosts": ["64411267"],
-    "known_bad_nccl_hosts": ["644110db", "64411856", "64411133", "64411137", "6441127d"],
+    "known_bad_nccl_hosts": ["644110db", "64411856", "64411133", "64411137", "6441127d", "6441120d"],
     "gpu_retries_stopped": false
   },
   "harness_commits": ["e249c1d", "70e9aab"]
