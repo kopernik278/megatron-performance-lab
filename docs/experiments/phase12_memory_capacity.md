@@ -17,12 +17,13 @@ Status: **retrying on EU-SE-1** — host `64411279` NCCL-hung; deleted `ita9rvo5
 | `tsp6vzihrfsajk` | EU-SE-1 | 6441120d | 13.0 | NCCL hang |
 | `ita9rvo5y7jbps` | EU-SE-1 | 64411279 | 12.8 | NCCL hang |
 | — | EU-SE-1 | 64411279 | 12.8 | **stock saturated** on bad host (3× recreate) |
+| — | EU-SE-1 | 64411137 | 13.0 | **stock watch 04:31** — 3× recreate, all bad host |
 
 ## Host classes
 
 - Known-good topology: EU-SE **`64411267` only**
 - Known-bad NCCL: `644110db`, `64411856`, `64411133`, `64411137`, `6441127d`, `6441120d`, `64411279`
-- **Current blocker:** EU-SE-1 2×A40 stock appears pinned to `64411279`; EU-NL/CZ have no 2×A40 stock
+- **Current blocker:** EU-SE-1 2×A40 stock rotating only bad hosts (`64411279`, `64411137`); EU-NL/CZ have no 2×A40 stock
 
 ## Harness fixes
 
