@@ -1,6 +1,6 @@
 # Phase 12: Training Memory and Capacity Engineering
 
-Status: **running** — stock watch landed new host `64411be4` (pod `cnsmk11q8r4gzj`). Not in known-bad list; awaiting topology.
+Status: **blocked** — host `64411be4` also NCCL-hung; only known-good host remains `64411267`.
 
 ## Attempts
 
@@ -18,6 +18,7 @@ Status: **running** — stock watch landed new host `64411be4` (pod `cnsmk11q8r4
 | `ita9rvo5y7jbps` | EU-SE-1 | 64411279 | 12.8 | NCCL hang |
 | — | EU-SE-1 | 64411279 | 12.8 | **stock saturated** on bad host (3× recreate) |
 | — | EU-SE-1 | 64411137 | 13.0 | **stock watch 04:31** — 3× recreate, all bad host |
+| `cnsmk11q8r4gzj` | EU-SE-1 | 64411be4 | 13.0 | **running** (new host) |
 
 ## Host classes
 
