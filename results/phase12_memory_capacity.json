@@ -1,0 +1,46 @@
+{
+  "status": "terminated",
+  "experiment": "Phase 12 training memory and capacity",
+  "termination_reason": "Runpod 2xA40 pods unusable for NCCL DP=2 experiments: 10 known-bad topology hosts, only host 64411267 verified good but cannot be pinned; EU-SE stock assigns bad hosts repeatedly.",
+  "abort_reason": "NCCL P2P hang during topology sanity (timeout 90s)",
+  "last_attempt": {
+    "pod_id": "aegwyeert35umd",
+    "dc": "EU-SE-1",
+    "host": "64411730",
+    "cuda": "12.8",
+    "price_per_hr": 0.88,
+    "outcome": "NCCL P2P topology hang; pod deleted"
+  },
+  "partial_results": {
+    "host_64411267": {
+      "topology": "ok",
+      "smoke": "A/B passed before full harness fixes; C failed autocast (fixed in harness, not re-run on good host)",
+      "fixed_workload_abcd": "not collected",
+      "capacity_search": "not collected"
+    }
+  },
+  "infrastructure": {
+    "known_good_topology_hosts": ["64411267"],
+    "known_bad_nccl_hosts": [
+      "644110db",
+      "64411856",
+      "64411133",
+      "64411137",
+      "6441127d",
+      "6441120d",
+      "64411279",
+      "64411be4",
+      "64411be7",
+      "64411730"
+    ],
+    "gpu_retries_stopped": true,
+    "active_pod": null,
+    "stock_watch": "stopped_per_user_directive"
+  },
+  "harness_commits": ["e249c1d", "70e9aab", "7bcc107", "ba06424", "6264d0c", "4a096be", "e48bcb2"],
+  "deliverables": {
+    "harness": "complete (scripts/phase12_*.py, phase12_memory_pod.sh)",
+    "measured_abcd_dataset": "not obtained",
+    "pr": "https://github.com/kopernik278/megatron-performance-lab/pull/23"
+  }
+}

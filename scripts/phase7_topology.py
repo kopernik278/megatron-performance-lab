@@ -151,15 +151,18 @@ def main() -> None:
         same_numa_ok = is_acceptable_gpu0_gpu1_path(interconnect)
         numa_values = {value for value in numa.values() if value not in {"N/A", "NA"}}
         abort_reason = None
-        if interconnect == "SYS" and not args.allow_sys_topology:
-            abort_reason = "cross-NUMA SYS topology"
+        if interconnect == "SYS":
+            # Cross-NUMA PCIe. Allowed only when explicitly opted in (host scarcity)
+            # and later P2P + NCCL sanity still pass.
+            if not args.allow_sys_topology:
+                abort_reason = "cross-NUMA SYS topology"
         elif not same_numa_ok:
             abort_reason = f"unsupported GPU0-GPU1 path {interconnect}"
         elif len(numa_values) > 1:
             abort_reason = f"cross-NUMA GPU affinities {numa}"
-        elif not (p2p_matrix[0][1] and p2p_matrix[1][0]):
+        if abort_reason is None and not (p2p_matrix[0][1] and p2p_matrix[1][0]):
             abort_reason = "CUDA peer access is not bidirectional"
-        elif not all(item["passed"] for item in sanity_by_rank):
+        if abort_reason is None and not all(item["passed"] for item in sanity_by_rank):
             abort_reason = "NCCL All-Reduce sanity failed"
         result = {
             "status": "success" if abort_reason is None else "abort",
