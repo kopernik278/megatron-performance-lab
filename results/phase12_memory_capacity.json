@@ -1,17 +1,30 @@
 {
-  "status": "blocked",
+  "status": "aborted",
   "experiment": "Phase 12 training memory and capacity",
-  "note": "Host 64411be4 NCCL-hung. Only known-good: 64411267. No active pod.",
+  "abort_reason": "NCCL P2P hang during topology sanity (timeout 90s)",
+  "last_attempt": {
+    "pod_id": "f2jnkr58vn06lq",
+    "dc": "EU-SE-1",
+    "host": "64411be7",
+    "cuda": "12.8",
+    "price_per_hr": 0.88,
+    "outcome": "NCCL P2P topology hang; pod deleted after restart loop"
+  },
   "infrastructure": {
-    "attempts": [
-      {"pod_id": "x73moln06loei1", "dc": "EU-SE-1", "host": "64411267", "failure": "premature fused_backend_status", "topology": "SYS OK"},
-      {"pod_id": "idk2hckrkrbejr", "dc": "EU-SE-1", "host": "64411267", "failure": "C recompute outside autocast", "smoke_AB": "passed", "topology": "SYS OK"},
-      {"pod_id": "cnsmk11q8r4gzj", "dc": "EU-SE-1", "host": "64411be4", "cuda": "13.0", "failure": "NCCL hang"}
-    ],
     "known_good_topology_hosts": ["64411267"],
-    "known_bad_nccl_hosts": ["644110db", "64411856", "64411133", "64411137", "6441127d", "6441120d", "64411279", "64411be4"],
+    "known_bad_nccl_hosts": [
+      "644110db",
+      "64411856",
+      "64411133",
+      "64411137",
+      "6441127d",
+      "6441120d",
+      "64411279",
+      "64411be4",
+      "64411be7"
+    ],
     "gpu_retries_stopped": false,
-    "stock_blocker": "Need host 64411267 or unknown-good EU-SE host"
+    "active_pod": null
   },
   "harness_commits": ["e249c1d", "70e9aab", "7bcc107"]
 }

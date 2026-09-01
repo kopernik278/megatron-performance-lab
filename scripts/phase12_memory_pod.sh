@@ -23,6 +23,12 @@ RUN_DONE_MARKER="${ROOT}/.phase12_run_done"
 WORK=results/phase12_work
 PROF=profiles/phase12_work
 
+if [[ -f "${ABORT_MARKER}" ]]; then
+  reason="$(cat "${ABORT_MARKER}")"
+  echo "PHASE12_ALREADY_RAN status=aborted reason=${reason}"
+  exit 0
+fi
+
 if [[ -f "${RUN_DONE_MARKER}" ]]; then
   if [[ -f "${ROOT}/results/phase12_memory_capacity.json" ]]; then
     status="$("${ROOT}/.venv/bin/python" -c "import json;print(json.load(open('${ROOT}/results/phase12_memory_capacity.json')).get('status',''))" 2>/dev/null || true)"
