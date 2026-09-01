@@ -1,0 +1,144 @@
+{
+  "status": "success",
+  "experiment": "Phase 3.3 fused-attention micro-batch scaling",
+  "run_mode": "nsight_profile",
+  "parameter_count": 355919872,
+  "model_config": {
+    "architecture": "Megatron Core GPTModel",
+    "num_layers": 24,
+    "hidden_size": 1024,
+    "ffn_hidden_size": 4096,
+    "num_attention_heads": 16,
+    "head_dimension": 64,
+    "vocab_size": 50304,
+    "max_position_embeddings": 2048,
+    "position_embedding_type": "learned_absolute",
+    "share_embeddings_and_output_weights": true,
+    "hidden_dropout": 0.1,
+    "attention_dropout": 0.1,
+    "layernorm_epsilon": 1e-05,
+    "attention_backend": "fused",
+    "attention_implementation": "te-fused",
+    "core_attention": "TEDotProductAttention",
+    "transformer_layer_spec": "get_gpt_layer_local_spec"
+  },
+  "parallelism": {
+    "tensor_parallel": 1,
+    "pipeline_parallel": 1,
+    "data_parallel": 1
+  },
+  "precision": {
+    "forward_backward": "BF16 autocast",
+    "parameter_storage": "FP32",
+    "optimizer_state": "FP32",
+    "bf16_enabled": true
+  },
+  "optimizer": {
+    "name": "torch.optim.AdamW",
+    "learning_rate": 0.0001,
+    "foreach": false,
+    "fused": false
+  },
+  "data": {
+    "type": "fixed synthetic random token IDs",
+    "seed": 1235
+  },
+  "micro_batch_size": 8,
+  "global_batch_size": 8,
+  "sequence_length": 2048,
+  "tokens_per_step": 16384,
+  "warmup_iterations": 20,
+  "measured_iterations": 15,
+  "warmup_final_loss": 9.956926345825195,
+  "measured_losses": [
+    9.913818359375,
+    9.86801528930664,
+    9.834043502807617,
+    9.802477836608887,
+    9.766961097717285,
+    9.72990608215332,
+    9.691277503967285,
+    9.654373168945312,
+    9.62448501586914,
+    9.599812507629395,
+    9.576236724853516,
+    9.551095962524414,
+    9.522066116333008,
+    9.488935470581055,
+    9.461233139038086
+  ],
+  "final_loss": 9.461233139038086,
+  "average_step_time_ms": 1085.4099489748478,
+  "median_step_time_ms": 1085.2860435843468,
+  "step_times_ms": [
+    1084.3502394855022,
+    1084.1120965778828,
+    1084.2877849936485,
+    1085.2860435843468,
+    1085.023071616888,
+    1084.6485532820225,
+    1084.953710436821,
+    1085.4140520095825,
+    1085.2829366922379,
+    1085.9352722764015,
+    1086.328361183405,
+    1085.9720297157764,
+    1085.797119885683,
+    1086.9247429072857,
+    1086.833219975233
+  ],
+  "tokens_per_second": 15094.757529608441,
+  "milliseconds_per_token": 0.06624816583098436,
+  "peak_allocated_memory_mib": 31192.47314453125,
+  "peak_reserved_memory_mib": 31838.0,
+  "gpu_monitoring": {
+    "sample_interval_ms": 200,
+    "sample_count": 126,
+    "average_gpu_utilization_percent": 64.61904761904762,
+    "peak_nvidia_smi_memory_mib": 32660.0
+  },
+  "mfu": {
+    "training_flops_per_iteration": 39698382716928.0,
+    "achieved_tflops": 36.57455208921061,
+    "gpu_dense_bf16_peak_tflops": 149.7,
+    "mfu_percent": 24.431898523186785,
+    "formula": "F_iter = 72*B*S*L*H^2 + 6*B*L*S^2*H + 6*B*S*H*V; MFU = (F_iter / step_seconds) / 149.7e12"
+  },
+  "transformer_engine_backend": {
+    "flash_attention": false,
+    "fused_attention": true,
+    "unfused_attention": false,
+    "fused_sub_backend": 1
+  },
+  "instrumentation": {
+    "cuda_profiler_capture_range": true,
+    "autograd_nvtx": true,
+    "cuda_graph_enabled": false,
+    "unrelated_kernel_fusion_added": false
+  },
+  "environment": {
+    "timestamp_utc": "2026-08-23T16:13:29.491887+00:00",
+    "hostname": "4553547fc7f0",
+    "platform": "Linux-6.8.0-52-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "pytorch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "nccl": "2.27.3",
+    "cudnn": 91002,
+    "megatron_core": "unavailable: Command '['python', '-c', \"import importlib.metadata as m; print(m.version('megatron-core'))\"]' returned non-zero exit status 1.",
+    "megatron_lm_commit": "09fde85ea25fb67e9b32019089fae163a3233bd3",
+    "project_commit": "68298151afcc6be3866003004381585e30ff0ebb",
+    "gpu": "NVIDIA A40",
+    "driver": "570.195.03",
+    "gpu_memory_total_mib": 46068.0,
+    "compute_capability": [
+      8,
+      6
+    ],
+    "bf16_supported": true,
+    "transformer_engine_installed": true,
+    "transformer_engine_version": "2.17.1+4329ff84",
+    "transformer_engine_disabled": false,
+    "cuda_graph_enabled": false
+  }
+}
