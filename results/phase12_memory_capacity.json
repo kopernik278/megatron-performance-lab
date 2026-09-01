@@ -1,14 +1,13 @@
 {
-  "status": "aborted",
+  "status": "running",
   "experiment": "Phase 12 training memory and capacity",
-  "abort_reason": "NCCL P2P hang during topology sanity (timeout 90s)",
-  "last_attempt": {
-    "pod_id": "f2jnkr58vn06lq",
+  "active_pod": {
+    "pod_id": "aegwyeert35umd",
     "dc": "EU-SE-1",
-    "host": "64411be7",
+    "host": "64411730",
     "cuda": "12.8",
     "price_per_hr": 0.88,
-    "outcome": "NCCL P2P topology hang; pod deleted after restart loop"
+    "note": "New host from stock watch; not in known-bad list"
   },
   "infrastructure": {
     "known_good_topology_hosts": ["64411267"],
@@ -23,8 +22,7 @@
       "64411be4",
       "64411be7"
     ],
-    "gpu_retries_stopped": false,
-    "active_pod": null
+    "gpu_retries_stopped": false
   },
-  "harness_commits": ["e249c1d", "70e9aab", "7bcc107"]
+  "harness_commits": ["e249c1d", "70e9aab", "7bcc107", "ba06424", "6264d0c"]
 }

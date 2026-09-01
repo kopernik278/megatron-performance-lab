@@ -1,6 +1,6 @@
 # Phase 12: Training Memory and Capacity Engineering
 
-Status: **aborted** — host `64411be7` NCCL hang; pod `f2jnkr58vn06lq` deleted. Resuming stock watch.
+Status: **running** — pod `aegwyeert35umd` on EU-SE-1 host `64411730` (new candidate, not in bad list).
 
 ## Attempts
 
@@ -20,6 +20,7 @@ Status: **aborted** — host `64411be7` NCCL hang; pod `f2jnkr58vn06lq` deleted.
 | — | EU-SE-1 | 64411137 | 13.0 | **stock watch 04:31** — 3× recreate, all bad host |
 | `cnsmk11q8r4gzj` | EU-SE-1 | 64411be4 | 13.0 | NCCL hang |
 | `f2jnkr58vn06lq` | EU-SE-1 | 64411be7 | 12.8 | NCCL hang (topology 90s timeout); pod deleted |
+| `aegwyeert35umd` | EU-SE-1 | 64411730 | 12.8 | **running** |
 
 ## Host classes
 
