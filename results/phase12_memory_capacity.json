@@ -1,7 +1,7 @@
 {
-  "status": "running",
+  "status": "blocked",
   "experiment": "Phase 12 training memory and capacity",
-  "note": "EU-SE-1 retry; delete on NCCL hang.",
+  "note": "EU-SE-1 2xA40 stock saturated on NCCL-bad host 64411279. No active pod.",
   "infrastructure": {
     "attempts": [
       {"pod_id": "4e5cg8xbus1gb5", "dc": "EU-SE-1", "host": "64411731", "failure": "SYS gate bug"},

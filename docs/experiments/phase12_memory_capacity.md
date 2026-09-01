@@ -16,14 +16,16 @@ Status: **retrying on EU-SE-1** — host `64411279` NCCL-hung; deleted `ita9rvo5
 | `mebfqubiyk8agy` | EU-SE-1 | 6441127d | 13.0 | NCCL hang |
 | `tsp6vzihrfsajk` | EU-SE-1 | 6441120d | 13.0 | NCCL hang |
 | `ita9rvo5y7jbps` | EU-SE-1 | 64411279 | 12.8 | NCCL hang |
-| *(pending)* | EU-SE-1 | TBD | TBD | retry |
+| — | EU-SE-1 | 64411279 | 12.8 | **stock saturated** on bad host (3× recreate) |
 
 ## Host classes
 
 - Known-good topology: EU-SE **`64411267` only**
 - Known-bad NCCL: `644110db`, `64411856`, `64411133`, `64411137`, `6441127d`, `6441120d`, `64411279`
+- **Current blocker:** EU-SE-1 2×A40 stock appears pinned to `64411279`; EU-NL/CZ have no 2×A40 stock
 
 ## Harness fixes
 
 - `e249c1d`: TE fused backend check after smoke forward
 - `70e9aab`: BF16 autocast wraps forward+backward for TE full recompute
+- `7bcc107`: persistent abort marker (stop restart billing loops)
