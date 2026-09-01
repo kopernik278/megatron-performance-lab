@@ -18,8 +18,8 @@ if [[ ! -x "${NSYS}" ]]; then
   NSYS="$(command -v nsys || true)"
 fi
 CUDNN_LIB=/usr/local/lib/python3.12/dist-packages/nvidia/cudnn/lib
-ABORT_MARKER=/tmp/phase12_abort_reason.txt
-RUN_DONE_MARKER=/tmp/phase12_run_done
+ABORT_MARKER="${ROOT}/.phase12_abort_reason.txt"
+RUN_DONE_MARKER="${ROOT}/.phase12_run_done"
 WORK=results/phase12_work
 PROF=profiles/phase12_work
 
