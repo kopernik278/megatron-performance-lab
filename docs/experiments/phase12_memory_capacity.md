@@ -1,6 +1,6 @@
 # Phase 12: Training Memory and Capacity Engineering
 
-Status: **blocked** — host `64411be4` also NCCL-hung; only known-good host remains `64411267`.
+Status: **running** — stock watch landed host `64411be4` (pod `f2jnkr58vn06lq`, suffix `64411be7`).
 
 ## Attempts
 
@@ -18,12 +18,12 @@ Status: **blocked** — host `64411be4` also NCCL-hung; only known-good host rem
 | `ita9rvo5y7jbps` | EU-SE-1 | 64411279 | 12.8 | NCCL hang |
 | — | EU-SE-1 | 64411279 | 12.8 | **stock saturated** on bad host (3× recreate) |
 | — | EU-SE-1 | 64411137 | 13.0 | **stock watch 04:31** — 3× recreate, all bad host |
-| `cnsmk11q8r4gzj` | EU-SE-1 | 64411be4 | 13.0 | **running** (new host) |
+| `cnsmk11q8r4gzj` | EU-SE-1 | 64411be4 | 13.0 | NCCL hang |
 
 ## Host classes
 
 - Known-good topology: EU-SE **`64411267` only**
-- Known-bad NCCL: `644110db`, `64411856`, `64411133`, `64411137`, `6441127d`, `6441120d`, `64411279`
+- Known-bad NCCL: `644110db`, `64411856`, `64411133`, `64411137`, `6441127d`, `6441120d`, `64411279`, `64411be4`
 - **Current blocker:** EU-SE-1 2×A40 stock rotating only bad hosts (`64411279`, `64411137`); EU-NL/CZ have no 2×A40 stock
 
 ## Harness fixes

@@ -1,24 +1,17 @@
 {
-  "status": "running",
+  "status": "blocked",
   "experiment": "Phase 12 training memory and capacity",
-  "active_pod": {
-    "pod_id": "cnsmk11q8r4gzj",
-    "dc": "EU-SE-1",
-    "host": "64411be4",
-    "cuda": "13.0",
-    "price_per_hr": 0.88,
-    "note": "New host from stock watch; not in known-bad list"
-  },
+  "note": "Host 64411be4 NCCL-hung. Only known-good: 64411267. No active pod.",
   "infrastructure": {
     "attempts": [
       {"pod_id": "x73moln06loei1", "dc": "EU-SE-1", "host": "64411267", "failure": "premature fused_backend_status", "topology": "SYS OK"},
       {"pod_id": "idk2hckrkrbejr", "dc": "EU-SE-1", "host": "64411267", "failure": "C recompute outside autocast", "smoke_AB": "passed", "topology": "SYS OK"},
-      {"pod_id": "ita9rvo5y7jbps", "dc": "EU-SE-1", "host": "64411279", "cuda": "12.8", "failure": "NCCL hang"},
-      {"pod_id": "cnsmk11q8r4gzj", "dc": "EU-SE-1", "host": "64411be4", "cuda": "13.0", "status": "running"}
+      {"pod_id": "cnsmk11q8r4gzj", "dc": "EU-SE-1", "host": "64411be4", "cuda": "13.0", "failure": "NCCL hang"}
     ],
     "known_good_topology_hosts": ["64411267"],
-    "known_bad_nccl_hosts": ["644110db", "64411856", "64411133", "64411137", "6441127d", "6441120d", "64411279"],
-    "gpu_retries_stopped": false
+    "known_bad_nccl_hosts": ["644110db", "64411856", "64411133", "64411137", "6441127d", "6441120d", "64411279", "64411be4"],
+    "gpu_retries_stopped": false,
+    "stock_blocker": "Need host 64411267 or unknown-good EU-SE host"
   },
   "harness_commits": ["e249c1d", "70e9aab", "7bcc107"]
 }
