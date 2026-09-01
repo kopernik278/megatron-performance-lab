@@ -105,12 +105,9 @@ Accepted optimizations only (failed paths → [Negative Results](#engineering-fi
 | Document | Description |
 |----------|-------------|
 | [docs/FINAL_PROJECT_REPORT.md](docs/FINAL_PROJECT_REPORT.md) | Full technical report |
-| [docs/INTERVIEW_GUIDE.md](docs/INTERVIEW_GUIDE.md) | Interview Q&A grounded in project data |
-| [docs/RESUME.md](docs/RESUME.md) | Chinese + English resume bullets |
 | [docs/experiments/](docs/experiments/) | Per-phase experiment writeups |
 | [results/](results/) | Machine-readable benchmark JSON |
 | [profiles/](profiles/) | Nsight Systems / Compute traces (not committed in full) |
-| [AI_INFRA_CONTEXT.md](AI_INFRA_CONTEXT.md) | Learning goals and measurement standards |
 
 ### Key result files
 
@@ -136,8 +133,6 @@ python -m json.tool results/phase3_fused_attention_ab.json
 # Run harness (requires 1–2× A40 + Megatron/TE setup)
 bash scripts/phase12_memory_pod.sh <pod_id> 0.88   # Phase 12 harness (infra-dependent)
 ```
-
-See [AGENTS.md](AGENTS.md) for repository conventions.
 
 ---
 
