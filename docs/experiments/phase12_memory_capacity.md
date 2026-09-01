@@ -32,4 +32,4 @@ Status: **aborted** — host `64411be7` NCCL hang; pod `f2jnkr58vn06lq` deleted.
 - `e249c1d`: TE fused backend check after smoke forward
 - `70e9aab`: BF16 autocast wraps forward+backward for TE full recompute
 - `7bcc107`: persistent abort marker (stop restart billing loops)
-- pending: check `ABORT_MARKER` before git restore on container restart
+- `ba06424`: check `ABORT_MARKER` before git restore on container restart
