@@ -1,6 +1,6 @@
 # Phase 12: Training Memory and Capacity Engineering
 
-Status: **running** — pod `aegwyeert35umd` on EU-SE-1 host `64411730` (new candidate, not in bad list).
+Status: **aborted** — host `64411730` NCCL hang; pod `aegwyeert35umd` deleted. Resuming stock watch.
 
 ## Attempts
 
@@ -20,12 +20,12 @@ Status: **running** — pod `aegwyeert35umd` on EU-SE-1 host `64411730` (new can
 | — | EU-SE-1 | 64411137 | 13.0 | **stock watch 04:31** — 3× recreate, all bad host |
 | `cnsmk11q8r4gzj` | EU-SE-1 | 64411be4 | 13.0 | NCCL hang |
 | `f2jnkr58vn06lq` | EU-SE-1 | 64411be7 | 12.8 | NCCL hang (topology 90s timeout); pod deleted |
-| `aegwyeert35umd` | EU-SE-1 | 64411730 | 12.8 | **running** |
+| `aegwyeert35umd` | EU-SE-1 | 64411730 | 12.8 | NCCL hang (topology 90s timeout); pod deleted |
 
 ## Host classes
 
 - Known-good topology: EU-SE **`64411267` only**
-- Known-bad NCCL: `644110db`, `64411856`, `64411133`, `64411137`, `6441127d`, `6441120d`, `64411279`, `64411be4`, **`64411be7`**
+- Known-bad NCCL: `644110db`, `64411856`, `64411133`, `64411137`, `6441127d`, `6441120d`, `64411279`, `64411be4`, `64411be7`, **`64411730`**
 - **Current blocker:** EU-SE-1 2×A40 stock rotating bad hosts; waiting for `64411267` or new good host
 
 ## Harness fixes
