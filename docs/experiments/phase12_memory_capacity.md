@@ -1,6 +1,6 @@
 # Phase 12: Training Memory and Capacity Engineering
 
-Status: **retrying on EU-SE-1** — host `64411279` NCCL-hung; deleted `ita9rvo5y7jbps`. Harness fix: persistent abort marker to stop restart billing loops.
+Status: **running** — stock watch landed new host `64411be4` (pod `cnsmk11q8r4gzj`). Not in known-bad list; awaiting topology.
 
 ## Attempts
 
